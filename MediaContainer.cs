@@ -6,11 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaCurator
 {
-   class MediaContainer
+   public class MediaContainer
    {
       #region Fields
-
-      private ILogger<MediaContainer> _logger;
 
       private IConfiguration _configuration { get; }
 
@@ -169,9 +167,8 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaContainer(IConfiguration configuration, ILogger<MediaContainer> logger, string path)
+      public MediaContainer(IConfiguration configuration, string path)
       {
-         _logger = logger;
          _configuration = configuration;
 
          if (path == null)
@@ -203,9 +200,8 @@ namespace MediaCurator
          // take care of the element itself.
       }
 
-      public MediaContainer(IConfiguration configuration, ILogger<MediaContainer> logger, XElement element, bool update = false)
+      public MediaContainer(IConfiguration configuration, XElement element, bool update = false)
       {
-         _logger = logger;
          _configuration = configuration;
 
          if (element != null)

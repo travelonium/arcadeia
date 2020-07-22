@@ -36,8 +36,6 @@ namespace MediaCurator
 
       #region Fields
 
-      private ILogger<VideoFile> _logger;
-
       private IConfiguration _configuration { get; }
 
       public double Duration
@@ -153,10 +151,9 @@ namespace MediaCurator
 
       #region Constructors
 
-      public VideoFile(IConfiguration configuration, ILogger<VideoFile> logger, string path)
-         : base(configuration, logger, "Video", path)
+      public VideoFile(IConfiguration configuration, string path)
+         : base(configuration, "Video", path)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // The base class constructor will take care of the parents and the creation or retrieval 
@@ -209,10 +206,9 @@ namespace MediaCurator
          }
       }
 
-      public VideoFile(IConfiguration configuration, ILogger<VideoFile> logger, XElement element, bool update = false)
-         : base(configuration, logger, element, update)
+      public VideoFile(IConfiguration configuration, XElement element, bool update = false)
+         : base(configuration, element, update)
       {
-         _logger = logger;
          _configuration = configuration;
 
          if (Self != null)

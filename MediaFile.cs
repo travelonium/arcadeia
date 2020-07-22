@@ -10,11 +10,9 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaCurator
 {
-   class MediaFile : MediaContainer
+   public class MediaFile : MediaContainer
    {
       #region Fields
-
-      private ILogger<MediaFile> _logger;
 
       private IConfiguration _configuration { get; }
 
@@ -117,10 +115,9 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaFile(IConfiguration configuration, ILogger<MediaFile> logger, string type, string path)
-         : base(configuration, logger, MediaContainer.GetPathComponents(path).Item1)
+      public MediaFile(IConfiguration configuration, string type, string path)
+         : base(configuration, MediaContainer.GetPathComponents(path).Item1)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // The base class constructor will take care of the parents and below we'll take care of
@@ -202,10 +199,9 @@ namespace MediaCurator
          }
       }
 
-      public MediaFile(IConfiguration configuration, ILogger<MediaFile> logger, XElement element, bool update = false)
-         : base(configuration, logger, element, update)
+      public MediaFile(IConfiguration configuration, XElement element, bool update = false)
+         : base(configuration, element, update)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // Do we need to update the MediaContainer fields against its physical instance?

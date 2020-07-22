@@ -11,8 +11,6 @@ namespace MediaCurator
    {
       #region Fields
 
-      private ILogger<MediaDrive> _logger;
-
       private IConfiguration _configuration { get; }
 
       public string SerialNumber
@@ -32,10 +30,9 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaDrive(IConfiguration configuration, ILogger<MediaDrive> logger, string path)
-         : base(configuration, logger, MediaContainer.GetPathComponents(path).Item1)
+      public MediaDrive(IConfiguration configuration, string path)
+         : base(configuration, MediaContainer.GetPathComponents(path).Item1)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // The base class constructor will take care of the parents and below we'll take care of
@@ -105,10 +102,9 @@ namespace MediaCurator
          // Thumbnail = new MediaContainerThumbnail("pack://application:,,,/Icons/256x144/Drive.png");
       }
 
-      public MediaDrive(IConfiguration configuration, ILogger<MediaDrive> logger, XElement element, bool update = false)
-          : base(configuration, logger, element, update)
+      public MediaDrive(IConfiguration configuration, XElement element, bool update = false)
+          : base(configuration, element, update)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // TODO: Set the Thumbnail.

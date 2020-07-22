@@ -9,8 +9,6 @@ namespace MediaCurator
    {
       #region Fields
 
-      private ILogger<MediaFolder> _logger;
-
       private IConfiguration _configuration { get; }
 
       /// <summary>
@@ -53,10 +51,9 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaFolder(IConfiguration configuration, ILogger<MediaFolder> logger, string path)
-         : base(configuration, logger, MediaContainer.GetPathComponents(path).Item1)
+      public MediaFolder(IConfiguration configuration, string path)
+         : base(configuration, MediaContainer.GetPathComponents(path).Item1)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // The base class constructor will take care of the parents and below we'll take care of
@@ -101,10 +98,9 @@ namespace MediaCurator
          // Thumbnail = new MediaContainerThumbnail("pack://application:,,,/Icons/256x144/Folder.png");
       }
 
-      public MediaFolder(IConfiguration configuration, ILogger<MediaFolder> logger, XElement element, bool update = false)
-         : base(configuration, logger, element, update)
+      public MediaFolder(IConfiguration configuration, XElement element, bool update = false)
+         : base(configuration, element, update)
       {
-         _logger = logger;
          _configuration = configuration;
 
          // TODO: Set the Thumbnail.
