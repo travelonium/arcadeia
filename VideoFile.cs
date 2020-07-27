@@ -17,19 +17,19 @@ namespace MediaCurator
 
       private static readonly int[,] TotalThumbnails =
       {
-      /* Total number of thumbnails based on the length in seconds :                              */ 
+      /* Total number of thumbnails based on the length in seconds :                              */
       /*   From      To       Count             Maximum Duration     Every X Seconds              */
          { 0,        60,      24       },    // 1m                   2.5s
          { 61,       120,     24       },    // 2m                   5s
-         { 121,      240,     24       },    // 4m                   10s  
-         { 241,      480,     24       },    // 8m                   20s  
-         { 481,      960,     24       },    // 16m                  40s  
-         { 961,      1920,    24       },    // 32m                  80s  
-         { 1921,     3840,    24       },    // 64m                  160s  
-         { 3841,     7680,    24       },    // 128m                 320s  
-         { 7681,     15360,   24       },    // 256m                 640s  
-         { 15361,    30720,   24       },    // 512m                 1280s  
-         { 30721,    61440,   24       },    // 1024m                2560s 
+         { 121,      240,     24       },    // 4m                   10s
+         { 241,      480,     24       },    // 8m                   20s
+         { 481,      960,     24       },    // 16m                  40s
+         { 961,      1920,    24       },    // 32m                  80s
+         { 1921,     3840,    24       },    // 64m                  160s
+         { 3841,     7680,    24       },    // 128m                 320s
+         { 7681,     15360,   24       },    // 256m                 640s
+         { 15361,    30720,   24       },    // 512m                 1280s
+         { 30721,    61440,   24       },    // 1024m                2560s
       };
 
       #endregion // Constants
@@ -156,7 +156,7 @@ namespace MediaCurator
       {
          _configuration = configuration;
 
-         // The base class constructor will take care of the parents and the creation or retrieval 
+         // The base class constructor will take care of the parents and the creation or retrieval
          // of the element itself. Here we'll attend to additional properties of a video file.
 
          if (Self != null)
@@ -178,6 +178,8 @@ namespace MediaCurator
 
                try
                {
+                  Debug.WriteLine(jsonVideoFileInfo["format"]["duration"]);
+
                   Duration = Double.Parse((string)jsonVideoFileInfo["format"]["duration"],
                                           CultureInfo.InvariantCulture);
                }
@@ -274,11 +276,11 @@ namespace MediaCurator
       private Dictionary<string, dynamic> GetFileInfo(string path)
       {
          string output = null;
-         string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
+         string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
 
          if (!File.Exists(executable))
          {
-            throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
+            throw new DirectoryNotFoundException("ffprobe not found at the specified path: " + executable);
          }
 
          using (Process ffprobe = new Process())
@@ -372,7 +374,7 @@ namespace MediaCurator
       /// </summary>
       /// <param name="progress">The progress which is reflected in a ProgressBar and indicates how
       /// far the thumbnail generation for the current file has gone.</param>
-      /// <param name="preview">The name of the recently generated thumbnail file in order to be 
+      /// <param name="preview">The name of the recently generated thumbnail file in order to be
       /// previewed for the user.</param>
       public void GenerateThumbnails(IProgress<Tuple<double, double>> progress,
                                      IProgress<byte[]> preview)
@@ -383,7 +385,7 @@ namespace MediaCurator
                                          GENERATE THUMBNAILS
          ----------------------------------------------------------------------------------*/
 
-         // Determine the count of thumbnails to generate based on the duration. 
+         // Determine the count of thumbnails to generate based on the duration.
          for (int row = 0; row < TotalThumbnails.GetLength(0); row++)
          {
             // Initialize the totalThumbnails with the largest value so far.

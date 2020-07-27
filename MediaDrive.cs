@@ -86,9 +86,7 @@ namespace MediaCurator
                Self = MediaDatabase.Document.Root.Elements().Last();
 
                // Make sure that we succeeded to put our hands on it.
-               if ((Self == null) ||
-                   (Tools.GetAttributeValue(Self, "Name") != name) ||
-                   (Tools.GetAttributeValue(Self, "SerialNumber") != serialNumber))
+               if ((Self == null) || (Name != name) || (SerialNumber != serialNumber))
                {
                   throw new Exception("Failed to add the new Drive element to the MediaDatabase.");
                }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
@@ -191,7 +192,7 @@ namespace MediaCurator
             if (parentType != null)
             {
                // Now the Parent will be taken care of!
-               Parent = (MediaContainer)Activator.CreateInstance(parentType, path);
+               Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, path);
             }
          }
 
@@ -217,7 +218,7 @@ namespace MediaCurator
                if (parentType != null)
                {
                   // Now the Parent will be taken care of!
-                  Parent = (MediaContainer)Activator.CreateInstance(parentType, element.Parent, update);
+                  Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, element.Parent, update);
                }
             }
 
@@ -302,6 +303,8 @@ namespace MediaCurator
       /// when the supplied path has only one level, the parent will be null.
       ///
       /// -----------------------------------------------------------------------------------------
+      /// |                                       WINDOWS                                         |
+      /// -----------------------------------------------------------------------------------------
       /// | Path                            ->     Parent               +     Child               |
       /// -----------------------------------------------------------------------------------------
       /// | C:\                             ->     null                 +     C:\                 |
@@ -310,6 +313,16 @@ namespace MediaCurator
       /// | \\Server1\File.ext              ->     \\Server1\           +     File.ext            |
       /// | C:\Folder1\Folder2\File.ext     ->     C:\Folder1\Folder2\  +     File.ext            |
       /// | C:\Folder1\                     ->     C:\                  +     Folder1\            |
+      /// -----------------------------------------------------------------------------------------
+      ///
+      /// -----------------------------------------------------------------------------------------
+      /// |                                      LINUX/OSX                                        |
+      /// -----------------------------------------------------------------------------------------
+      /// | Path                            ->     Parent               +     Child               |
+      /// -----------------------------------------------------------------------------------------
+      /// | /File.ext                       ->     null                 +     File.ext            |
+      /// | /Folder1/                       ->     null                 +     Folder1/            |
+      /// | /Folder1/Folder2/File.ext       ->     /Folder1/Folder2/    +     File.ext            |
       /// -----------------------------------------------------------------------------------------
       ///
       /// </summary>
@@ -323,9 +336,9 @@ namespace MediaCurator
          string parent = null;
          string child = null;
 
-         for (int i = path.Length - 1; i > 0; i--)
+         for (int i = path.Length - 1; i >= 0; i--)
          {
-            if (path[i].Equals('\\'))
+            if (path[i].Equals('\\') || path[i].Equals('/'))
             {
                if (i == (path.Length - 1))
                {
@@ -343,6 +356,12 @@ namespace MediaCurator
                {
                   // It appears to be a server name. The parent will be null.
                   child = path.Substring(0, path.Length);
+                  break;
+               }
+               else if (i == 0)
+               {
+                  // This must be the leading slash in a Linux path name. The parent will be null.
+                  child = path.Substring(1, path.Length - 1);
                   break;
                }
                else
@@ -386,8 +405,8 @@ namespace MediaCurator
             }
 
             if ((container.Length > 1) &&
-                (container.Count(c => c == '\\') == 1) &&
-                (container[container.Length - 1] == '\\'))
+                (container.Count(c => (c == '\\') || (c == '/')) == 1) &&
+                ((container[container.Length - 1] == '\\') || (container[container.Length - 1] == '/')))
             {
                // It's a folder.
                return typeof(MediaFolder);

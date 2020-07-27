@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,9 +24,9 @@ namespace MediaCurator
 
             tooltip += String.Format("{0}", Name);
 
-            /* 
+            /*
              * TODO: Implement a Size Field which would calculate the size of the folder.
-             * 
+             *
             if( Size < 0x400UL )                // < 1KB
             {
                tooltip += String.Format( "\nSize: {0}B", Size );
@@ -59,15 +61,42 @@ namespace MediaCurator
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
 
-         if (Parent != null)
-         {
-            // Extract the Folder Name from the supplied path removing the \ characters. 
-            string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\' });
+         // Extract the Folder Name from the supplied path removing the \ and / characters.
+         string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\', '/' });
 
+         if (Parent == null)
+         {
+            // Retrieve the element if it already exists.
+            Self = Tools.GetElementByNameAttribute(MediaDatabase.Document.Root, "Folder", name);
+
+            // This folder resides in the Linux/OSX root filesystem.
+            if (Self != null)
+            {
+               // We found the element. We may want to make sure it has not been modified since the
+               // last time the MediaDatabase was updated and update it if needed.
+            }
+            else
+            {
+               // Looks like there is no such element! Let's create one then!
+               MediaDatabase.Document.Root.Add(
+                  new XElement("Folder",
+                     new XAttribute("Name", name)));
+
+               // Retrieve the newly created element.
+               Self = MediaDatabase.Document.Root.Elements().Last();
+
+               // Make sure that we succeeded to put our hands on it.
+               if ((Self == null) || (Name != name))
+               {
+                  throw new Exception("Failed to add the new Folder element to the MediaDatabase.");
+               }
+            }
+         }
+         else
+         {
             // Retrieve the element if it already exists.
             Self = Tools.GetElementByNameAttribute(Parent.Self, "Folder", name);
 
-            // Did we find an already existing element?
             if (Self != null)
             {
                // We found the element. We may want to make sure it has not been modified since the
@@ -89,10 +118,10 @@ namespace MediaCurator
                   throw new Exception("Failed to add the new Folder element to the MediaDatabase.");
                }
             }
-
-            // Initialize the flags.
-            Flags = new MediaContainerFlags(Self);
          }
+
+         // Initialize the flags.
+         Flags = new MediaContainerFlags(Self);
 
          // TODO: Set the Thumbnail.
          // Thumbnail = new MediaContainerThumbnail("pack://application:,,,/Icons/256x144/Folder.png");
