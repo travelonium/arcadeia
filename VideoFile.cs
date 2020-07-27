@@ -178,9 +178,7 @@ namespace MediaCurator
 
                try
                {
-                  Debug.WriteLine(jsonVideoFileInfo["format"]["duration"]);
-
-                  Duration = Double.Parse((string)jsonVideoFileInfo["format"]["duration"],
+                  Duration = Double.Parse(jsonVideoFileInfo.GetProperty("format").GetProperty("duration").GetString(),
                                           CultureInfo.InvariantCulture);
                }
                catch (Exception e)
@@ -196,8 +194,8 @@ namespace MediaCurator
                try
                {
                   Resolution = new ResolutionType(String.Format("{0}x{1}",
-                                                  jsonVideoFileInfo["streams"][0]["width"],
-                                                  jsonVideoFileInfo["streams"][0]["height"]));
+                                                  jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("width").GetUInt32(),
+                                                  jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("height").GetUInt32()));
                }
                catch (Exception e)
                {
@@ -231,7 +229,7 @@ namespace MediaCurator
 
                   try
                   {
-                     Duration = Double.Parse((string)jsonVideoFileInfo["format"]["duration"],
+                     Duration = Double.Parse(jsonVideoFileInfo.GetProperty("format").GetProperty("duration").GetString(),
                                              CultureInfo.InvariantCulture);
                   }
                   catch (Exception e)
@@ -247,8 +245,8 @@ namespace MediaCurator
                   try
                   {
                      Resolution = new ResolutionType(String.Format("{0}x{1}",
-                                                     jsonVideoFileInfo["streams"][0]["width"],
-                                                     jsonVideoFileInfo["streams"][0]["height"]));
+                                                     jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("width").GetUInt32(),
+                                                     jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("height").GetUInt32()));
                   }
                   catch (Exception e)
                   {
@@ -273,7 +271,7 @@ namespace MediaCurator
 
       #region Video File Operations
 
-      private Dictionary<string, dynamic> GetFileInfo(string path)
+      private JsonElement GetFileInfo(string path)
       {
          string output = null;
          string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
@@ -299,7 +297,7 @@ namespace MediaCurator
             ffprobe.WaitForExit(_configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
          }
 
-         return JsonSerializer.Deserialize<Dictionary<string, dynamic>>(output);
+         return JsonDocument.Parse(output).RootElement;
       }
 
       private byte[] GenerateThumbnail(string filePath, int position, int width, int index)
