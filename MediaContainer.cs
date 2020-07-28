@@ -11,7 +11,7 @@ namespace MediaCurator
    {
       #region Fields
 
-      private IConfiguration _configuration { get; }
+      protected readonly IConfiguration _configuration;
 
       /// <summary>
       /// Gets the root MediaContainer of this particular MediaContainer descendant.
@@ -126,20 +126,6 @@ namespace MediaCurator
             return path;
          }
       }
-
-      /// <summary>
-      /// Gets or sets the thumbnail of the current media container.
-      /// </summary>
-      /// <value>
-      /// The thumbnail.
-      /// </value>
-      /* TODO: Add support for MediaContainerThumbnails
-      public MediaContainerThumbnail Thumbnail
-      {
-          get;
-          set;
-      }
-      */
 
       /// <summary>
       /// Gets or sets the flags attribute of the media container.

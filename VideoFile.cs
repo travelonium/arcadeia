@@ -36,8 +36,6 @@ namespace MediaCurator
 
       #region Fields
 
-      private IConfiguration _configuration { get; }
-
       public double Duration
       {
          get
@@ -151,19 +149,14 @@ namespace MediaCurator
 
       #region Constructors
 
-      public VideoFile(IConfiguration configuration, string path)
-         : base(configuration, "Video", path)
+      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
+         : base(configuration, thumbnailsDatabase, "Video", path)
       {
-         _configuration = configuration;
-
          // The base class constructor will take care of the parents and the creation or retrieval
          // of the element itself. Here we'll attend to additional properties of a video file.
 
          if (Self != null)
          {
-            // TODO: Initialize the Thumbnails. This will enumerate the already existing Thumbnail files.
-            // Thumbnail = new MediaContainerThumbnail(Id, Properties.Settings.Default.ThumbnailsCachingMethod);
-
             if (Created)
             {
                // This element did not exist before and has been createdn or it did exist but it has
@@ -206,16 +199,11 @@ namespace MediaCurator
          }
       }
 
-      public VideoFile(IConfiguration configuration, XElement element, bool update = false)
-         : base(configuration, element, update)
+      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
+         : base(configuration, thumbnailsDatabase, element, update)
       {
-         _configuration = configuration;
-
          if (Self != null)
          {
-            // TODO: Initialize the Thumbnails. This will enumerate the already existing Thumbnail files.
-            // Thumbnail = new MediaContainerThumbnail(Id, Properties.Settings.Default.ThumbnailsCachingMethod);
-
             if (update)
             {
                if (Modified)
@@ -407,16 +395,15 @@ namespace MediaCurator
 
          for (int index = 1; index <= totalThumbnails; index++)
          {
-            byte[] thumbnail = null;
             int position = (int)((index - 0.5) * Duration / totalThumbnails);
 
             // Generate the thumbnail.
-            thumbnail = GenerateThumbnail(FullPath, position, 512, index);
+            byte[] thumbnail = GenerateThumbnail(FullPath, position, 512, index);
 
             if ((thumbnail != null) && (thumbnail.Length > 0))
             {
-               // TODO: Add the newly generated thumbnail to the database.
-               // ThumbnailsDatabase.Instance.SetThumbnail(Id, index - 1, ref thumbnail);
+               // Add the newly generated thumbnail to the database.
+               Thumbnails[index - 1] = thumbnail;
 
                if (preview != null)
                {
@@ -433,9 +420,6 @@ namespace MediaCurator
          }
 
          Debug.WriteLine("]");
-
-         // TODO: Re-Initialize the Thumbnails. This will enumerate the newly generated Thumbnail files.
-         // Thumbnail = new MediaContainerThumbnail(Id, Properties.Settings.Default.ThumbnailsCachingMethod);
       }
 
       #endregion // Video File Operations

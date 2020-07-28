@@ -14,7 +14,7 @@ namespace MediaCurator
    {
       #region Fields
 
-      private IConfiguration _configuration { get; }
+      protected readonly IThumbnailsDatabase _thumbnailsDatabase;
 
       /// <summary>
       /// A flag indicating that the MediaFile based element did not exist and has just been
@@ -72,6 +72,18 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets or sets the thumbnail(s) of the current media file.
+      /// </summary>
+      /// <value>
+      /// The thumbnail(s).
+      /// </value>
+      public MediaFileThumbnails Thumbnails
+      {
+         get;
+         set;
+      }
+
+      /// <summary>
       /// Gets or sets the creation date of the file. This is directly read and written from and to
       /// the MediaDatabase.
       /// </summary>
@@ -115,10 +127,10 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaFile(IConfiguration configuration, string type, string path)
+      public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string type, string path)
          : base(configuration, MediaContainer.GetPathComponents(path).Item1)
       {
-         _configuration = configuration;
+         _thumbnailsDatabase = thumbnailsDatabase;
 
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
@@ -196,13 +208,19 @@ namespace MediaCurator
 
             // Initialize the flags.
             Flags = new MediaContainerFlags(Self);
+
+            // Initialize the thumbnails.
+            Thumbnails = new MediaFileThumbnails(_thumbnailsDatabase, Id);
          }
       }
 
-      public MediaFile(IConfiguration configuration, XElement element, bool update = false)
+      public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
          : base(configuration, element, update)
       {
-         _configuration = configuration;
+         _thumbnailsDatabase = thumbnailsDatabase;
+
+         // Initialize the thumbnails.
+         Thumbnails = new MediaFileThumbnails(_thumbnailsDatabase, Id);
 
          // Do we need to update the MediaContainer fields against its physical instance?
          if (update)
@@ -214,6 +232,8 @@ namespace MediaCurator
                {
                   // Seems like a deleted file has come back to life. Un-Mark the Deleted flag.
                   Flags.Deleted = false;
+
+                  // TODO: Regenerate the thumbnails for the deleted file if necessary.
 
                   Debug.WriteLine("RESTORED : " + FullPath);
                }
@@ -254,6 +274,8 @@ namespace MediaCurator
                {
                   // No, it does not. Mark it as deleted.
                   Flags.Deleted = true;
+
+                  // TODO: Delete the thumbnails belonging to the deleted file.
 
                   Debug.WriteLine("DELETED : " + FullPath);
                }

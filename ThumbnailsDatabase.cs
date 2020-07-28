@@ -12,10 +12,11 @@ namespace MediaCurator
 {
    class ThumbnailsDatabase : IThumbnailsDatabase
    {
-      private ILogger<MediaDatabase> _logger;
+      private readonly IConfiguration _configuration;
 
-      private IConfiguration _configuration { get; }
+      private readonly ILogger<MediaDatabase> _logger;
 
+      // FIXME: Get rid of the lock and let the SQLite driver handle the concurrency.
       private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
 
       private Lazy<string> _fullPath => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"] + Platform.Separator.Path + _configuration["ThumbnailsDatabase:Name"]);
@@ -88,16 +89,12 @@ namespace MediaCurator
             string column = "T" + index.ToString();
             string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-            {
-               connection.Open();
+            using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+            connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-               {
-                  command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
-                  command.ExecuteNonQuery();
-               }
-            }
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
+            command.ExecuteNonQuery();
          }
          finally
          {
@@ -119,23 +116,20 @@ namespace MediaCurator
             {
                connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+               using SQLiteCommand command = new SQLiteCommand(sql, connection);
+               using var reader = command.ExecuteReader();
+
+               while (reader.Read())
                {
-                  using (var reader = command.ExecuteReader())
+                  object blob = reader[column];
+
+                  if (blob != null)
                   {
-                     while (reader.Read())
+                     if (blob.GetType() == typeof(byte[]))
                      {
-                        object blob = reader[column];
+                        thumbnail = (byte[])blob;
 
-                        if (blob != null)
-                        {
-                           if (blob.GetType() == typeof(byte[]))
-                           {
-                              thumbnail = (byte[])blob;
-
-                              break;
-                           }
-                        }
+                        break;
                      }
                   }
                }
@@ -163,23 +157,20 @@ namespace MediaCurator
             {
                connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+               using SQLiteCommand command = new SQLiteCommand(sql, connection);
+               using var reader = command.ExecuteReader();
+
+               while (reader.Read())
                {
-                  using (var reader = command.ExecuteReader())
+                  object blob = reader[column];
+
+                  if (blob != null)
                   {
-                     while (reader.Read())
+                     if (blob.GetType() == typeof(byte[]))
                      {
-                        object blob = reader[column];
+                        thumbnail = (byte[])blob;
 
-                        if (blob != null)
-                        {
-                           if (blob.GetType() == typeof(byte[]))
-                           {
-                              thumbnail = (byte[])blob;
-
-                              break;
-                           }
-                        }
+                        break;
                      }
                   }
                }
@@ -206,30 +197,27 @@ namespace MediaCurator
             {
                connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+               using SQLiteCommand command = new SQLiteCommand(sql, connection);
+               using var reader = command.ExecuteReader();
+
+               while (reader.Read())
                {
-                  using (var reader = command.ExecuteReader())
+                  for (int i = 0; i < Maximum; i++)
                   {
-                     while (reader.Read())
+                     string column = "T" + i.ToString();
+
+                     object blob = reader[column];
+
+                     if (blob != null)
                      {
-                        for (int i = 0; i < Maximum; i++)
+                        if (blob.GetType() == typeof(byte[]))
                         {
-                           string column = "T" + i.ToString();
-
-                           object blob = reader[column];
-
-                           if (blob != null)
-                           {
-                              if (blob.GetType() == typeof(byte[]))
-                              {
-                                 thumbnails.Add((byte[])blob);
-                              }
-                           }
+                           thumbnails.Add((byte[])blob);
                         }
-
-                        break;
                      }
                   }
+
+                  break;
                }
             }
 
@@ -254,30 +242,27 @@ namespace MediaCurator
             {
                connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+               using SQLiteCommand command = new SQLiteCommand(sql, connection);
+               using var reader = command.ExecuteReader();
+
+               while (reader.Read())
                {
-                  using (var reader = command.ExecuteReader())
+                  for (int i = 0; i < Maximum; i++)
                   {
-                     while (reader.Read())
+                     string column = "T" + i.ToString();
+
+                     object blob = reader[column];
+
+                     if (blob != null)
                      {
-                        for (int i = 0; i < Maximum; i++)
+                        if (blob.GetType() == typeof(byte[]))
                         {
-                           string column = "T" + i.ToString();
-
-                           object blob = reader[column];
-
-                           if (blob != null)
-                           {
-                              if (blob.GetType() == typeof(byte[]))
-                              {
-                                 thumbnails.Add((byte[])blob);
-                              }
-                           }
+                           thumbnails.Add((byte[])blob);
                         }
-
-                        break;
                      }
                   }
+
+                  break;
                }
             }
 
@@ -316,30 +301,27 @@ namespace MediaCurator
             {
                connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+               using SQLiteCommand command = new SQLiteCommand(sql, connection);
+               using var reader = command.ExecuteReader();
+
+               while (reader.Read())
                {
-                  using (var reader = command.ExecuteReader())
+                  for (int i = 0; i < Maximum; i++)
                   {
-                     while (reader.Read())
+                     string column = "T" + i.ToString();
+
+                     object blob = reader[column];
+
+                     if (blob != null)
                      {
-                        for (int i = 0; i < Maximum; i++)
+                        if (blob.GetType() == typeof(byte[]))
                         {
-                           string column = "T" + i.ToString();
-
-                           object blob = reader[column];
-
-                           if (blob != null)
-                           {
-                              if (blob.GetType() == typeof(byte[]))
-                              {
-                                 count++;
-                              }
-                           }
+                           count++;
                         }
-
-                        break;
                      }
                   }
+
+                  break;
                }
             }
 
@@ -364,21 +346,18 @@ namespace MediaCurator
             {
                connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-               {
-                  using (var reader = command.ExecuteReader())
-                  {
-                     while (reader.Read())
-                     {
-                        object id = reader["Id"];
+               using SQLiteCommand command = new SQLiteCommand(sql, connection);
+               using var reader = command.ExecuteReader();
 
-                        if (id != null)
-                        {
-                           if (id.GetType() == typeof(string))
-                           {
-                              ids.Add((string)id);
-                           }
-                        }
+               while (reader.Read())
+               {
+                  object id = reader["Id"];
+
+                  if (id != null)
+                  {
+                     if (id.GetType() == typeof(string))
+                     {
+                        ids.Add((string)id);
                      }
                   }
                }
@@ -400,15 +379,12 @@ namespace MediaCurator
          {
             string sql = "VACUUM;";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-            {
-               connection.Open();
+            using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+            connection.Open();
 
-               using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-               {
-                  command.ExecuteNonQuery();
-               }
-            }
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+
+            command.ExecuteNonQuery();
          }
          finally
          {
@@ -464,20 +440,15 @@ namespace MediaCurator
       {
          string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '" + table + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               using (SQLiteDataReader reader = command.ExecuteReader())
-               {
-                  bool result = ((reader.StepCount > 0) ? true : false);
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteDataReader reader = command.ExecuteReader();
 
-                  return result;
-               }
-            }
-         }
+         bool result = ((reader.StepCount > 0));
+
+         return result;
       }
 
       /// <summary>
@@ -494,17 +465,14 @@ namespace MediaCurator
          {
             connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using SQLiteDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
             {
-               using (SQLiteDataReader reader = command.ExecuteReader())
+               if (reader["name"].Equals(column))
                {
-                  while (reader.Read())
-                  {
-                     if (reader["name"].Equals(column))
-                     {
-                        return true;
-                     }
-                  }
+                  return true;
                }
             }
          }
@@ -523,17 +491,13 @@ namespace MediaCurator
       {
          string sql = "SELECT COUNT(*) FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               bool result = (Convert.ToInt32(command.ExecuteScalar()) > 0 ? true : false);
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         bool result = (Convert.ToInt32(command.ExecuteScalar()) > 0);
 
-               return result;
-            }
-         }
+         return result;
       }
 
       /// <summary>
@@ -543,15 +507,11 @@ namespace MediaCurator
       {
          string sql = "CREATE TABLE Thumbnails (Id text primary key not null)";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               command.ExecuteNonQuery();
-            }
-         }
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         command.ExecuteNonQuery();
       }
 
       /// <summary>
@@ -564,69 +524,37 @@ namespace MediaCurator
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               command.ExecuteNonQuery();
-            }
-         }
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         command.ExecuteNonQuery();
       }
 
       private int AddRow(string table, string column, string value)
       {
          string sql = "INSERT INTO " + table + " (" + column + ") VALUES (@" + column + ")";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               command.Parameters.Add("@" + column, System.Data.DbType.StringFixedLength).Value = value;
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
 
-               return command.ExecuteNonQuery();
-            }
-         }
+         command.Parameters.Add("@" + column, System.Data.DbType.StringFixedLength).Value = value;
+
+         return command.ExecuteNonQuery();
       }
 
       private int DeleteRow(string table, string column, string value)
       {
          string sql = "DELETE FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               return command.ExecuteNonQuery();
-            }
-         }
-      }
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
 
-      /// <summary>
-      /// Returns the total number of rows in a specified table.
-      /// </summary>
-      /// <param name="table">The table for which the count of rows is to be returned.</param>
-      /// <returns>The number of rows in the table.</returns>
-      private ulong RowsCount(string table)
-      {
-         string sql = "SELECT COUNT(*) FROM " + table;
-
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
-
-            using (SQLiteCommand command = new SQLiteCommand(sql, connection))
-            {
-               ulong result = Convert.ToUInt64(command.ExecuteScalar());
-
-               return result;
-            }
-         }
+         return command.ExecuteNonQuery();
       }
 
       #endregion

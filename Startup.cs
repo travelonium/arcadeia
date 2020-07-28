@@ -23,11 +23,11 @@ namespace MediaCurator
       {
          services.AddControllersWithViews();
 
-         // Instantiate the MediaDatabase
-         services.AddSingleton<IMediaDatabase, MediaDatabase>();
-
          // Instantiate the ThumbnailsDatabase
          services.AddSingleton<IThumbnailsDatabase, ThumbnailsDatabase>();
+
+         // Instantiate the MediaDatabase
+         services.AddSingleton<IMediaDatabase, MediaDatabase>();
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>

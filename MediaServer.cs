@@ -9,8 +9,6 @@ namespace MediaCurator
    {
       #region Fields
 
-      private IConfiguration _configuration { get; }
-
       #endregion // Fields
 
       #region Constructors
@@ -18,8 +16,6 @@ namespace MediaCurator
       public MediaServer(IConfiguration configuration, string path)
          : base(configuration, MediaContainer.GetPathComponents(path).Item1)
       {
-         _configuration = configuration;
-
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
 
@@ -57,18 +53,11 @@ namespace MediaCurator
             // Initialize the flags.
             Flags = new MediaContainerFlags(Self);
          }
-
-         // TODO: Set the Thumbnail.
-         // Thumbnail = new MediaContainerThumbnail("pack://application:,,,/Icons/256x144/Server.png");
       }
 
       public MediaServer(IConfiguration configuration, XElement element, bool update = false)
          : base(configuration, element, update)
       {
-         _configuration = configuration;
-
-         // TODO: Set the Thumbnail.
-         // Thumbnail = new MediaContainerThumbnail("pack://application:,,,/Icons/256x144/Server.png");
       }
 
       #endregion // Constructors
