@@ -1,65 +1,64 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Data.SQLite;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
-namespace MediaMonster
+namespace MediaCurator
 {
-   public sealed class ThumbnailsDatabase
+   class ThumbnailsDatabase : IThumbnailsDatabase
    {
-      public static ThumbnailsDatabase Instance
-      {
-         get
-         {
-            return Internal._Instance;
-         }
-      }
+      private ILogger<MediaDatabase> _logger;
 
-      class Internal
-      {
-         /// <summary>
-         /// Explicit static constructor to tell C# compiler not to mark type as beforefieldinit
-         /// </summary>
-         static Internal()
-         {
-         }
+      private IConfiguration _configuration { get; }
 
-         internal static readonly ThumbnailsDatabase _Instance = new ThumbnailsDatabase();
-      }
+      private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
 
-      private static readonly SemaphoreSlim _Lock = new SemaphoreSlim(1, 1);
+      private Lazy<string> _fullPath => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"] + Platform.Separator.Path + _configuration["ThumbnailsDatabase:Name"]);
 
       /// <summary>
-      /// The full path and file name of the Thumbnails database.
+      /// The full path to the database file.
       /// </summary>
-      private string _Database
+      public string FullPath
       {
          get
          {
-            return Properties.Settings.Default.ThumbnailsDatabaseLocation + "\\" +
-                   Properties.Settings.Default.ThumbnailsDatabaseName;
+            return _fullPath.Value;
+         }
+      }
+
+      private Lazy<int> _maximum => new Lazy<int>(_configuration.GetValue<int>("ThumbnailsDatabase:Maximum"));
+
+      /// <summary>
+      /// The maximum count of thumbnails the database is able to store.
+      /// </summary>
+      public int Maximum
+      {
+         get
+         {
+            return _maximum.Value;
          }
       }
 
       /// <summary>
       /// Initializes a new instance of the <see cref="ThumbnailsDatabase"/> class.
       /// </summary>
-      ThumbnailsDatabase()
+      public ThumbnailsDatabase(IConfiguration configuration, ILogger<MediaDatabase> logger)
       {
-         if (!File.Exists(_Database))
+         _logger = logger;
+         _configuration = configuration;
+
+         // Check if the Thumbnails Database file already exists.
+         if (!File.Exists(FullPath))
          {
             // Create the new database file
-            SQLiteConnection.CreateFile(_Database);
+            SQLiteConnection.CreateFile(FullPath);
 
-            Debug.WriteLine("Thumbnails Database Created: " + _Database);
+            _logger.LogInformation("Thumbnails Database Created: " + FullPath);
          }
 
          // Update the database layout if needed.
@@ -77,7 +76,7 @@ namespace MediaMonster
 
       public void SetThumbnail(string id, int index, ref byte[] data)
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
@@ -89,7 +88,7 @@ namespace MediaMonster
             string column = "T" + index.ToString();
             string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -102,13 +101,13 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public byte[] GetThumbnail(string id, int index)
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
@@ -116,7 +115,7 @@ namespace MediaMonster
             string column = "T" + index.ToString();
             string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -146,13 +145,13 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public async Task<byte[]> GetThumbnailAsync(string id, int index, CancellationToken cancellationToken)
       {
-         await _Lock.WaitAsync(cancellationToken);
+         await _lock.WaitAsync(cancellationToken);
 
          try
          {
@@ -160,7 +159,7 @@ namespace MediaMonster
             string column = "T" + index.ToString();
             string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -190,20 +189,20 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public List<byte[]> GetThumbnails(string id)
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
             List<byte[]> thumbnails = new List<byte[]>();
             string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -213,7 +212,7 @@ namespace MediaMonster
                   {
                      while (reader.Read())
                      {
-                        for (int i = 0; i < Properties.Settings.Default.MaximumThumbnailsCount; i++)
+                        for (int i = 0; i < Maximum; i++)
                         {
                            string column = "T" + i.ToString();
 
@@ -238,20 +237,20 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public async Task<List<byte[]>> GetThumbnailsAsync(string id, CancellationToken cancellationToken)
       {
-         await _Lock.WaitAsync(cancellationToken);
+         await _lock.WaitAsync(cancellationToken);
 
          try
          {
             List<byte[]> thumbnails = new List<byte[]>();
             string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -261,7 +260,7 @@ namespace MediaMonster
                   {
                      while (reader.Read())
                      {
-                        for (int i = 0; i < Properties.Settings.Default.MaximumThumbnailsCount; i++)
+                        for (int i = 0; i < Maximum; i++)
                         {
                            string column = "T" + i.ToString();
 
@@ -286,13 +285,13 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public int DeleteThumbnails(string id)
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
@@ -300,20 +299,20 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public int GetThumbnailsCount(string id)
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
             int count = 0;
             string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -323,7 +322,7 @@ namespace MediaMonster
                   {
                      while (reader.Read())
                      {
-                        for (int i = 0; i < Properties.Settings.Default.MaximumThumbnailsCount; i++)
+                        for (int i = 0; i < Maximum; i++)
                         {
                            string column = "T" + i.ToString();
 
@@ -348,20 +347,20 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public List<string> GetRowIdsList()
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
             List<string> ids = new List<string>();
             string sql = "SELECT Id FROM Thumbnails";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -389,19 +388,19 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
       public void Vacuum()
       {
-         _Lock.Wait();
+         _lock.Wait();
 
          try
          {
             string sql = "VACUUM;";
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
             {
                connection.Open();
 
@@ -413,7 +412,7 @@ namespace MediaMonster
          }
          finally
          {
-            _Lock.Release();
+            _lock.Release();
          }
       }
 
@@ -445,7 +444,7 @@ namespace MediaMonster
          }
 
          // Add the individual thumbnail columns
-         for (int i = 0; i < Properties.Settings.Default.MaximumThumbnailsCount; i++)
+         for (int i = 0; i < _configuration.GetValue<int>("ThumbnailsDatabase:Maximum"); i++)
          {
             string column = "T" + i.ToString();
 
@@ -465,7 +464,7 @@ namespace MediaMonster
       {
          string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '" + table + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -491,7 +490,7 @@ namespace MediaMonster
       {
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -524,7 +523,7 @@ namespace MediaMonster
       {
          string sql = "SELECT COUNT(*) FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -544,7 +543,7 @@ namespace MediaMonster
       {
          string sql = "CREATE TABLE Thumbnails (Id text primary key not null)";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -565,7 +564,7 @@ namespace MediaMonster
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -580,7 +579,7 @@ namespace MediaMonster
       {
          string sql = "INSERT INTO " + table + " (" + column + ") VALUES (@" + column + ")";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -597,7 +596,7 @@ namespace MediaMonster
       {
          string sql = "DELETE FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
@@ -617,7 +616,7 @@ namespace MediaMonster
       {
          string sql = "SELECT COUNT(*) FROM " + table;
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + _Database + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
             connection.Open();
 
