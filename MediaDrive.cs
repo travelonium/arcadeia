@@ -48,7 +48,7 @@ namespace MediaCurator
             }
 
             // Retrieve all the elements with the same Name attribute.
-            IEnumerable<XElement> candidates = Tools.GetElementsByNameAttribute(MediaDatabase.Document.Root, "Drive", name);
+            IEnumerable<XElement> candidates = Tools.GetElementsByNameAttribute(MediaLibrary.Document.Root, "Drive", name);
 
             if (candidates != null)
             {
@@ -68,23 +68,23 @@ namespace MediaCurator
             if (Self != null)
             {
                // We found the element. We may want to make sure it has not been modified since the
-               // last time the MediaDatabase was updated and update it if needed.
+               // last time the MediaLibrary was updated and update it if needed.
             }
             else
             {
                // Looks like there is no such element! Let's create one then!
-               MediaDatabase.Document.Root.Add(
+               MediaLibrary.Document.Root.Add(
                   new XElement("Drive",
                      new XAttribute("Name", name),
                      new XAttribute("SerialNumber", serialNumber)));
 
                // Retrieve the newly created element.
-               Self = MediaDatabase.Document.Root.Elements().Last();
+               Self = MediaLibrary.Document.Root.Elements().Last();
 
                // Make sure that we succeeded to put our hands on it.
                if ((Self == null) || (Name != name) || (SerialNumber != serialNumber))
                {
-                  throw new Exception("Failed to add the new Drive element to the MediaDatabase.");
+                  throw new Exception("Failed to add the new Drive element to the MediaLibrary.");
                }
             }
 

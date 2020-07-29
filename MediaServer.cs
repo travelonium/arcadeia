@@ -25,28 +25,28 @@ namespace MediaCurator
             string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\' });
 
             // Retrieve the element if it already exists.
-            Self = Tools.GetElementByNameAttribute(MediaDatabase.Document.Root, "Server", name);
+            Self = Tools.GetElementByNameAttribute(MediaLibrary.Document.Root, "Server", name);
 
             // Did we find an already existing element?
             if (Self != null)
             {
                // We found the element. We may want to make sure it has not been modified since the
-               // last time the MediaDatabase was updated and update it if needed.
+               // last time the MediaLibrary was updated and update it if needed.
             }
             else
             {
                // Looks like there is no such element! Let's create one then!
-               MediaDatabase.Document.Root.Add(
+               MediaLibrary.Document.Root.Add(
                   new XElement("Server",
                      new XAttribute("Name", name)));
 
                // Retrieve the newly created element.
-               Self = Tools.GetElementByNameAttribute(MediaDatabase.Document.Root, "Server", name);
+               Self = Tools.GetElementByNameAttribute(MediaLibrary.Document.Root, "Server", name);
 
                // Make sure that we succeeded to put our hands on it.
                if (Self == null)
                {
-                  throw new Exception("Failed to add the new Server element to the MediaDatabase.");
+                  throw new Exception("Failed to add the new Server element to the MediaLibrary.");
                }
             }
 

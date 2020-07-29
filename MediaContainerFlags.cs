@@ -20,7 +20,7 @@ namespace MediaCurator
       #region Fields
 
       /// <summary>
-      /// The XML Element this particular container object is associated with in the MediaDatabase. 
+      /// The XML Element this particular container object is associated with in the MediaLibrary. 
       /// This is passed on to the <see cref="MediaContainerFlags"/> by the parent object's 
       /// constructor.
       /// </summary>

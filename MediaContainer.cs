@@ -38,14 +38,14 @@ namespace MediaCurator
       public MediaContainer Parent = null;
 
       /// <summary>
-      /// The XML Element this particular container is associated with in the MediaDatabase. This
-      /// is either created or located in the MediaDatabase at the time of initialization.
+      /// The XML Element this particular container is associated with in the MediaLibrary. This
+      /// is either created or located in the MediaLibrary at the time of initialization.
       /// </summary>
       public XElement Self = null;
 
       /// <summary>
       /// Gets or sets the Name attribute of the container element. This is directly read or written
-      /// from and to the MediaDatabase.
+      /// from and to the MediaLibrary.
       /// </summary>
       /// <value>
       /// The Name attribute of the container element.

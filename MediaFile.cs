@@ -25,14 +25,14 @@ namespace MediaCurator
 
       /// <summary>
       /// A flag indicating that the file this MediaFile object is associated with has been updated
-      /// since the last time the MediaDatabase was scanned. 
+      /// since the last time the MediaLibrary was scanned. 
       /// </summary>
       public bool Modified = false;
 
       /// <summary>
       /// Gets or sets the Id of the file. The Id is used to locate the thumbnails directory of the 
       /// file as well as to uniquely locate and identify each file tag. This is directly read and 
-      /// written from and to the MediaDatabase.
+      /// written from and to the MediaLibrary.
       /// </summary>
       /// <value>
       /// The file size in UInt64.
@@ -52,7 +52,7 @@ namespace MediaCurator
 
       /// <summary>
       /// Gets or sets the size of the file. This is directly read and written from and to the 
-      /// MediaDatabase.
+      /// MediaLibrary.
       /// </summary>
       /// <value>
       /// The file size in UInt64.
@@ -85,7 +85,7 @@ namespace MediaCurator
 
       /// <summary>
       /// Gets or sets the creation date of the file. This is directly read and written from and to
-      /// the MediaDatabase.
+      /// the MediaLibrary.
       /// </summary>
       /// <value>
       /// The creation date in DateTime.
@@ -105,7 +105,7 @@ namespace MediaCurator
 
       /// <summary>
       /// Gets or sets the last modification date of the file. This is directly read and written 
-      /// from and to the MediaDatabase.
+      /// from and to the MediaLibrary.
       /// </summary>
       /// <value>
       /// The last modification date in DateTime.
@@ -221,7 +221,7 @@ namespace MediaCurator
                if (Self == null)
                {
                   throw new Exception("Failed to add the new " + type +
-                                       " element to the MediaDatabase.");
+                                       " element to the MediaLibrary.");
                }
             }
 
@@ -307,14 +307,14 @@ namespace MediaCurator
       #region Common Functionality
 
       /// <summary>
-      /// Removes the associated element from the MediaDatabase. This is if for example at a later
+      /// Removes the associated element from the MediaLibrary. This is if for example at a later
       /// point we regret having created this element.
       /// </summary>
       public void Remove()
       {
          if (Self != null)
          {
-            // Remove the element from the MediaDatabase.
+            // Remove the element from the MediaLibrary.
             Self.Remove();
 
             // Set the element references to null.
@@ -377,12 +377,12 @@ namespace MediaCurator
 
                        if (deleteXmlEntry)
                        {
-                          // Remove the MediaDatabase entry itself.
+                          // Remove the MediaLibrary entry itself.
                           this.Remove();
                        }
                        else
                        {
-                          // Only set the Deleted flag on the MediaDatabase entry.
+                          // Only set the Deleted flag on the MediaLibrary entry.
                           Flags.Deleted = true;
                        }
 
