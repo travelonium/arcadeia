@@ -263,6 +263,10 @@ namespace MediaCurator
          {
             mediaContainer.Self = mediaContainer.Parent.Self;
          }
+         else if ((mediaContainer.Self == null) && (mediaContainer.Parent == null))
+         {
+            mediaContainer.Self = Document.Root;
+         }
 
          // Using mediaFolder.Self.Descendants() instead of mediaContainer.Self.Nodes() will cause
          // a recursive display of all descending nodes of the parent node.
