@@ -140,6 +140,16 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets the MediaContainer model used when returning a JSON response from a Controller.
+      /// </summary>
+      public virtual Models.MediaContainer Model => new Models.MediaContainer
+      {
+         Name = Name,
+         Type = Type,
+         FullPath = FullPath,
+      };
+
+      /// <summary>
       /// Gets the tooltip text of this media container. Must be overridden in the child type.
       /// </summary>
       public virtual string ToolTip

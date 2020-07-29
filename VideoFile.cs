@@ -97,6 +97,22 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets a tailored MediaContainer model describing a video file.
+      /// </summary>
+      public override Models.MediaContainer Model
+      {
+         get
+         {
+            var model = base.Model;
+
+            model.Duration = Duration;
+            model.Resolution = Resolution;
+
+            return model;
+         }
+      }
+
+      /// <summary>
       /// Gets the tooltip text of this video file.
       /// </summary>
       public override string ToolTip

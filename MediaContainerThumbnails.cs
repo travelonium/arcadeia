@@ -8,7 +8,7 @@ namespace MediaCurator
    {
       private IThumbnailsDatabase _database { get; }
 
-      public string Id
+      private string _id
       {
          get;
          set;
@@ -25,11 +25,11 @@ namespace MediaCurator
       {
          get
          {
-            byte[] thumbnail = _database.GetThumbnail(Id, index);
+            byte[] thumbnail = _database.GetThumbnail(_id, index);
             return thumbnail;
          }
 
-         set => _database.SetThumbnail(Id, index, ref value);
+         set => _database.SetThumbnail(_id, index, ref value);
       }
 
       /// <summary>
@@ -42,7 +42,7 @@ namespace MediaCurator
       {
          get
          {
-            return _database.GetThumbnailsCount(Id);
+            return _database.GetThumbnailsCount(_id);
          }
       }
 
@@ -51,7 +51,7 @@ namespace MediaCurator
       public MediaFileThumbnails(IThumbnailsDatabase database, string id)
       {
          // Associate the current instance with the Id of the owner.
-         Id = id;
+         _id = id;
 
          // Associate the instance with the thumbnails database.
          _database = database;
@@ -66,7 +66,7 @@ namespace MediaCurator
 
       public async Task<byte[]> GetAsync(int index, CancellationToken cancellationToken)
       {
-         byte[] thumbnail = await _database.GetThumbnailAsync(Id, index, cancellationToken);
+         byte[] thumbnail = await _database.GetThumbnailAsync(_id, index, cancellationToken);
          return thumbnail;
       }
    }
