@@ -291,7 +291,6 @@ namespace MediaCurator
       private byte[] GenerateThumbnail(string filePath, int position, int width, int index)
       {
          byte[] output = null;
-         string fileName = Path.GetTempPath() + Platform.Separator.Path + System.IO.Path.GetRandomFileName() + ".jpg";
          string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
 
          int waitInterval = 100;
@@ -308,11 +307,11 @@ namespace MediaCurator
 
             ffmpeg.StartInfo.Arguments = "-ss " + position.ToString() + " -i \"" + filePath + "\" ";
             ffmpeg.StartInfo.Arguments += "-y -vf select=\"eq(pict_type\\,I),scale=";
-            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1\" -vframes 1 ";
-            ffmpeg.StartInfo.Arguments += "\"" + fileName + "\"";
+            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1\" -vframes 1 -f singlejpeg -";
 
             ffmpeg.StartInfo.CreateNoWindow = true;
             ffmpeg.StartInfo.UseShellExecute = false;
+            ffmpeg.StartInfo.RedirectStandardError = true;
             ffmpeg.StartInfo.RedirectStandardOutput = true;
 
             ffmpeg.Start();
@@ -327,18 +326,12 @@ namespace MediaCurator
 
             if (ffmpeg.HasExited)
             {
-               if (File.Exists(fileName))
-               {
-                  try
-                  {
-                     output = File.ReadAllBytes(fileName);
-                  }
-                  catch
-                  {
-                     throw;
-                  }
+               FileStream baseStream = ffmpeg.StandardOutput.BaseStream as FileStream;
 
-                  File.Delete(fileName);
+               using (var memoryStream = new MemoryStream())
+               {
+                  baseStream.CopyTo(memoryStream);
+                  output = memoryStream.ToArray();
                }
 
                Debug.Write(".");

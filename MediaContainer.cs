@@ -105,7 +105,7 @@ namespace MediaCurator
                      break;
 
                   case "Folder":
-                     path = container.Name + "\\" + path;
+                     path = (container.Parent == null ? Platform.Separator.Path : "") + container.Name + Platform.Separator.Path + path;
                      break;
 
                   case "Audio":

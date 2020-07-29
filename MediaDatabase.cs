@@ -489,7 +489,7 @@ namespace MediaCurator
                    (videoFile.Resolution.Height != 0) &&
                    (videoFile.Resolution.Width != 0))
                {
-                  Debug.Write("GENERATING : " + videoFile.FullPath);
+                  Debug.Write("GENERATING THUMBNAILS: " + videoFile.FullPath);
 
                   // Nope, looks like we need to generate the thumbnails.
                   videoFile.GenerateThumbnails(progress, preview);
@@ -515,7 +515,7 @@ namespace MediaCurator
                    (videoFile.Resolution.Height != 0) &&
                    (videoFile.Resolution.Width != 0))
                {
-                  Debug.Write("GENERATING : " + videoFile.FullPath);
+                  Debug.Write("GENERATING THUMBNAILS: " + videoFile.FullPath);
 
                   // Nope, looks like we need to re-generate the thumbnails.
                   videoFile.GenerateThumbnails(progress, preview);
