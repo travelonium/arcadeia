@@ -21,7 +21,6 @@ export class Library extends Component {
     }
 
     componentDidUpdate() {
-        console.log("updated!");
     }
 
     list(path) {
@@ -29,22 +28,31 @@ export class Library extends Component {
             .then(res => res.json())
             .then((items) => {
                 this.setState({
+                    path: path,
                     items: items
                 });
             })
     }
 
     render() {
+        let path = "/";
         return (
             <Container fluid>
                 <Row>
                     <Col>
                         <Breadcrumb>
                             {
-                                this.state.path.split("/").map((folder) => {
-                                    return (
-                                        <Breadcrumb.Item href="#">{folder}</Breadcrumb.Item>
-                                    );
+                                "Library".concat(this.state.path).split("/").map((folder, index) => {
+                                    if (folder) {
+                                        if (index) {
+                                            path += folder + "/";
+                                        }
+                                        return (
+                                            <Breadcrumb.Item key={"library-path-item-" + index} href="#" linkProps={{ path: path }} onClick={event => this.list(event.target.getAttribute("path"))} >{folder}</Breadcrumb.Item>
+                                        );
+                                    } else {
+                                        return "";
+                                    }
                                 })
                             }
                         </Breadcrumb>
@@ -52,9 +60,9 @@ export class Library extends Component {
                 </Row>
                 <Row xs={1} lg={3}>
                     {
-                        this.state.items.map((item) => {
+                        this.state.items.map((item, index) => {
                             return (
-                                <Col>
+                                <Col key={"media-container-column-index-" + index }>
                                     <MediaContainer id={item.id} name={item.name} description="This is a description. It can even span over multiple lines. This one is one example of many." type={item.type} thumbnails={24} />
                                 </Col>
                             );
