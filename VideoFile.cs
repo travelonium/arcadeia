@@ -323,7 +323,7 @@ namespace MediaCurator
 
             ffmpeg.StartInfo.Arguments = "-ss " + position.ToString() + " -i \"" + filePath + "\" ";
             ffmpeg.StartInfo.Arguments += "-y -vf select=\"eq(pict_type\\,I),scale=";
-            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1\" -vframes 1 -f singlejpeg -";
+            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1,crop=iw:iw/16*9\" -vframes 1 -f singlejpeg -";
 
             ffmpeg.StartInfo.CreateNoWindow = true;
             ffmpeg.StartInfo.UseShellExecute = false;
@@ -407,7 +407,7 @@ namespace MediaCurator
             int position = (int)((index - 0.5) * Duration / totalThumbnails);
 
             // Generate the thumbnail.
-            byte[] thumbnail = GenerateThumbnail(FullPath, position, 512, index);
+            byte[] thumbnail = GenerateThumbnail(FullPath, position, 640, index);
 
             if ((thumbnail != null) && (thumbnail.Length > 0))
             {
