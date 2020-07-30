@@ -12,3 +12,26 @@ code {
   background-color: #1b6ec2;
   border-color: #1861ac;
 }
+
+.card {
+    margin-bottom: 2rem;
+}
+
+.card-title {
+    max-height: 1.2em;
+    overflow: hidden;
+}
+
+.card-text {
+    max-height: 3em;
+    overflow: hidden;
+}
+
+.card-body {
+    max-height: 8rem;
+}
+
+.media-container .progress {
+    height: 3px;
+    border-radius:unset;
+}

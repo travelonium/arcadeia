@@ -29,10 +29,6 @@ namespace MediaCurator.Controllers
       public IEnumerable<Models.MediaContainer> Index(string path = "")
       {
          var progress = new Progress<Tuple<double, double, string>>();
-         var levels = path.Split('/').Where(item => !String.IsNullOrEmpty(item)).ToArray();
-
-         // return Content("Hello! The path is " + path + " and is " + string.Format("{0}", levels.Count()) + " levels deep.");
-         // return File(mediaFile.Thumbnails[0], "image/jpeg");
 
          var mediaContainers = _mediaLibrary.ListMediaContainers(Platform.Separator.Path + path, progress);
 
