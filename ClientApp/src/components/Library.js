@@ -27,8 +27,9 @@ export class Library extends Component {
     }
 
     list(path) {
-        fetch("/list" + path)
-            .then(res => res.json())
+        if (path) {
+            fetch("/list" + path)
+            .then(response => response.json())
             .then((items) => {
                 this.setState({
                     path: path,
@@ -37,6 +38,7 @@ export class Library extends Component {
                 // now change the history!
                 window.history.pushState({}, "", path);
             })
+        }
     }
 
     open(source) {
