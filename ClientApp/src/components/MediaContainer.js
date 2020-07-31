@@ -7,27 +7,46 @@ export class MediaContainer extends Component {
 
     constructor(props) {
         super(props);
+        this.animateInterval = null;
         this.state = {
+            hover: false,
             thumbnails: {
-                index: 0
+                index: -1
             }
         };
-        // description="This is a description. It can even span over multiple lines. This one is one example of many."
     }
 
     componentDidMount() {
-        if ((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count > 0)) {
-            this.animateInterval = setInterval(() => this.animate(), 500);
+        if (this.animateInterval == null) {
+            if ((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count > 0)) {
+                this.animateInterval = setInterval(() => this.animate(), 500);
+            }
+        }
+    }
+
+    componentDidUpdate() {
+        if (this.animateInterval == null) {
+            // start or restart the timer if necessary
+            if ((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count > 0)) {
+                this.animateInterval = setInterval(() => this.animate(), 500);
+            }
+        } else {
+            // stop the timer if necessary
+            if ((this.props.source.thumbnails === null) || (this.props.source.thumbnails.count === 0)) {
+                clearInterval(this.animateInterval);
+                this.animateInterval = null;
+            }
         }
     }
 
     componentWillUnmount() {
         clearInterval(this.animateInterval);
+        this.animateInterval = null;
     }
 
     thumbnail(index) {
         if (this.props.source.type === "Folder") return "/folder.png";
-        if (this.props.source.id == null) return null;
+        if ((index < 0) || (this.props.source.id == null)) return "/placeholder.png";
         return "/thumbnails/" + this.props.source.id + "/" + index;
     }
 
@@ -43,11 +62,23 @@ export class MediaContainer extends Component {
         }
     }
 
+    onMouseOver() {
+        this.setState({
+            hover: true
+        });
+    }
+
+    onMouseOut() {
+        this.setState({
+            hover: false
+        });
+    }
+
     render() {
         return (
-            <Card onClick={() => this.props.open(this.props.source)} className="media-container">
+            <Card onClick={() => this.props.open(this.props.source)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container" + (this.state.hover ? " shadow-sm" : "")} >
                 <Card.Img variant="top" src={this.thumbnail(this.state.thumbnails.index)} />
-                {((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count)) ? <ProgressBar min={1} max={(this.props.source.thumbnails != null) ? this.props.source.thumbnails.count : 0} now={this.state.thumbnails.index + 1} /> : null}
+                <ProgressBar min={1} max={(this.props.source.thumbnails != null) ? this.props.source.thumbnails.count : 0} now={this.state.thumbnails.index + 1} className={((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count)) ? "visible" : "invisible"} />
                 <Card.ImgOverlay>
                 </Card.ImgOverlay>
                 <Card.Body>
