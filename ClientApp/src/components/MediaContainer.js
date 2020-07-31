@@ -82,7 +82,7 @@ export class MediaContainer extends Component {
                 <Card.ImgOverlay>
                 </Card.ImgOverlay>
                 <Card.Body>
-                    <Card.Title>{this.props.source.name}</Card.Title>
+                    <Card.Title className="text-center text-truncate" >{this.props.source.name}</Card.Title>
                     <Card.Text>
                         {this.props.source.description}
                     </Card.Text>
