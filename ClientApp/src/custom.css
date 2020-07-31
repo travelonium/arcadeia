@@ -14,7 +14,8 @@ code {
 }
 
 .card {
-    margin-bottom: 2rem;
+    cursor: pointer;
+    margin-bottom: 15px;
 }
 
 .card-title {
@@ -34,4 +35,9 @@ code {
 .media-container .progress {
     height: 3px;
     border-radius:unset;
+}
+
+.container .col {
+    padding-left: 7.5px;
+    padding-right: 7.5px;
 }

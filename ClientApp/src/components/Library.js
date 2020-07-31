@@ -4,14 +4,17 @@ import React, { Component } from 'react';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import { MediaContainer } from './MediaContainer';
+import { extract } from './../utils';
 
 export class Library extends Component {
     static displayName = Library.name;
 
     constructor(props) {
         super(props);
+        this.open = this.open.bind(this);
+        let path = "/" + extract("", props, "match", "params", 0);
         this.state = {
-            path: props.path != null ? props.path : "/Users/omidontop/Downloads/",
+            path: path,
             items: []
         };
     }
@@ -31,7 +34,15 @@ export class Library extends Component {
                     path: path,
                     items: items
                 });
+                // now change the history!
+                window.history.pushState({}, "", path);
             })
+    }
+
+    open(source) {
+        if (source.type === "Folder") {
+            this.list(source.fullPath);
+        }
     }
 
     render() {
@@ -51,19 +62,19 @@ export class Library extends Component {
                                             <Breadcrumb.Item key={"library-path-item-" + index} href="#" linkProps={{ path: path }} onClick={event => this.list(event.target.getAttribute("path"))} >{folder}</Breadcrumb.Item>
                                         );
                                     } else {
-                                        return "";
+                                        return null;
                                     }
                                 })
                             }
                         </Breadcrumb>
                     </Col>
                 </Row>
-                <Row xs={1} lg={3}>
+                <Row xs={1} lg={4}>
                     {
                         this.state.items.map((item, index) => {
                             return (
-                                <Col key={"media-container-column-index-" + index }>
-                                    <MediaContainer id={item.id} name={item.name} description="This is a description. It can even span over multiple lines. This one is one example of many." type={item.type} thumbnails={24} />
+                                <Col key={"media-container-column-index-" + index}>
+                                    <MediaContainer source={item} open={this.open} />
                                 </Col>
                             );
                         })
