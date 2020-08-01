@@ -32,7 +32,7 @@ namespace MediaCurator
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
          {
-            configuration.RootPath = "ClientApp/build";
+            configuration.RootPath = "UI/build";
          });
       }
 
@@ -65,7 +65,7 @@ namespace MediaCurator
 
          app.UseSpa(spa =>
          {
-            spa.Options.SourcePath = "ClientApp";
+            spa.Options.SourcePath = "UI";
 
             if (env.IsDevelopment())
             {
