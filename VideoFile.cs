@@ -323,7 +323,7 @@ namespace MediaCurator
 
             ffmpeg.StartInfo.Arguments = "-ss " + position.ToString() + " -i \"" + filePath + "\" ";
             ffmpeg.StartInfo.Arguments += "-y -vf select=\"eq(pict_type\\,I),scale=";
-            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1,crop=iw:iw/16*9\" -vframes 1 -f singlejpeg -";
+            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1,crop=iw:'min(iw/16*9,ih)'\" -vframes 1 -f singlejpeg -";
 
             ffmpeg.StartInfo.CreateNoWindow = true;
             ffmpeg.StartInfo.UseShellExecute = false;
@@ -350,7 +350,14 @@ namespace MediaCurator
                   output = memoryStream.ToArray();
                }
 
-               Debug.Write(".");
+               if (output.Length > 0)
+               {
+                  Debug.Write(".");
+               }
+               else
+               {
+                  Debug.Write("o");
+               }
             }
             else
             {
@@ -401,6 +408,8 @@ namespace MediaCurator
          }
 
          Debug.Write(" [");
+
+         // FIXME: The index has to be based on the number of thumbnails successfully generated.
 
          for (int index = 1; index <= totalThumbnails; index++)
          {
