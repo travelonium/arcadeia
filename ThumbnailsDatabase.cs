@@ -14,7 +14,7 @@ namespace MediaCurator
    {
       private readonly IConfiguration _configuration;
 
-      private readonly ILogger<MediaLibrary> _logger;
+      private readonly ILogger<ThumbnailsDatabase> _logger;
 
       // FIXME: Get rid of the lock and let the SQLite driver handle the concurrency.
       private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
@@ -48,7 +48,7 @@ namespace MediaCurator
       /// <summary>
       /// Initializes a new instance of the <see cref="ThumbnailsDatabase"/> class.
       /// </summary>
-      public ThumbnailsDatabase(IConfiguration configuration, ILogger<MediaLibrary> logger)
+      public ThumbnailsDatabase(IConfiguration configuration, ILogger<ThumbnailsDatabase> logger)
       {
          _logger = logger;
          _configuration = configuration;
