@@ -20,13 +20,14 @@ namespace MediaCurator.Controllers
       }
 
       // GET: /<controller>/{id}/{index}
-      [Route("[controller]/{id}/{index}")]
+      [Route("[controller]/{id}/{index}.jpg")]
       public IActionResult Index(string id, int index)
       {
          var thumbnail = _thumbnailsDatabase.GetThumbnail(id, index);
 
          if (thumbnail.Length > 0)
          {
+            Response.Headers.Add("Cache-Control", "max-age=86400");
             return File(thumbnail, "image/jpeg");
          }
 
