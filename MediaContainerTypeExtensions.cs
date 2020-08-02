@@ -25,9 +25,9 @@ namespace MediaCurator
       {
          Configuration = configuration;
 
-         _database[MediaContainerType.Audio] = Configuration.GetSection("SupportedExtensions:Audio").Get<List<string>>();
-         _database[MediaContainerType.Video] = Configuration.GetSection("SupportedExtensions:Video").Get<List<string>>();
-         _database[MediaContainerType.Photo] = Configuration.GetSection("SupportedExtensions:Photo").Get<List<string>>();
+         _database[MediaContainerType.Audio] = Configuration.GetSection("SupportedExtensions:Audio").Get<List<string>>() ?? new List<string>();
+         _database[MediaContainerType.Video] = Configuration.GetSection("SupportedExtensions:Video").Get<List<string>>() ?? new List<string>();
+         _database[MediaContainerType.Photo] = Configuration.GetSection("SupportedExtensions:Photo").Get<List<string>>() ?? new List<string>();
       }
    }
 }
