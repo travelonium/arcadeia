@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MediaCurator.Services;
 
 namespace MediaCurator
 {
@@ -28,6 +29,12 @@ namespace MediaCurator
 
          // Instantiate the MediaLibrary
          services.AddSingleton<IMediaLibrary, MediaLibrary>();
+
+         // Instantiate the BackgroundTaskQueue used by the Scanner
+         services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+
+         // Start the Scanner Hosted Service
+         services.AddHostedService<ScannerService>();
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>

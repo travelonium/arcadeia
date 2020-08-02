@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <Folder Include="Models\" />
+    <Folder Include="Services\" />
   </ItemGroup>
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
     <!-- Ensure Node.js is installed -->
