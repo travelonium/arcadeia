@@ -16,9 +16,6 @@ namespace MediaCurator
 
       private readonly ILogger<ThumbnailsDatabase> _logger;
 
-      // FIXME: Get rid of the lock and let the SQLite driver handle the concurrency.
-      private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
-
       private Lazy<string> _fullPath => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"] + Platform.Separator.Path + _configuration["ThumbnailsDatabase:Name"]);
 
       /// <summary>
@@ -77,319 +74,238 @@ namespace MediaCurator
 
       public void SetThumbnail(string id, int index, ref byte[] data)
       {
-         _lock.Wait();
-
-         try
+         if (!RowExists("Thumbnails", "Id", id))
          {
-            if (!RowExists("Thumbnails", "Id", id))
-            {
-               AddRow("Thumbnails", "Id", id);
-            }
-
-            string column = "T" + index.ToString();
-            string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE Id='" + id + "'";
-
-            using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
-            connection.Open();
-
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
-            command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
-            command.ExecuteNonQuery();
+            AddRow("Thumbnails", "Id", id);
          }
-         finally
-         {
-            _lock.Release();
-         }
+
+         string column = "T" + index.ToString();
+         string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE Id='" + id + "'";
+
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
+
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
+         command.ExecuteNonQuery();
       }
 
       public byte[] GetThumbnail(string id, int index)
       {
-         _lock.Wait();
+         byte[] thumbnail = { };
+         string column = "T" + index.ToString();
+         string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
 
-         try
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
-            byte[] thumbnail = { };
-            string column = "T" + index.ToString();
-            string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
+            connection.Open();
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
             {
-               connection.Open();
+               object blob = reader[column];
 
-               using SQLiteCommand command = new SQLiteCommand(sql, connection);
-               using var reader = command.ExecuteReader();
-
-               while (reader.Read())
+               if (blob != null)
                {
-                  object blob = reader[column];
-
-                  if (blob != null)
+                  if (blob.GetType() == typeof(byte[]))
                   {
-                     if (blob.GetType() == typeof(byte[]))
-                     {
-                        thumbnail = (byte[])blob;
+                     thumbnail = (byte[])blob;
 
-                        break;
-                     }
+                     break;
                   }
                }
             }
+         }
 
-            return thumbnail;
-         }
-         finally
-         {
-            _lock.Release();
-         }
+         return thumbnail;
       }
 
       public async Task<byte[]> GetThumbnailAsync(string id, int index, CancellationToken cancellationToken)
       {
-         await _lock.WaitAsync(cancellationToken);
+         byte[] thumbnail = { };
+         string column = "T" + index.ToString();
+         string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
 
-         try
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
-            byte[] thumbnail = { };
-            string column = "T" + index.ToString();
-            string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
+            await connection.OpenAsync(cancellationToken);
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken))
             {
-               connection.Open();
+               object blob = reader[column];
 
-               using SQLiteCommand command = new SQLiteCommand(sql, connection);
-               using var reader = command.ExecuteReader();
-
-               while (reader.Read())
+               if (blob != null)
                {
+                  if (blob.GetType() == typeof(byte[]))
+                  {
+                     thumbnail = (byte[])blob;
+
+                     break;
+                  }
+               }
+            }
+         }
+
+         return thumbnail;
+      }
+
+      public List<byte[]> GetThumbnails(string id)
+      {
+         List<byte[]> thumbnails = new List<byte[]>();
+         string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
+
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         {
+            connection.Open();
+
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+               for (int i = 0; i < Maximum; i++)
+               {
+                  string column = "T" + i.ToString();
+
                   object blob = reader[column];
 
                   if (blob != null)
                   {
                      if (blob.GetType() == typeof(byte[]))
                      {
-                        thumbnail = (byte[])blob;
-
-                        break;
+                        thumbnails.Add((byte[])blob);
                      }
                   }
                }
+
+               break;
             }
-
-            return thumbnail;
          }
-         finally
-         {
-            _lock.Release();
-         }
-      }
 
-      public List<byte[]> GetThumbnails(string id)
-      {
-         _lock.Wait();
-
-         try
-         {
-            List<byte[]> thumbnails = new List<byte[]>();
-            string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
-
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-            {
-               connection.Open();
-
-               using SQLiteCommand command = new SQLiteCommand(sql, connection);
-               using var reader = command.ExecuteReader();
-
-               while (reader.Read())
-               {
-                  for (int i = 0; i < Maximum; i++)
-                  {
-                     string column = "T" + i.ToString();
-
-                     object blob = reader[column];
-
-                     if (blob != null)
-                     {
-                        if (blob.GetType() == typeof(byte[]))
-                        {
-                           thumbnails.Add((byte[])blob);
-                        }
-                     }
-                  }
-
-                  break;
-               }
-            }
-
-            return thumbnails;
-         }
-         finally
-         {
-            _lock.Release();
-         }
+         return thumbnails;
       }
 
       public async Task<List<byte[]>> GetThumbnailsAsync(string id, CancellationToken cancellationToken)
       {
-         await _lock.WaitAsync(cancellationToken);
+         List<byte[]> thumbnails = new List<byte[]>();
+         string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
 
-         try
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
-            List<byte[]> thumbnails = new List<byte[]>();
-            string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
+            await connection.OpenAsync(cancellationToken);
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken))
             {
-               connection.Open();
-
-               using SQLiteCommand command = new SQLiteCommand(sql, connection);
-               using var reader = command.ExecuteReader();
-
-               while (reader.Read())
+               for (int i = 0; i < Maximum; i++)
                {
-                  for (int i = 0; i < Maximum; i++)
+                  string column = "T" + i.ToString();
+
+                  object blob = reader[column];
+
+                  if (blob != null)
                   {
-                     string column = "T" + i.ToString();
-
-                     object blob = reader[column];
-
-                     if (blob != null)
+                     if (blob.GetType() == typeof(byte[]))
                      {
-                        if (blob.GetType() == typeof(byte[]))
-                        {
-                           thumbnails.Add((byte[])blob);
-                        }
+                        thumbnails.Add((byte[])blob);
                      }
                   }
-
-                  break;
                }
-            }
 
-            return thumbnails;
+               break;
+            }
          }
-         finally
-         {
-            _lock.Release();
-         }
+
+         return thumbnails;
       }
 
       public int DeleteThumbnails(string id)
       {
-         _lock.Wait();
-
-         try
-         {
-            return DeleteRow("Thumbnails", "Id", id);
-         }
-         finally
-         {
-            _lock.Release();
-         }
+         return DeleteRow("Thumbnails", "Id", id);
       }
 
       public int GetThumbnailsCount(string id)
       {
-         _lock.Wait();
+         int count = 0;
+         string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
 
-         try
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
-            int count = 0;
-            string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
+            connection.Open();
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
             {
-               connection.Open();
-
-               using SQLiteCommand command = new SQLiteCommand(sql, connection);
-               using var reader = command.ExecuteReader();
-
-               while (reader.Read())
+               for (int i = 0; i < Maximum; i++)
                {
-                  for (int i = 0; i < Maximum; i++)
+                  string column = "T" + i.ToString();
+
+                  object blob = reader[column];
+
+                  if (blob != null)
                   {
-                     string column = "T" + i.ToString();
-
-                     object blob = reader[column];
-
-                     if (blob != null)
+                     if (blob.GetType() == typeof(byte[]))
                      {
-                        if (blob.GetType() == typeof(byte[]))
-                        {
-                           count++;
-                        }
+                        count++;
                      }
                   }
-
-                  break;
                }
-            }
 
-            return count;
+               break;
+            }
          }
-         finally
-         {
-            _lock.Release();
-         }
+
+         return count;
       }
 
       public List<string> GetRowIdsList()
       {
-         _lock.Wait();
+         List<string> ids = new List<string>();
+         string sql = "SELECT Id FROM Thumbnails";
 
-         try
+         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
          {
-            List<string> ids = new List<string>();
-            string sql = "SELECT Id FROM Thumbnails";
+            connection.Open();
 
-            using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
             {
-               connection.Open();
+               object id = reader["Id"];
 
-               using SQLiteCommand command = new SQLiteCommand(sql, connection);
-               using var reader = command.ExecuteReader();
-
-               while (reader.Read())
+               if (id != null)
                {
-                  object id = reader["Id"];
-
-                  if (id != null)
+                  if (id.GetType() == typeof(string))
                   {
-                     if (id.GetType() == typeof(string))
-                     {
-                        ids.Add((string)id);
-                     }
+                     ids.Add((string)id);
                   }
                }
             }
+         }
 
-            return ids;
-         }
-         finally
-         {
-            _lock.Release();
-         }
+         return ids;
       }
 
       public void Vacuum()
       {
-         _lock.Wait();
+         string sql = "VACUUM;";
 
-         try
-         {
-            string sql = "VACUUM;";
+         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         connection.Open();
 
-            using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
-            connection.Open();
+         using SQLiteCommand command = new SQLiteCommand(sql, connection);
 
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
-
-            command.ExecuteNonQuery();
-         }
-         finally
-         {
-            _lock.Release();
-         }
+         command.ExecuteNonQuery();
       }
 
       #endregion
