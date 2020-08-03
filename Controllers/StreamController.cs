@@ -13,7 +13,7 @@ using Microsoft.Extensions.Configuration;
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]/{id}")]
+   [Route("[controller]/{id}/{name}")]
    public class StreamController : Controller
    {
       private readonly IMediaLibrary _mediaLibrary;
@@ -30,7 +30,7 @@ namespace MediaCurator.Controllers
       }
 
       // GET: /<controller>/
-      public IActionResult Index(string id)
+      public IActionResult Index(string id, string name)
       {
          XElement element = Tools.GetElementByIdAttribute(MediaLibrary.Document.Root, "Video", id);
 
@@ -41,7 +41,7 @@ namespace MediaCurator.Controllers
 
          VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, element);
 
-         if ((videoFile.Self == null) || (!videoFile.Exists()))
+         if ((videoFile.Self == null) || (videoFile.Name != name) || (!videoFile.Exists()))
          {
             return NotFound();
          }
