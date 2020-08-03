@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -11,19 +14,24 @@ namespace MediaCurator.Controllers
       private readonly IMediaLibrary _mediaLibrary;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
       private readonly ILogger<ThumbnailsController> _logger;
+      private readonly CancellationToken _cancellationToken;
 
-      public ThumbnailsController(ILogger<ThumbnailsController> logger, IMediaLibrary mediaLibrary, IThumbnailsDatabase thumbnailsDatabase)
+      public ThumbnailsController(ILogger<ThumbnailsController> logger,
+                                  IHostApplicationLifetime applicationLifetime,
+                                  IThumbnailsDatabase thumbnailsDatabase,
+                                  IMediaLibrary mediaLibrary)
       {
          _logger = logger;
          _mediaLibrary = mediaLibrary;
          _thumbnailsDatabase = thumbnailsDatabase;
+         _cancellationToken = applicationLifetime.ApplicationStopping;
       }
 
       // GET: /<controller>/{id}/{index}
       [Route("[controller]/{id}/{index}.jpg")]
-      public IActionResult Index(string id, int index)
+      public async Task<IActionResult> Index(string id, int index)
       {
-         var thumbnail = _thumbnailsDatabase.GetThumbnail(id, index);
+         var thumbnail = await _thumbnailsDatabase.GetThumbnailAsync(id, index, _cancellationToken);
 
          if (thumbnail.Length > 0)
          {
@@ -36,9 +44,9 @@ namespace MediaCurator.Controllers
 
       // GET: /<controller>/{id}
       [Route("[controller]/{id}")]
-      public IActionResult Index(string id)
+      public async Task<IActionResult> Index(string id)
       {
-         return Index(id, 0);
+         return await Index(id, 0);
       }
    }
 }
