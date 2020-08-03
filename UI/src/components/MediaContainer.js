@@ -31,13 +31,13 @@ export class MediaContainer extends Component {
         if (this.state.visible) {
             // the component is visible now, start or restart the timer if necessary
             if ((this.animateInterval == null) && (this.props.source.thumbnails != null) && (this.props.source.thumbnails.count > 0)) {
-                console.log("Started: " + this.props.source.id);
+                // console.log("Started: " + this.props.source.id);
                 this.animateInterval = setInterval(() => this.animate(), 500);
             }
         } else {
             // the component is no longer visible, stop the timer if necessary
             if (this.animateInterval != null) {
-                console.log("Stopped: " + this.props.source.id);
+                // console.log("Stopped: " + this.props.source.id);
                 clearInterval(this.animateInterval);
                 this.animateInterval = null;
             }
