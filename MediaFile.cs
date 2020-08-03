@@ -14,8 +14,6 @@ namespace MediaCurator
    {
       #region Fields
 
-      protected readonly IThumbnailsDatabase _thumbnailsDatabase;
-
       /// <summary>
       /// A flag indicating that the MediaFile based element did not exist and has just been
       /// created. This is meant to communicate this to the child constructor which needs to be made
@@ -147,10 +145,8 @@ namespace MediaCurator
       #region Constructors
 
       public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string type, string path)
-         : base(configuration, MediaContainer.GetPathComponents(path).Item1)
+         : base(configuration, thumbnailsDatabase, MediaContainer.GetPathComponents(path).Item1)
       {
-         _thumbnailsDatabase = thumbnailsDatabase;
-
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
 
@@ -234,10 +230,8 @@ namespace MediaCurator
       }
 
       public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
-         : base(configuration, element, update)
+         : base(configuration, thumbnailsDatabase, element, update)
       {
-         _thumbnailsDatabase = thumbnailsDatabase;
-
          // Initialize the thumbnails.
          Thumbnails = new MediaFileThumbnails(_thumbnailsDatabase, Id);
 

@@ -28,8 +28,8 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaDrive(IConfiguration configuration, string path)
-         : base(configuration, MediaContainer.GetPathComponents(path).Item1)
+      public MediaDrive(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
+         : base(configuration, thumbnailsDatabase, MediaContainer.GetPathComponents(path).Item1)
       {
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
@@ -93,8 +93,8 @@ namespace MediaCurator
          }
       }
 
-      public MediaDrive(IConfiguration configuration, XElement element, bool update = false)
-          : base(configuration, element, update)
+      public MediaDrive(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
+          : base(configuration, thumbnailsDatabase, element, update)
       {
       }
 

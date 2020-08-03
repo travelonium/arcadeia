@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
@@ -30,9 +31,14 @@ namespace MediaCurator.Controllers
       {
          var progress = new Progress<Tuple<double, double, string>>();
 
-         var mediaContainers = _mediaLibrary.ListMediaContainers(Platform.Separator.Path + path, progress);
+         if ((System.IO.Directory.Exists(Platform.Separator.Path + path) || (System.IO.File.Exists(Platform.Separator.Path + path))))
+         {
+            var mediaContainers = _mediaLibrary.ListMediaContainers(Platform.Separator.Path + path, progress);
 
-         return mediaContainers.Select(item => item.Model);
+            return mediaContainers.Select(item => item.Model);
+         }
+
+         return new List<Models.MediaContainer>();
       }
    }
 }

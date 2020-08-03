@@ -126,12 +126,12 @@ namespace MediaCurator.Services
                NotifyFilter = NotifyFilters.CreationTime
                                  | NotifyFilters.LastWrite
                                  | NotifyFilters.FileName
-                                 | NotifyFilters.DirectoryName
+                              // | NotifyFilters.DirectoryName
             };
 
             // Add event handlers.
+            watcher.Created += OnCreated;
             watcher.Changed += OnChanged;
-            watcher.Created += OnChanged;
             watcher.Deleted += OnChanged;
             watcher.Renamed += OnRenamed;
 
@@ -288,7 +288,7 @@ namespace MediaCurator.Services
                           IProgress<string> progressStatus,
                           CancellationToken cancellationToken)
       {
-         _logger.LogInformation("Startup Cleanup Started.");
+         _logger.LogInformation("Startup Update Started.");
 
          // It's now time to go through the MediaLibrary itself and check for changes on the disk. 
 
@@ -339,6 +339,8 @@ namespace MediaCurator.Services
             // Clear the thumbnail preview.
             progressThumbnailPreview.Report(null);
          }
+
+         _logger.LogInformation("Startup Update Finished.");
       }
 
       private void AddFile(string file)
@@ -356,7 +358,7 @@ namespace MediaCurator.Services
          var progressFile = new Progress<Tuple<double, double>>();
          var progressThumbnailPreview = new Progress<byte[]>();
 
-         MediaFile mediaFile = _mediaLibrary.InsertMedia(file, progressFile, progressThumbnailPreview);
+         MediaFile mediaFile = _mediaLibrary.UpdateMedia(file, progressFile, progressThumbnailPreview);
 
          _mediaLibrary.UpdateDatabase();
       }
@@ -374,16 +376,27 @@ namespace MediaCurator.Services
       {
       }
 
-      // Define the event handlers.
-      private void OnChanged(object source, FileSystemEventArgs e)
+      private void OnCreated(object source, FileSystemEventArgs e)
       {
-         // Specify what is done when a file is changed, created, or deleted.
+         // Specify what is done when a file is created.
          Debug.WriteLine($"File {e.ChangeType}: {e.FullPath}");
 
          // Queue the add operation.
          _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
          {
             return Task.Run(() => AddFile(e.FullPath));
+         });
+      }
+
+      private void OnChanged(object source, FileSystemEventArgs e)
+      {
+         // Specify what is done when a file is created, or deleted.
+         Debug.WriteLine($"File {e.ChangeType}: {e.FullPath}");
+
+         // Queue the add operation.
+         _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
+         {
+            return Task.Run(() => UpdateFile(e.FullPath));
          });
       }
 

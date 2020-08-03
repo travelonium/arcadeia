@@ -44,6 +44,8 @@ export class Library extends Component {
     open(source) {
         if (source.type === "Folder") {
             this.list(source.fullPath);
+        } else if (source.type == "Video") {
+            window.open("/stream/" + source.id, "_blank");
         }
     }
 

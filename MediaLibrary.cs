@@ -252,7 +252,7 @@ namespace MediaCurator
                                                       uint values = 0)
       {
          double index = 0.0, total = 0.0;
-         MediaContainer mediaContainer = new MediaContainer(_configuration, path);
+         MediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, path);
          List<MediaContainer> mediaContainers = new List<MediaContainer>();
 
          // In case of a Server or a Drive or a Folder located in the root, the mediaContainer's Self
@@ -261,88 +261,105 @@ namespace MediaCurator
 
          if ((mediaContainer.Self == null) && (mediaContainer.Parent != null))
          {
-            mediaContainer.Self = mediaContainer.Parent.Self;
+            mediaContainer = mediaContainer.Parent;
          }
          else if ((mediaContainer.Self == null) && (mediaContainer.Parent == null))
          {
             mediaContainer.Self = Document.Root;
          }
 
-         // Using mediaFolder.Self.Descendants() instead of mediaContainer.Self.Nodes() will cause
-         // a recursive display of all descending nodes of the parent node.
-
-         foreach (XElement item in mediaContainer.Self.Nodes())
+         if (mediaContainer is MediaFile)
          {
-            total++;
-         }
+            total = 1;
 
-         foreach (XElement item in mediaContainer.Self.Nodes())
-         {
-            string flagsTag = Tools.GetAttributeValue(item, "Flags");
+            string flagsTag = Tools.GetAttributeValue(mediaContainer.Self, "Flags");
             uint flagsInteger = Convert.ToUInt32(flagsTag.Length > 0 ? flagsTag : "0", 16);
 
             // Mask out only the flags we care about and compare them to the expected values.
-            if (((flagsInteger & flags) ^ (values & flags)) > 0)
+            if (((flagsInteger & flags) ^ (values & flags)) <= 0)
             {
-               // The requested flags don't match those of the item's.
-               continue;
+               // The requested flags match those of the item's.
+               mediaContainers.Add(mediaContainer);
+            }
+         }
+         else
+         {
+            // Using mediaFolder.Self.Descendants() instead of mediaContainer.Self.Nodes() will cause
+            // a recursive display of all descending nodes of the parent node.
+
+            foreach (XElement item in mediaContainer.Self.Nodes())
+            {
+               total++;
             }
 
-            switch (item.Name.ToString())
+            foreach (XElement item in mediaContainer.Self.Nodes())
             {
-               case "Drive":
+               string flagsTag = Tools.GetAttributeValue(item, "Flags");
+               uint flagsInteger = Convert.ToUInt32(flagsTag.Length > 0 ? flagsTag : "0", 16);
 
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                     (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                     (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty drive. Let's ignore it.
+               // Mask out only the flags we care about and compare them to the expected values.
+               if (((flagsInteger & flags) ^ (values & flags)) > 0)
+               {
+                  // The requested flags don't match those of the item's.
+                  continue;
+               }
+
+               switch (item.Name.ToString())
+               {
+                  case "Drive":
+
+                     if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
+                        (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
+                        (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
+                     {
+                        // This would be an empty drive. Let's ignore it.
+                        break;
+                     }
+
+                     mediaContainers.Add(new MediaDrive(_configuration, _thumbnailsDatabase, item));
                      break;
-                  }
 
-                  mediaContainers.Add(new MediaDrive(_configuration, item));
-                  break;
+                  case "Server":
 
-               case "Server":
+                     if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
+                        (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
+                        (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
+                     {
+                        // This would be an empty server. Let's ignore it.
+                        break;
+                     }
 
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                     (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                     (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty server. Let's ignore it.
+                     mediaContainers.Add(new MediaServer(_configuration, _thumbnailsDatabase, item));
                      break;
-                  }
 
-                  mediaContainers.Add(new MediaServer(_configuration, item));
-                  break;
+                  case "Folder":
 
-               case "Folder":
+                     if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
+                        (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
+                        (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
+                     {
+                        // This would be an empty folder. Let's ignore it.
+                        break;
+                     }
 
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                     (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                     (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty folder. Let's ignore it.
+                     mediaContainers.Add(new MediaFolder(_configuration, _thumbnailsDatabase, item));
                      break;
-                  }
 
-                  mediaContainers.Add(new MediaFolder(_configuration, item));
-                  break;
+                  case "Audio":
+                     // TODO: mediaContainers.Add( new AudioFile( item ) );
+                     break;
 
-               case "Audio":
-                  // TODO: mediaContainers.Add( new AudioFile( item ) );
-                  break;
+                  case "Video":
+                     mediaContainers.Add(new VideoFile(_configuration, _thumbnailsDatabase, item));
+                     break;
 
-               case "Video":
-                  mediaContainers.Add(new VideoFile(_configuration, _thumbnailsDatabase, item));
-                  break;
+                  case "Photo":
+                     // TODO: mediaContainers.Add( new PhotoFile( item ) );
+                     break;
+               }
 
-               case "Photo":
-                  // TODO: mediaContainers.Add( new PhotoFile( item ) );
-                  break;
+               progress.Report(new Tuple<double, double, string>(++index, total, "Loading..."));
             }
-
-            progress.Report(new Tuple<double, double, string>(++index, total, "Loading..."));
          }
 
          progress.Report(new Tuple<double, double, string>(0, 100, ""));
@@ -356,7 +373,7 @@ namespace MediaCurator
       {
          string fileName = Path.GetFileName(path);
          MediaContainerType mediaType = GetMediaType(path);
-         MediaFile newMediaFile = null;
+         MediaFile mediaFile = null;
 
          switch (mediaType)
          {
@@ -384,7 +401,7 @@ namespace MediaCurator
 
             case MediaContainerType.Video:
 
-               newMediaFile = InsertVideoFile(path, progress, preview);
+               mediaFile = InsertVideoFile(path, progress, preview);
 
                break;
 
@@ -399,7 +416,7 @@ namespace MediaCurator
                break;
          }
 
-         return newMediaFile;
+         return mediaFile;
       }
 
       /// <summary>
@@ -468,6 +485,67 @@ namespace MediaCurator
                   throw new NotImplementedException("Photo files cannot yet be handled!");
             }
          }
+      }
+
+      /// <summary>
+      /// Checks an already present element in the MediaLibrary against its physical file to see if
+      /// anything has changed and if the element needs to be updated or deleted.
+      /// </summary>
+      /// <param name="path">The media element to be checked for chanegs.</param>
+      /// <param name="progress">The file progress if it required regeneration of thumbnails.</param>
+      /// <param name="preview">The thumbnail preview.</param>
+      /// <returns></returns>
+      public MediaFile UpdateMedia(string path,
+                                   IProgress<Tuple<double, double>> progress,
+                                   IProgress<byte[]> preview)
+      {
+         string fileName = Path.GetFileName(path);
+         MediaContainerType mediaType = GetMediaType(path);
+         MediaFile mediaFile = null;
+
+         switch (mediaType)
+         {
+            /*-------------------------------------------------------------------------------------
+                                                 UNKNOWN
+            -------------------------------------------------------------------------------------*/
+
+            case MediaContainerType.Unknown:
+
+               break;
+
+            /*-------------------------------------------------------------------------------------
+                                                AUDIO FILE
+            -------------------------------------------------------------------------------------*/
+
+            case MediaContainerType.Audio:
+
+               throw new NotImplementedException("Audio files cannot yet be handled!");
+
+            /*-------------------------------------------------------------------------------------
+                                                VIDEO FILE
+            -------------------------------------------------------------------------------------*/
+
+            case MediaContainerType.Video:
+
+               mediaFile = new VideoFile(_configuration, _thumbnailsDatabase, path);
+
+               if (mediaFile.Self != null)
+               {
+                  UpdateVideoFile(mediaFile.Self, progress, preview);
+               }
+
+               break;
+
+            /*-------------------------------------------------------------------------------------
+                                                PHOTO FILE
+            -------------------------------------------------------------------------------------*/
+
+            case MediaContainerType.Photo:
+
+               throw new NotImplementedException("Photo files cannot yet be handled!");
+         }
+
+         return mediaFile;
       }
 
       private void InsertAudioFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)

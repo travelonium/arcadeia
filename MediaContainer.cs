@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
@@ -9,9 +10,11 @@ namespace MediaCurator
 {
    public class MediaContainer
    {
-      #region Fields
-
       protected readonly IConfiguration _configuration;
+
+      protected readonly IThumbnailsDatabase _thumbnailsDatabase;
+
+      #region Fields
 
       /// <summary>
       /// Gets the root MediaContainer of this particular MediaContainer descendant.
@@ -164,9 +167,10 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaContainer(IConfiguration configuration, string path)
+      public MediaContainer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
       {
          _configuration = configuration;
+         _thumbnailsDatabase = thumbnailsDatabase;
 
          if (path == null)
          {
@@ -188,18 +192,20 @@ namespace MediaCurator
             if (parentType != null)
             {
                // Now the Parent will be taken care of!
-               Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, path);
+               Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, thumbnailsDatabase, path);
             }
          }
 
          // Now that we're here, we can assume that the parent(s) of this element has been created
          // or better yet located already. Now the constructor of the inherited calling class will
-         // take care of the element itself.
+         // take care of the element itself. Unless the path points to a file in which case, the
+         // Parent of this instance will be the real target.
       }
 
-      public MediaContainer(IConfiguration configuration, XElement element, bool update = false)
+      public MediaContainer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
       {
          _configuration = configuration;
+         _thumbnailsDatabase = thumbnailsDatabase;
 
          if (element != null)
          {
@@ -214,7 +220,7 @@ namespace MediaCurator
                if (parentType != null)
                {
                   // Now the Parent will be taken care of!
-                  Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, element.Parent, update);
+                  Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, thumbnailsDatabase, element.Parent, update);
                }
             }
 
@@ -408,8 +414,39 @@ namespace MediaCurator
                return typeof(MediaFolder);
             }
 
-            throw new NotSupportedException("The supplied child is of an invalid type! This " +
-                                            "method is not meant to handle files.");
+            // It's probably a file then, let's find its type.
+            var supportedExtensions = new MediaContainerTypeExtensions(_configuration);
+
+            // Extract the file extension including the '.' character.
+            string extension = Path.GetExtension(container).ToLower();
+
+            if ((extension != null) && (extension.Length != 0))
+            {
+               // It appears that the file does have an extension. We may proceed.
+
+               // Check if it's a recognized video format.
+               if (supportedExtensions[MediaContainerType.Video].Contains(extension))
+               {
+                  // Looks like the file is a recognized video format.
+                  return typeof(VideoFile);
+               }
+
+               // Check if it's a recognized photo format.
+               if (supportedExtensions[MediaContainerType.Photo].Contains(extension))
+               {
+                  // Looks like the file is a recognized photo format.
+                  throw new NotImplementedException("Photo files cannot yet be handled!");
+               }
+
+               // Check if it's a recognized audio format.
+               if (supportedExtensions[MediaContainerType.Audio].Contains(extension))
+               {
+                  // Looks like the file is a recognized audio format.
+                  throw new NotImplementedException("Audio files cannot yet be handled!");
+               }
+            }
+
+            throw new NotSupportedException("The supplied child is of an invalid type!");
          }
 
          return childType;
