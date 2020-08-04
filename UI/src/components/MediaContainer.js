@@ -2,6 +2,8 @@ import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import VisibilitySensor from 'react-visibility-sensor';
+import Badge from 'react-bootstrap/Badge';
+import { duration } from './../utils';
 
 export class MediaContainer extends Component {
     static displayName = MediaContainer.name;
@@ -54,9 +56,10 @@ export class MediaContainer extends Component {
     }
 
     thumbnail(index) {
-        if (this.props.source.type === "Folder") return "/folder.png";
-        if ((index < 0) || (this.props.source.id == null)) return "/placeholder.png";
-        return "/thumbnails/" + this.props.source.id + "/" + index + ".jpg";
+        let source = this.props.source;
+        if (source.type === "Folder") return "/folder.png";
+        if ((index < 0) || (source.id == null) || (source.thumbnails == null) || (source.thumbnails.count == 0)) return "/placeholder.png";
+        return "/thumbnails/" + source.id + "/" + index + ".jpg";
     }
 
     animate() {
@@ -86,10 +89,11 @@ export class MediaContainer extends Component {
     render() {
         return (
             <VisibilitySensor partialVisibility onChange={(isVisible) => { this.componentVisibilityChanged(isVisible) }}>
-                <Card onClick={() => this.props.open(this.props.source)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container" + (this.state.hover ? " shadow-sm" : "")} >
+                <Card onClick={() => this.props.open(this.props.source)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container" + (this.state.hover ? " highlighted" : "")} >
                     <Card.Img variant="top" src={this.thumbnail(this.state.thumbnails.index)} />
                     <ProgressBar min={1} max={(this.props.source.thumbnails != null) ? this.props.source.thumbnails.count : 0} now={this.state.thumbnails.index + 1} className={((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count)) ? "visible" : "invisible"} />
                     <Card.ImgOverlay>
+                        <Badge variant="dark" className={(this.props.source.duration > 0) ? "visible" : "invisible"}>{duration(this.props.source.duration)}</Badge>
                     </Card.ImgOverlay>
                     <Card.Body>
                         <p className="font-weight-bold text-center" >{this.props.source.name}</p>
