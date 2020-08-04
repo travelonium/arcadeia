@@ -383,6 +383,9 @@ namespace MediaCurator
       {
          int totalThumbnails = 0;
 
+         // TODO: Improve the thumbnail generation by generating a .webm file:
+         //       ffmpeg -i happy-birthday.mp4 -vf select="eq(pict_type\,I),scale=720:-1,fps=1/5" -f image2pipe - | ffmpeg -f image2pipe -r 1 -c:v mjpeg -i - -c:v libvpx-vp9 -b:v 0 -crf 20 test.webm
+
          /*----------------------------------------------------------------------------------
                                          GENERATE THUMBNAILS
          ----------------------------------------------------------------------------------*/
@@ -416,7 +419,7 @@ namespace MediaCurator
             int position = (int)((index - 0.5) * Duration / totalThumbnails);
 
             // Generate the thumbnail.
-            byte[] thumbnail = GenerateThumbnail(FullPath, position, 640, index);
+            byte[] thumbnail = GenerateThumbnail(FullPath, position, 720, index);
 
             if ((thumbnail != null) && (thumbnail.Length > 0))
             {
