@@ -2,6 +2,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import React, { Component } from 'react';
 import Modal from 'react-bootstrap/Modal';
+import Alert from 'react-bootstrap/Alert';
 import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
@@ -9,12 +10,6 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { MediaContainer } from './MediaContainer';
 import { extract } from './../utils';
-
-/*
-<Col key={"media-container-column-index-" + index}>
-    <MediaContainer source={this.state.items[index]} open={this.open} />
-</Col>
-*/
 
 export class Library extends Component {
     static displayName = Library.name;
@@ -94,6 +89,23 @@ export class Library extends Component {
         }
     }
 
+    files() {
+        return this.state.items.reduce((count, item) =>{
+            if ((item.type === "Video") || (item.type === "Audio") || (item.type === "Photo")) return (count + 1);
+            return count;
+        }, 0) + " Files";
+    }
+
+    size(decimals = 2) {
+        let bytes = this.state.items.reduce((sum, item) => sum + item.size, 0);
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
     render() {
         let path = "/";
         return (
@@ -114,7 +126,7 @@ export class Library extends Component {
                         })
                     }
                 </Breadcrumb>
-                <div style={{"flex-grow": "1"}}>
+                <div className="mb-3" style={{"flex-grow": "1"}}>
                     <AutoSizer>
                         {({ height, width }) => (
                             <Grid columnCount={4} columnWidth={(width / 4) - 5} height={height} rowCount={this.state.items.length / 4} rowHeight={250} width={width}>
@@ -139,6 +151,14 @@ export class Library extends Component {
                         </Modal.Body>
                     </Modal>
                 </div>
+                <Breadcrumb>
+                    <Container>
+                        <Row>
+                            <Col className="text-left"></Col>
+                            <Col className="text-right">{this.size() + " (" + this.files() + ")"}</Col>
+                        </Row>
+                    </Container>
+                </Breadcrumb>
             </div>
         );
     }
