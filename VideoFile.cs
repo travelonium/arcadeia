@@ -304,8 +304,9 @@ namespace MediaCurator
          return JsonDocument.Parse(output).RootElement;
       }
 
-      private byte[] GenerateThumbnail(string filePath, int position, int width, int index)
+      private byte[] GenerateThumbnail(string filePath, int position, int index)
       {
+         int width = 720;
          byte[] output = null;
          string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
 
@@ -414,12 +415,12 @@ namespace MediaCurator
 
          // FIXME: The index has to be based on the number of thumbnails successfully generated.
 
-         for (int index = 1; index <= totalThumbnails; index++)
+         for (int counter = 1, index = 1; counter <= totalThumbnails; counter++)
          {
-            int position = (int)((index - 0.5) * Duration / totalThumbnails);
+            int position = (int)((counter - 0.5) * Duration / totalThumbnails);
 
             // Generate the thumbnail.
-            byte[] thumbnail = GenerateThumbnail(FullPath, position, 720, index);
+            byte[] thumbnail = GenerateThumbnail(FullPath, position, index);
 
             if ((thumbnail != null) && (thumbnail.Length > 0))
             {
@@ -431,12 +432,15 @@ namespace MediaCurator
                   // Update the thumbnail preview.
                   preview.Report(thumbnail);
                }
+
+               // Increase the index
+               index++;
             }
 
             if (progress != null)
             {
                // Update the Current File Progress ProgressBar.
-               progress.Report(new Tuple<double, double>(index, totalThumbnails));
+               progress.Report(new Tuple<double, double>(counter, totalThumbnails));
             }
          }
 
