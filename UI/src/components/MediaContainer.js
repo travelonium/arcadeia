@@ -75,12 +75,14 @@ export class MediaContainer extends Component {
     }
 
     onMouseOver() {
+        if (! this.state.hover) this.props.highlight(this.props.source);
         this.setState({
             hover: true
         });
     }
 
     onMouseOut() {
+        if (this.state.hover) this.props.highlight(null);
         this.setState({
             hover: false
         });

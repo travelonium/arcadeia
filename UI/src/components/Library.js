@@ -16,13 +16,14 @@ export class Library extends Component {
 
     constructor(props) {
         super(props);
-        this.open = this.open.bind(this);
+        this.highlighted = React.createRef();
         let path = "/" + extract("", props, "match", "params", 0);
         this.state = {
             loading: false,
             status: "",
             path: path,
-            items: []
+            items: [],
+            highlighted: null,
         };
     }
 
@@ -35,6 +36,7 @@ export class Library extends Component {
 
     list(path) {
         if (path) {
+            this.highlighted.current.textContent = "";
             this.setState({
                 loading: true,
                 status: "Requesting"
@@ -73,12 +75,20 @@ export class Library extends Component {
         }
     }
 
+    highlight(source) {
+        if (source !== null) {
+            this.highlighted.current.textContent = source.name;
+        } else {
+            this.highlighted.current.textContent = "";
+        }
+    }
+
     cell({ columnIndex, rowIndex, style }) {
         let source = this.state.items[(rowIndex * 4) + columnIndex];
         if (source !== undefined) {
             return (
                 <div className="p-1" style={style}>
-                    <MediaContainer source={source} open={this.open} />
+                    <MediaContainer source={source} open={this.open.bind(this)} highlight={this.highlight.bind(this)} />
                 </div>
             );
         } else {
@@ -152,12 +162,8 @@ export class Library extends Component {
                     </Modal>
                 </div>
                 <Breadcrumb>
-                    <Container>
-                        <Row>
-                            <Col className="text-left"></Col>
-                            <Col className="text-right">{this.size() + " (" + this.files() + ")"}</Col>
-                        </Row>
-                    </Container>
+                    <div className="text-left d-inline-block text-truncate" ref={this.highlighted}></div>
+                    <div className="text-right" style={{"flex-grow": "1"}}>{"(" + this.files() + ") " + this.size()}</div>
                 </Breadcrumb>
             </div>
         );
