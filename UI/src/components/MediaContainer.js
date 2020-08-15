@@ -58,7 +58,7 @@ export class MediaContainer extends Component {
     thumbnail(index) {
         let source = this.props.source;
         if (source.type === "Folder") return "/folder.png";
-        if ((index < 0) || (source.id == null) || (source.thumbnails == null) || (source.thumbnails.count == 0)) return "/placeholder.png";
+        if ((index < 0) || (source.id === null) || (source.thumbnails === null) || (source.thumbnails.count === 0)) return "/placeholder.png";
         return "/thumbnails/" + source.id + "/" + index + ".jpg";
     }
 
