@@ -40,6 +40,8 @@ namespace MediaCurator
 
          _workItems.TryDequeue(out var workItem);
 
+         Debug.WriteLine("DEQUEUED: " + workItem.Item1);
+
          return workItem.Item2;
       }
    }

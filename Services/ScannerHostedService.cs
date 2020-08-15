@@ -261,8 +261,17 @@ namespace MediaCurator.Services
             // Update the Status message.
             progressStatus.Report(file);
 
-            // Add the file to the MediaLibrary.                     
-            MediaFile newMediaFile = _mediaLibrary.InsertMedia(file, progressFile, progressThumbnailPreview);
+            try
+            {
+               // Add the file to the MediaLibrary.
+               MediaFile newMediaFile = _mediaLibrary.InsertMedia(file, progressFile, progressThumbnailPreview);
+            }
+            catch (Exception e)
+            {
+               _logger.LogError("An exception has been thrown while updating the Media Library: ", e.Message);
+
+               break;
+            }
 
             // Update the Current Folder Progress.
             progressFolder.Report(new Tuple<double, double>(fileCounter++, fileCounterMax));
@@ -321,16 +330,25 @@ namespace MediaCurator.Services
                return;
             }
 
-            // Instantiate a MediaFile using the acquired element.
-            MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, element);
-
-            if (mediaFile != null)
+            try
             {
-               // Update the Status message.
-               progressStatus.Report(mediaFile.FullPath);
+               // Instantiate a MediaFile using the acquired element.
+               MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, element);
 
-               // Update the current media file element.
-               _mediaLibrary.UpdateMedia(element, progressFile, progressThumbnailPreview);
+               if (mediaFile != null)
+               {
+                  // Update the Status message.
+                  progressStatus.Report(mediaFile.FullPath);
+
+                  // Update the current media file element.
+                  _mediaLibrary.UpdateMedia(element, progressFile, progressThumbnailPreview);
+               }
+            }
+            catch (Exception e)
+            {
+               _logger.LogError("An exception has been thrown while updating the Media Library: ", e.Message);
+
+               break;
             }
 
             // Update the Total Progress.
@@ -339,6 +357,9 @@ namespace MediaCurator.Services
             // Clear the thumbnail preview.
             progressThumbnailPreview.Report(null);
          }
+
+         // Now that we're done with this task, let's update the MediaLibrary with the new changes.
+         _mediaLibrary.UpdateDatabase();
 
          _logger.LogInformation("Startup Update Finished.");
       }
