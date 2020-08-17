@@ -9,8 +9,10 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { MediaContainer } from './MediaContainer';
 import { extract, size, breakpoint } from './../utils';
+import { VideoPlayer } from './VideoPlayer';
 
 export class Library extends Component {
+
     static displayName = Library.name;
 
     constructor(props) {
@@ -23,6 +25,12 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
+            videos: [],
+            videoJsOptions: {
+                fluid: true,
+                autoplay: true,
+                controls: true,
+            },
         };
     }
 
@@ -66,11 +74,17 @@ export class Library extends Component {
         }
     }
 
-    open(source) {
+    open(source, player = true) {
         if (source.type === "Folder") {
             this.list(source.fullPath);
         } else if (source.type === "Video") {
-            window.open("/stream/" + source.id + "/" + source.name, "_blank");
+            if (player) {
+                this.setState({
+                    videos: ["/stream/" + source.id + "/" + source.name]
+                });
+            } else {
+                window.open("/stream/" + source.id + "/" + source.name, "_blank");
+            }
         }
     }
 
@@ -182,6 +196,9 @@ export class Library extends Component {
                                 </Row>
                             </Container>
                         </Modal.Body>
+                    </Modal>
+                    <Modal show={this.state.videos.length > 0} onHide={() => this.setState({ videos: []})} backdrop={true} animation={true} size="lg" aria-labelledby="contained-modal-title-vcenter" centered>
+                        <VideoPlayer options={this.state.videoJsOptions} sources={this.state.videos} />
                     </Modal>
                 </div>
                 <Breadcrumb>
