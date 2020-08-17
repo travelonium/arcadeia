@@ -133,7 +133,7 @@ export class Library extends Component {
                                 case 'xs':
                                     offset = 16;
                                     this.columnCount = 1;
-                                    rowHeight = (width / this.columnCount) * 12. / 16;
+                                    rowHeight = (width / this.columnCount) * 12 / 16;
                                     break;
                                 case 'sm':
                                     offset = 8;
@@ -151,9 +151,9 @@ export class Library extends Component {
                                     rowHeight = (width / this.columnCount) * 15 / 16;
                                     break;
                                 case 'xl':
-                                    offset = 3;
-                                    this.columnCount = 5;
-                                    rowHeight = (width / this.columnCount) * 15.5 / 16;
+                                    offset = 4;
+                                    this.columnCount = 4;
+                                    rowHeight = (width / this.columnCount) * 15.7 / 16;
                                     break;
                                 default:
                                     break;
