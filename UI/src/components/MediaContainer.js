@@ -69,9 +69,13 @@ export class MediaContainer extends Component {
         });
     }
 
+    onClick(event) {
+        this.props.open(this.props.source);
+    }
+
     render() {
         return (
-            <Card onClick={() => this.props.open(this.props.source)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container" + (this.state.hover ? " highlighted" : "")} >
+            <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container" + (this.state.hover ? " highlighted" : "")} >
                 <Card.Img variant="top" src={this.thumbnail(this.state.thumbnails.index)} />
                 <ProgressBar min={1} max={(this.props.source.thumbnails != null) ? this.props.source.thumbnails.count : 0} now={this.state.thumbnails.index + 1} className={((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count)) ? "visible" : "invisible"} />
                 <Card.ImgOverlay>

@@ -27,7 +27,8 @@ export class Library extends Component {
             items: [],
             videos: [],
             videoJsOptions: {
-                fluid: true,
+                aspectRatio: "16:9",
+                responsive: true,
                 autoplay: true,
                 controls: true,
             },
@@ -197,7 +198,7 @@ export class Library extends Component {
                             </Container>
                         </Modal.Body>
                     </Modal>
-                    <Modal show={this.state.videos.length > 0} onHide={() => this.setState({ videos: []})} backdrop={true} animation={true} size="lg" aria-labelledby="contained-modal-title-vcenter" centered>
+                    <Modal show={this.state.videos.length > 0} onHide={() => this.setState({ videos: []})} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
                         <VideoPlayer options={this.state.videoJsOptions} sources={this.state.videos} />
                     </Modal>
                 </div>
