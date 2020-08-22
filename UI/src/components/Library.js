@@ -7,8 +7,9 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { MediaContainer } from './MediaContainer';
 import { extract, size, breakpoint } from './../utils';
+import { MediaContainer } from './MediaContainer';
+import { MediaViewer } from './MediaViewer';
 
 export class Library extends Component {
 
@@ -18,6 +19,7 @@ export class Library extends Component {
         super(props);
         this.rowCount = 1;
         this.columnCount = 1;
+        this.mediaViewer = React.createRef();
         let path = "/" + extract("", props, "match", "params", 0);
         this.state = {
             loading: false,
@@ -71,6 +73,10 @@ export class Library extends Component {
         this.list(source.fullPath);
     }
 
+    view(source, player = true) {
+        this.mediaViewer.current.view(source, player);
+    }
+
     highlight(source) {
         if (source !== null) {
         } else {
@@ -82,7 +88,7 @@ export class Library extends Component {
         if (source !== undefined) {
             return (
                 <div className="p-1" style={style}>
-                    <MediaContainer source={source} open={this.open.bind(this)} highlight={this.highlight.bind(this)} />
+                    <MediaContainer source={source} open={this.open.bind(this)} view={this.view.bind(this)} highlight={this.highlight.bind(this)} />
                 </div>
             );
         } else {
@@ -159,6 +165,7 @@ export class Library extends Component {
                             )}
                         }
                     </AutoSizer>
+                    <MediaViewer ref={this.mediaViewer} />
                     <Modal show={this.state.loading} backdrop={false} animation={false} size="sm" aria-labelledby="contained-modal-title-vcenter" centered>
                         <Modal.Body className="shadow-sm">
                             <Container>
