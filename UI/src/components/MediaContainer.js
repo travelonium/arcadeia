@@ -47,12 +47,12 @@ export class MediaContainer extends Component {
         if (this.props.source.type === "Folder") {
             this.props.open(this.props.source, false);
         } else {
-            this.props.view(this.props.source, true);
+            let player = !(event.shiftKey || event.metaKey);
+            this.props.view(this.props.source, player);
         }
     }
 
     render() {
-        // console.log("render(" + this.props.source.id + ")");
         return (
             <div className={"media-container" + (this.props.source.type ? (" " + this.props.source.type.toLowerCase()) : "")}>
                 <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
