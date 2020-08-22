@@ -9,7 +9,6 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { MediaContainer } from './MediaContainer';
 import { extract, size, breakpoint } from './../utils';
-import { VideoPlayer } from './VideoPlayer';
 
 export class Library extends Component {
 
@@ -25,13 +24,6 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
-            sources: [],
-            videoJsOptions: {
-                aspectRatio: "16:9",
-                responsive: true,
-                autoplay: true,
-                controls: true,
-            },
         };
     }
 
@@ -75,18 +67,8 @@ export class Library extends Component {
         }
     }
 
-    open(source, player = true) {
-        if (source.type === "Folder") {
-            this.list(source.fullPath);
-        } else if (source.type === "Video") {
-            if (player) {
-                this.setState({
-                    sources: ["/stream/" + source.id + "/" + source.name]
-                });
-            } else {
-                window.open("/stream/" + source.id + "/" + source.name, "_blank");
-            }
-        }
+    open(source) {
+        this.list(source.fullPath);
     }
 
     highlight(source) {
@@ -170,7 +152,6 @@ export class Library extends Component {
                             let rowHeight = (width / this.columnCount);
                             let columnWidth = (width / this.columnCount) - offset;
                             this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
-                            console.log(rowHeight + ":" + columnWidth);
                             return (
                                 <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
                                     {this.cell.bind(this)}
@@ -193,9 +174,6 @@ export class Library extends Component {
                                 </Row>
                             </Container>
                         </Modal.Body>
-                    </Modal>
-                    <Modal show={this.state.sources.length > 0} onHide={() => this.setState({ sources: []})} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
-                        <VideoPlayer options={this.state.videoJsOptions} sources={this.state.sources} />
                     </Modal>
                 </div>
                 <Breadcrumb>

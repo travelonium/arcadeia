@@ -15,48 +15,53 @@ code {
   border-color: #1861ac;
 }
 
-.media-container.card {
+.media-container {
+    height: 100%;
+}
+
+.media-container .card {
     border: 1px solid rgba(0, 0, 0, 0.125);
     margin-bottom: 15px;
     cursor: pointer;
+    height: 100%;
 }
 
-.media-container .card-img {
+.media-container .card .card-img {
     width: 100%;
     height: 100%;
     border-bottom-left-radius: 0%;
     border-bottom-right-radius: 0%;
 }
 
-.media-container .card-img-container {
+.media-container .card .card-img-container {
     width: 100%;
     height: 56.25%; // 9:16
     position: relative;
     overflow: hidden;
 }
 
-.card.highlighted {
+.media-container .card.highlighted {
     @extend .shadow-sm;
     border: 1px solid rgba(0, 0, 0, 0.125);
 }
 
-.card-title {
+.media-container .card .card-title {
     overflow: hidden;
     max-height: 2.5em;
     text-overflow: ellipsis;
     white-space: normal;
 }
 
-.media-container.card.folder .card-title {
+.media-container.folder .card .card-title {
     text-align: center;
 }
 
-.card-body {
+.media-container .card .card-body {
     padding: 0.5rem;
     height: 5rem;
 }
 
-.card-body p {
+.media-container .card .card-body p {
     font-size: 1.1rem;
     max-height: 3.5rem;
     overflow: hidden;
@@ -64,14 +69,9 @@ code {
     white-space: normal;
 }
 
-.media-container .progress {
+.media-container .card .progress {
     height: 2px;
     border-radius:unset;
-}
-
-.container .col {
-    padding-left: 7.5px;
-    padding-right: 7.5px;
 }
 
 .spinner-border {
@@ -85,7 +85,7 @@ code {
     animation: spinner-border .75s linear infinite;
 }
 
-.badge {
+.media-container .card .card-img-container .badge.duration {
     position: absolute;
     bottom: 0.5em;
     right: 0.5em;
