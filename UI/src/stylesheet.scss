@@ -17,8 +17,22 @@ code {
 
 .media-container.card {
     border: 1px solid rgba(0, 0, 0, 0.125);
-    cursor: pointer;
     margin-bottom: 15px;
+    cursor: pointer;
+}
+
+.media-container .card-img {
+    width: 100%;
+    height: 100%;
+    border-bottom-left-radius: 0%;
+    border-bottom-right-radius: 0%;
+}
+
+.media-container .card-img-container {
+    width: 100%;
+    height: 56.25%; // 9:16
+    position: relative;
+    overflow: hidden;
 }
 
 .card.highlighted {
@@ -27,8 +41,14 @@ code {
 }
 
 .card-title {
-    max-height: 1.2em;
     overflow: hidden;
+    max-height: 2.5em;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+.media-container.card.folder .card-title {
+    text-align: center;
 }
 
 .card-body {
@@ -67,6 +87,6 @@ code {
 
 .badge {
     position: absolute;
-    bottom: 7.5rem;
-    right: 0.4rem;
+    bottom: 0.5em;
+    right: 0.5em;
 }

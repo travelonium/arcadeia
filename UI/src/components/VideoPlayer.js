@@ -19,7 +19,7 @@ export class VideoPlayer extends React.Component {
     }
 
     onPlayerReady() {
-        console.log(this);
+        // console.log(this);
     }
 
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't create additional wrapper in the DOM

@@ -11,10 +11,9 @@ export class MediaContainer extends Component {
         super(props);
         this.animateInterval = null;
         this.state = {
+            index: -1,
             hover: false,
-            thumbnails: {
-                index: -1
-            }
+            source: this.props.source,
         };
     }
 
@@ -44,13 +43,11 @@ export class MediaContainer extends Component {
     }
 
     animate() {
+        let index = this.state.index;
         let count = this.props.source.thumbnails != null ? this.props.source.thumbnails.count : 0;
-        let index = this.state.thumbnails.index;
         if (count > 0) {
             this.setState({
-                thumbnails: {
-                    index: (index < (count - 1)) ? ++index : 0
-                }
+                index: (index < (count - 1)) ? ++index : 0
             })
         }
     }
@@ -75,19 +72,21 @@ export class MediaContainer extends Component {
 
     render() {
         return (
-            <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container" + (this.state.hover ? " highlighted" : "")} >
-                <Card.Img variant="top" src={this.thumbnail(this.state.thumbnails.index)} />
-                <ProgressBar min={1} max={(this.props.source.thumbnails != null) ? this.props.source.thumbnails.count : 0} now={this.state.thumbnails.index + 1} className={((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count)) ? "visible" : "invisible"} />
-                <Card.ImgOverlay>
+            <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={"media-container h-100" + (this.state.hover ? " highlighted" : "") + (this.props.source.type ? (" " + this.props.source.type.toLowerCase()) : "") } >
+                <div className="card-img-container">
+                    <Card.Img src={this.thumbnail(this.state.index)} />
                     <Badge variant="dark" className={(this.props.source.duration > 0) ? "visible" : "invisible"}>{duration(this.props.source.duration)}</Badge>
-                </Card.ImgOverlay>
-                <Card.Body>
-                    <p className="font-weight-bold text-center" >{this.props.source.name}</p>
-                    <Card.Text>
+                </div>
+                <ProgressBar min={1} max={(this.props.source.thumbnails != null) ? this.props.source.thumbnails.count : 0} now={this.state.index + 1} className={((this.props.source.thumbnails != null) && (this.props.source.thumbnails.count)) ? "visible" : "invisible"} />
+                <Card.Body className="d-flex flex-column">
+                    <Card.Title style={{flexShrink: 1, flexGrow: 1}}>
+                        {this.props.source.name}
+                    </Card.Title>
+                    <Card.Text style={{flexShrink: 1, flexGrow: 1}}>
                         {this.props.source.description}
                     </Card.Text>
                 </Card.Body>
-                <div className="d-flex flex-row p-1">
+                <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
                     <div className="pl-1" style={{flexGrow: 1}}>
                         <small>{(this.props.source.size) ? size(this.props.source.size) : <span>&nbsp;</span>}</small>
                     </div>

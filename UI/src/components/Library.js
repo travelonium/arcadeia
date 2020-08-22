@@ -25,7 +25,7 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
-            videos: [],
+            sources: [],
             videoJsOptions: {
                 aspectRatio: "16:9",
                 responsive: true,
@@ -81,7 +81,7 @@ export class Library extends Component {
         } else if (source.type === "Video") {
             if (player) {
                 this.setState({
-                    videos: ["/stream/" + source.id + "/" + source.name]
+                    sources: ["/stream/" + source.id + "/" + source.name]
                 });
             } else {
                 window.open("/stream/" + source.id + "/" + source.name, "_blank");
@@ -143,38 +143,34 @@ export class Library extends Component {
                         {({ height, width }) => {
                             let offset = 0;
                             let size = breakpoint();
-                            let rowHeight = (width / this.columnCount);
                             switch (size) {
                                 case 'xs':
-                                    offset = 16;
+                                    offset = 15;
                                     this.columnCount = 1;
-                                    rowHeight = (width / this.columnCount) * 12 / 16;
                                     break;
                                 case 'sm':
-                                    offset = 8;
-                                    this.columnCount = 2;
-                                    rowHeight = (width / this.columnCount) * 14 / 16;
+                                    offset = 15;
+                                    this.columnCount = 1;
                                     break;
                                 case 'md':
-                                    offset = 5;
-                                    this.columnCount = 3;
-                                    rowHeight = (width / this.columnCount) * 15 / 16;
+                                    offset = 8;
+                                    this.columnCount = 2;
                                     break;
                                 case 'lg':
-                                    offset = 4;
-                                    this.columnCount = 4;
-                                    rowHeight = (width / this.columnCount) * 15 / 16;
+                                    offset = 5;
+                                    this.columnCount = 3;
                                     break;
                                 case 'xl':
                                     offset = 4;
                                     this.columnCount = 4;
-                                    rowHeight = (width / this.columnCount) * 15.7 / 16;
                                     break;
                                 default:
                                     break;
                             }
-                            this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
+                            let rowHeight = (width / this.columnCount);
                             let columnWidth = (width / this.columnCount) - offset;
+                            this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
+                            console.log(rowHeight + ":" + columnWidth);
                             return (
                                 <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
                                     {this.cell.bind(this)}
@@ -198,8 +194,8 @@ export class Library extends Component {
                             </Container>
                         </Modal.Body>
                     </Modal>
-                    <Modal show={this.state.videos.length > 0} onHide={() => this.setState({ videos: []})} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
-                        <VideoPlayer options={this.state.videoJsOptions} sources={this.state.videos} />
+                    <Modal show={this.state.sources.length > 0} onHide={() => this.setState({ sources: []})} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
+                        <VideoPlayer options={this.state.videoJsOptions} sources={this.state.sources} />
                     </Modal>
                 </div>
                 <Breadcrumb>
