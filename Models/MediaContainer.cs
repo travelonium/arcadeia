@@ -12,6 +12,8 @@ namespace MediaCurator.Models
 
       public string FullPath { get; set; }
 
+      public string[] Flags { get; set; }
+
       #endregion // MediaContainer
 
       #region MediaFile

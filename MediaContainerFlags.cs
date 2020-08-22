@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Xml.Linq;
 using System.ComponentModel;
+using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics;
 
 namespace MediaCurator
 {
@@ -8,7 +11,7 @@ namespace MediaCurator
    {
       #region Constants
 
-      public enum FlagsMasks
+      public enum Flag
       {
          None = 0,
          Deleted = 1 << 0,
@@ -39,12 +42,12 @@ namespace MediaCurator
       {
          get
          {
-            return GetFlagValue((uint)FlagsMasks.Favorite);
+            return GetFlagValue((uint)Flag.Favorite);
          }
 
          set
          {
-            SetFlagValue((uint)FlagsMasks.Favorite, value);
+            SetFlagValue((uint)Flag.Favorite, value);
          }
       }
 
@@ -59,16 +62,44 @@ namespace MediaCurator
       {
          get
          {
-            return GetFlagValue((uint)FlagsMasks.Deleted);
+            return GetFlagValue((uint)Flag.Deleted);
          }
 
          set
          {
-            SetFlagValue((uint)FlagsMasks.Deleted, value);
+            SetFlagValue((uint)Flag.Deleted, value);
+         }
+      }
+
+      /// <summary>
+      /// Returns a list of all the flags set on the <see cref="MediaContainer"/>.
+      /// </summary>
+      public List<Flag> All
+      {
+         get
+         {
+            var flags = new List<Flag>();
+
+            if (GetFlags() > 0)
+            {
+               foreach (var flag in Enum.GetValues(typeof(Flag)).Cast<Flag>())
+               {
+                  if (GetFlagValue((uint)flag))
+                  {
+                     flags.Add(flag);
+                  }
+               }
+            }
+
+            return flags;
          }
       }
 
       #endregion // Fields
+
+      #region Operators
+
+      #endregion // Operators
 
       #region Constructors
 
@@ -96,6 +127,25 @@ namespace MediaCurator
       #region Common Functionality
 
       /// <summary>
+      /// Returns the value of the Flags attribute.
+      /// </summary>
+      /// <returns>
+      /// The integer which encapsulates all the flags set.
+      /// </returns>
+      private uint GetFlags()
+      {
+         uint flags = 0x00000000;
+         string flagsString = Tools.GetAttributeValue(Self, "Flags");
+
+         if (flagsString.Length > 0)
+         {
+            flags = Convert.ToUInt32(flagsString, 16);
+         }
+
+         return flags;
+      }
+
+      /// <summary>
       /// Returns the value of the specified flag.
       /// </summary>
       /// <param name="mask">The flag mask.</param>
@@ -105,16 +155,11 @@ namespace MediaCurator
       private bool GetFlagValue(uint mask)
       {
          bool flagValue = false;
-         string flagsString = Tools.GetAttributeValue(Self, "Flags");
+         uint flags = GetFlags();
 
-         if (flagsString.Length > 0)
+         if ((flags & mask) != 0)
          {
-            uint flags = Convert.ToUInt32(flagsString, 16);
-
-            if ((flags & mask) != 0)
-            {
-               flagValue = true;
-            }
+            flagValue = true;
          }
 
          return flagValue;
@@ -127,15 +172,10 @@ namespace MediaCurator
       /// <param name="value">if set to <c>true</c> [value].</param>
       private void SetFlagValue(uint mask, bool value)
       {
-         uint flags = 0x00000000;
+         uint flags = GetFlags();
 
          // Read the current value of the flags attribute.
          string flagsString = Tools.GetAttributeValue(Self, "Flags");
-
-         if (flagsString.Length > 0)
-         {
-            flags = Convert.ToUInt32(flagsString, 16);
-         }
 
          if (value)
          {
@@ -151,11 +191,11 @@ namespace MediaCurator
 
          switch (mask)
          {
-            case ((uint)FlagsMasks.Favorite):
+            case ((uint)Flag.Favorite):
                NotifyPropertyChanged("Favorite");
                break;
 
-            case ((uint)FlagsMasks.Deleted):
+            case ((uint)Flag.Deleted):
                NotifyPropertyChanged("Deleted");
                break;
          }

@@ -150,6 +150,7 @@ namespace MediaCurator
          Name = Name,
          Type = Type,
          FullPath = FullPath,
+         Flags = Flags.All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray()
       };
 
       /// <summary>
