@@ -110,6 +110,11 @@ namespace MediaCurator
 
             return model;
          }
+
+         set
+         {
+            base.Model = value;
+         }
       }
 
       /// <summary>

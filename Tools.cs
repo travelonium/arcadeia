@@ -12,7 +12,7 @@ namespace MediaCurator
       /// value and returns the first one found. This function is case-insensitive.
       /// </summary>
       /// <param name="parent">The parent element.</param>
-      /// <param name="type">The element names we are interested in.</param>
+      /// <param name="type">The element names we are interested in or <c>null</c> to find all element types.</param>
       /// <param name="id">The element Id we are interested in.</param>
       /// <returns>The element with the specified Id or null if none found.</returns>
       public static XElement GetElementByIdAttribute(XElement parent, string type, string id)
@@ -25,9 +25,18 @@ namespace MediaCurator
             return element;
          }
 
-         // Extract the element which is named type and its Name attribute value is name.
-         elements = parent.Descendants(type)
-                          .Where(el => ((string)el.Attribute("Id")).ToLower() == id.ToLower());
+         if (type == null)
+         {
+            // Extract the element which has its Name attribute value set to name.
+            elements = parent.Descendants()
+                             .Where(el => ((el.Attribute("Id") != null) && ((string)el.Attribute("Id")).ToLower() == id.ToLower()));
+         }
+         else
+         {
+            // Extract the element which is named type and its Name attribute value is name.
+            elements = parent.Descendants(type)
+                             .Where(el => ((el.Attribute("Id") != null) && ((string)el.Attribute("Id")).ToLower() == id.ToLower()));
+         }
 
          // Verify if any such elements where found and if so, return the first one.
          if (elements.Count() > 0)

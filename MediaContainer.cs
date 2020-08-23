@@ -145,13 +145,39 @@ namespace MediaCurator
       /// <summary>
       /// Gets the MediaContainer model used when returning a JSON response from a Controller.
       /// </summary>
-      public virtual Models.MediaContainer Model => new Models.MediaContainer
+      public virtual Models.MediaContainer Model
       {
-         Name = Name,
-         Type = Type,
-         FullPath = FullPath,
-         Flags = Flags.All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray()
-      };
+         get
+         {
+            return new Models.MediaContainer
+            {
+               Name = Name,
+               Type = Type,
+               FullPath = FullPath,
+               Flags = Flags.All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray()
+            };
+         }
+
+         set
+         {
+            if (!String.IsNullOrEmpty(value.Name) && (value.Name != Name))
+            {
+               // TODO: Implement Rename() and use it here.
+            }
+
+            if (!String.IsNullOrEmpty(value.FullPath) && (value.FullPath != FullPath))
+            {
+               // TODO: Implement Move() and use it here.
+            }
+
+            if (value.Flags != null)
+            {
+               Flags.SetFlags(value.Flags.Where(flag => Enum.GetNames(typeof(MediaContainerFlags.Flag)).Contains(flag))
+                                         .Select(flag => Enum.Parse<MediaContainerFlags.Flag>(flag))
+                                         .ToArray());
+            }
+         }
+      }
 
       /// <summary>
       /// Gets the tooltip text of this media container. Must be overridden in the child type.

@@ -145,6 +145,32 @@ namespace MediaCurator
          return flags;
       }
 
+
+      /// <summary>
+      /// Sets the value of the Flags attribute.
+      /// </summary>
+      /// <param name="flags">The flags.</param>
+      private void SetFlags(uint flags)
+      {
+         Tools.SetAttributeValue(Self, "Flags", Convert.ToString(flags, 16));
+      }
+
+      /// <summary>
+      /// Sets the flags supplied and clears the non-listed ones.
+      /// </summary>
+      /// <param name="flags">The flags to set.</param>
+      public void SetFlags(IEnumerable<Flag> flags)
+      {
+         uint value = 0x00000000;
+
+         foreach (var flag in flags)
+         {
+            value |= (uint)flag;
+         }
+
+         SetFlags(value);
+      }
+
       /// <summary>
       /// Returns the value of the specified flag.
       /// </summary>

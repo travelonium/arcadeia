@@ -138,6 +138,11 @@ namespace MediaCurator
 
             return model;
          }
+
+         set
+         {
+            base.Model = value;
+         }
       }
 
       #endregion // Fields
