@@ -101,14 +101,6 @@ namespace MediaCurator.Controllers
 
             var id = modified.Id;
 
-            if ((id == null) || (id.Length == 0))
-            {
-               return BadRequest(new
-               {
-                  message = "The id cannot be null or be left empty."
-               });
-            }
-
             mediaContainer.Model = modified;
 
             _mediaLibrary.UpdateDatabase();
