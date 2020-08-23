@@ -2,6 +2,8 @@ import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
 import { Thumbnail } from './Thumbnail';
+import Tooltip from 'react-bootstrap/Tooltip';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract } from './../utils';
 
 export class MediaContainer extends Component {
@@ -114,7 +116,9 @@ export class MediaContainer extends Component {
                         <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails', 'count')} />
                         <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
                         <div className="flags">
-                            <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.source.flags.includes('Favorite') ? " set" : "")}></span>
+                            <OverlayTrigger key="favorite" placement="top" overlay={ <Tooltip id="tooltip-favorite">{ (this.state.source.flags.includes('Favorite') ? "Unflag" : "Flag") } Favorite</Tooltip> }>
+                                <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.source.flags.includes('Favorite') ? " set" : "")}></span>
+                            </OverlayTrigger>
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">
