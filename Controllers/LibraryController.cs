@@ -36,18 +36,36 @@ namespace MediaCurator.Controllers
       /// <returns></returns>
       [HttpGet]
       [Produces("application/json")]
-      public IEnumerable<Models.MediaContainer> Get(string path = "")
+      public IActionResult Get(string path = "")
       {
+         path = Platform.Separator.Path + path;
          var progress = new Progress<Tuple<double, double, string>>();
 
-         if ((System.IO.Directory.Exists(Platform.Separator.Path + path) || (System.IO.File.Exists(Platform.Separator.Path + path))))
+         try
          {
-            var mediaContainers = _mediaLibrary.ListMediaContainers(Platform.Separator.Path + path, progress);
+            if (System.IO.Directory.Exists(path) || System.IO.File.Exists(path))
+            {
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path, progress);
 
-            return mediaContainers.Select(item => item.Model);
+               if (System.IO.File.Exists(path) && (mediaContainers.Count == 1))
+               {
+                  return Ok(mediaContainers.First().Model);
+               }
+               else
+               {
+                  return Ok(mediaContainers.Select(item => item.Model));
+               }
+            }
+         }
+         catch (Exception e)
+         {
+            return StatusCode((int)HttpStatusCode.InternalServerError, new
+            {
+               message = e.Message
+            });
          }
 
-         return new List<Models.MediaContainer>();
+         return Ok(new List<Models.MediaContainer>());
       }
 
       [HttpPut]
