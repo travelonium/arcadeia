@@ -43,7 +43,17 @@ code {
     position: relative;
     overflow: hidden;
 }
+.media-container .card .thumbnail-container .thumbnail {
+    width: 100%;
+    height: 100%;
+}
 
+.media-container .card .thumbnail-container .thumbnail .progress {
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
+    left: 0px;
+}
 
 .media-container .card .thumbnail-container .flags {
     top: 5px;
