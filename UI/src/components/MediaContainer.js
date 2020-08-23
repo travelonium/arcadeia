@@ -5,6 +5,7 @@ import { Thumbnail } from './Thumbnail';
 import { duration, size, extract } from './../utils';
 
 export class MediaContainer extends Component {
+
     static displayName = MediaContainer.name;
 
     constructor(props) {
@@ -13,6 +14,7 @@ export class MediaContainer extends Component {
         this.state = {
             index: -1,
             hover: false,
+            source: this.props.source,
         };
     }
 
@@ -25,9 +27,22 @@ export class MediaContainer extends Component {
     componentWillUnmount() {
     }
 
+    toggle(flag) {
+        let source = this.state.source;
+        let index = source.flags.indexOf(flag);
+        if (index !== -1) {
+            source.flags.splice(index, 1);
+        } else {
+            source.flags.push(flag);
+        }
+        this.setState({
+            source: source,
+        });
+    }
+
     onMouseOver() {
         if (! this.state.hover) {
-            this.props.highlight(this.props.source);
+            this.props.highlight(this.state.source);
             this.setState({
                 hover: true
             });
@@ -44,33 +59,41 @@ export class MediaContainer extends Component {
     }
 
     onClick(event) {
-        if (this.props.source.type === "Folder") {
-            this.props.open(this.props.source, false);
+        if (this.state.source.type === "Folder") {
+            this.props.open(this.state.source, false);
         } else {
             let player = !(event.shiftKey || event.metaKey);
-            this.props.view(this.props.source, player);
+            this.props.view(this.state.source, player);
         }
+    }
+
+    onToggleFavorite(event) {
+        event.stopPropagation();
+        this.toggle("Favorite");
     }
 
     render() {
         return (
-            <div className={"media-container" + (this.props.source.type ? (" " + this.props.source.type.toLowerCase()) : "")}>
+            <div className={"media-container" + (this.state.source.type ? (" " + this.state.source.type.toLowerCase()) : "")}>
                 <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
                     <div className="thumbnail-container">
-                        <Thumbnail id={this.props.source.id} type={this.props.source.type} count={extract(0, this.props, 'source', 'thumbnails', 'count')} />
-                        <Badge variant="dark" className={"duration " + ((this.props.source.duration > 0) ? "visible" : "invisible")}>{duration(this.props.source.duration)}</Badge>
+                        <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails', 'count')} />
+                        <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
+                        <div className="flags">
+                            <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.source.flags.includes('Favorite') ? " set" : "")}></span>
+                        </div>
                     </div>
                     <Card.Body className="d-flex flex-column">
                         <Card.Title style={{flexShrink: 1, flexGrow: 1}}>
-                            {this.props.source.name}
+                            {this.state.source.name}
                         </Card.Title>
                         <Card.Text style={{flexShrink: 1, flexGrow: 1}}>
-                            {this.props.source.description}
+                            {this.state.source.description}
                         </Card.Text>
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
                         <div className="pl-1" style={{flexGrow: 1}}>
-                            <small>{(this.props.source.size) ? size(this.props.source.size) : <span>&nbsp;</span>}</small>
+                            <small>{(this.state.source.size) ? size(this.state.source.size) : <span>&nbsp;</span>}</small>
                         </div>
                     </div>
                 </Card>

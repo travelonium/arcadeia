@@ -1,5 +1,9 @@
 @import "bootstrap";
 @import "~video.js/dist/video-js.css";
+@import "~@fortawesome/fontawesome-free/scss/fontawesome.scss";
+@import "~@fortawesome/fontawesome-free/scss/regular.scss";
+@import "~@fortawesome/fontawesome-free/scss/solid.scss";
+@import "~@fortawesome/fontawesome-free/scss/brands.scss";
 
 a {
     color: #0366d6;
@@ -40,10 +44,55 @@ code {
     overflow: hidden;
 }
 
+
+.media-container .card .thumbnail-container .flags {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    position: absolute;
+    vertical-align: middle;
+}
+
+.media-container .card .thumbnail-container .flag {
+    @extend .far;
+    @extend %fa-icon;
+    margin-right: 5px;
+    position: relative;
+    font-size: large;
+    display: none;
+    color: white;
+}
+
+.media-container .card .thumbnail-container .flag.set {
+    @extend .fas;
+}
+
+.media-container .card.highlighted .thumbnail-container .flag {
+    display: unset;
+}
+
+.media-container .card .thumbnail-container .flag.favorite {
+    &:before {
+        content: fa-content($fa-var-star);
+    }
+}
+
+.media-container .card .thumbnail-container .flag.favorite.set {
+    color: yellow;
+}
+
+.media-container .card .thumbnail-container .flag:hover {
+    color: yellow;
+}
+
+.media-container .card .thumbnail-container .flag.set:hover {
+    color: white;
+}
+
 .media-container .card .thumbnail-container .duration.badge {
     position: absolute;
-    bottom: 0.5em;
-    right: 0.5em;
+    bottom: 7px;
+    right: 5px;
 }
 
 .media-container .card.highlighted {
