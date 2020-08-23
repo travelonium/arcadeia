@@ -57,6 +57,14 @@ namespace MediaCurator
          _database = database;
       }
 
+      /// <summary>
+      /// Parameterless constructor used for deserialization of JSON values.
+      /// </summary>
+      public MediaFileThumbnails()
+      {
+
+      }
+
       ~MediaFileThumbnails()
       {
 

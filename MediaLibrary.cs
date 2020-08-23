@@ -612,7 +612,7 @@ namespace MediaCurator
          if (Modified)
          {
             // The Media Library seems to have been modified.
-            Debug.Write("\r\nUpdating the Media Database...");
+            Debug.Write("Updating the Media Database...");
 
             // Update the DateModified with the current date and time.
             Document.Root.Attribute("DateModified").Value = DateTime.Now.ToString(CultureInfo.InvariantCulture);

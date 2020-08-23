@@ -50,6 +50,14 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Parameterless constructor used for deserialization of JSON values.
+      /// </summary>
+      public ResolutionType()
+      {
+
+      }
+
+      /// <summary>
       /// Returns a <see cref="System.String" /> that represents this instance.
       /// </summary>
       /// <returns>

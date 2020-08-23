@@ -14,7 +14,8 @@ export class MediaContainer extends Component {
         this.state = {
             index: -1,
             hover: false,
-            source: this.props.source,
+            source: JSON.parse(JSON.stringify(this.props.source)),
+            previous: JSON.parse(JSON.stringify(this.props.source)),
         };
     }
 
@@ -27,6 +28,41 @@ export class MediaContainer extends Component {
     componentWillUnmount() {
     }
 
+    apply(source) {
+        this.setState({
+            source: source,
+        });
+        fetch("/library" + source.fullPath, {
+            method: "PUT",
+            headers: {
+                accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(source)
+        })
+        .then((response) => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error(response.json());
+            }
+        })
+        .then((response) => {
+            // update the properties of the original instance of the source
+            Object.assign(this.props.source, response);
+            // update the state and the virtual copies of the source
+            this.setState({
+                source: JSON.parse(JSON.stringify(response)),
+                previous: JSON.parse(JSON.stringify(response)),
+            });
+        })
+        .catch((error) => {
+            this.setState({
+                source: JSON.parse(JSON.stringify(this.state.previous)),
+            });
+        });
+    }
+
     toggle(flag) {
         let source = this.state.source;
         let index = source.flags.indexOf(flag);
@@ -35,9 +71,7 @@ export class MediaContainer extends Component {
         } else {
             source.flags.push(flag);
         }
-        this.setState({
-            source: source,
-        });
+        this.apply(source);
     }
 
     onMouseOver() {
