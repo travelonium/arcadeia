@@ -17,6 +17,10 @@ namespace MediaCurator
 
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
 
+      private Lazy<string> _path => new Lazy<string>(_configuration["MediaLibrary:Path"]);
+
+      private Lazy<string> _fullPath => new Lazy<string>(_configuration["MediaLibrary:Path"] + Platform.Separator.Path + _configuration["MediaLibrary:Name"]);
+
       /// <summary>
       /// The static XDocument that contains the media database itself. There is only one instance
       /// of this throughout the whole application. It's either loaded from the existing XML file or
@@ -25,13 +29,24 @@ namespace MediaCurator
       public static XDocument Document = null;
 
       /// <summary>
+      /// The directory in which the database file is to be found or created.
+      /// </summary>
+      public string Path
+      {
+         get
+         {
+            return _path.Value;
+         }
+      }
+
+      /// <summary>
       /// The full path to the database file.
       /// </summary>
       public string FullPath
       {
          get
          {
-            return _configuration["MediaLibrary:Path"] + Platform.Separator.Path + _configuration["MediaLibrary:Name"];
+            return _fullPath.Value;
          }
       }
 
@@ -81,6 +96,10 @@ namespace MediaCurator
          {
             try
             {
+               // Create the hosting directory
+               Directory.CreateDirectory(Path);
+
+               // Now create the database itself
                CreateNewDatabase(FullPath);
 
                // Install a handler for the MediaLibrary's Changed event. This is where we set 
@@ -89,15 +108,12 @@ namespace MediaCurator
 
                // Reset the Modified flag.
                Modified = false;
+
+               _logger.LogInformation("Media Library Created: " + FullPath);
             }
-            catch (System.IO.IOException)
+            catch (Exception e)
             {
-               // It appears that the MediaLibrary path in which it has to be created is not
-               // available at the moment. Let's ignore it for now.
-            }
-            catch (Exception)
-            {
-               throw;
+               _logger.LogError("Media Library Creation Failed! Cause: " + e.Message);
             }
          }
       }
@@ -119,7 +135,7 @@ namespace MediaCurator
          // Create an empty Xml Database structure.
          Document = new XDocument(
             new XElement("MediaLibrary",
-               new XAttribute("Id", Path.GetRandomFileName()),
+               new XAttribute("Id", System.IO.Path.GetRandomFileName()),
                new XAttribute("Version", 1.0),
                new XAttribute("DateCreated", DateTime.Now.ToString(CultureInfo.InvariantCulture)),
                new XAttribute("DateModified", DateTime.Now.ToString(CultureInfo.InvariantCulture))));
@@ -371,7 +387,7 @@ namespace MediaCurator
                                    IProgress<Tuple<double, double>> progress,
                                    IProgress<byte[]> preview)
       {
-         string fileName = Path.GetFileName(path);
+         string fileName = System.IO.Path.GetFileName(path);
          MediaContainerType mediaType = GetMediaType(path);
          MediaFile mediaFile = null;
 
@@ -499,7 +515,7 @@ namespace MediaCurator
                                    IProgress<Tuple<double, double>> progress,
                                    IProgress<byte[]> preview)
       {
-         string fileName = Path.GetFileName(path);
+         string fileName = System.IO.Path.GetFileName(path);
          MediaContainerType mediaType = GetMediaType(path);
          MediaFile mediaFile = null;
 
@@ -641,7 +657,7 @@ namespace MediaCurator
       private MediaContainerType GetMediaType(string path)
       {
          // Extract the file extension including the '.' character.
-         string fileExtension = Path.GetExtension(path).ToLower();
+         string fileExtension = System.IO.Path.GetExtension(path).ToLower();
 
          if ((fileExtension == null) || (fileExtension.Length == 0))
          {

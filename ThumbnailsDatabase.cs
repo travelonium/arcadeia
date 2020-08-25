@@ -16,7 +16,20 @@ namespace MediaCurator
 
       private readonly ILogger<ThumbnailsDatabase> _logger;
 
+      private Lazy<string> _path => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"]);
+
       private Lazy<string> _fullPath => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"] + Platform.Separator.Path + _configuration["ThumbnailsDatabase:Name"]);
+
+      /// <summary>
+      /// The directory in which where the database file is to be found or created.
+      /// </summary>
+      public string Path
+      {
+         get
+         {
+            return _path.Value;
+         }
+      }
 
       /// <summary>
       /// The full path to the database file.
@@ -53,10 +66,20 @@ namespace MediaCurator
          // Check if the Thumbnails Database file already exists.
          if (!File.Exists(FullPath))
          {
-            // Create the new database file
-            SQLiteConnection.CreateFile(FullPath);
+            try
+            {
+               // Create the hosting directory
+               Directory.CreateDirectory(Path);
 
-            _logger.LogInformation("Thumbnails Database Created: " + FullPath);
+               // Create the new database file
+               SQLiteConnection.CreateFile(FullPath);
+
+               _logger.LogInformation("Thumbnails Database Created: " + FullPath);
+            }
+            catch (Exception e)
+            {
+               _logger.LogError("Thumbnails Database Creation Failed! Reason: " + e.Message);
+            }
          }
 
          // Update the database layout if needed.
