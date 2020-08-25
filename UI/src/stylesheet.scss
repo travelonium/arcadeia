@@ -1,0 +1,152 @@
+@import "bootstrap";
+@import "~video.js/dist/video-js.css";
+@import "~@fortawesome/fontawesome-free/scss/fontawesome.scss";
+@import "~@fortawesome/fontawesome-free/scss/regular.scss";
+@import "~@fortawesome/fontawesome-free/scss/solid.scss";
+@import "~@fortawesome/fontawesome-free/scss/brands.scss";
+
+a {
+    color: #0366d6;
+}
+
+code {
+    color: #E01A76;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.media-container {
+    height: 100%;
+}
+
+.media-container .card {
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    margin-bottom: 15px;
+    cursor: pointer;
+    height: 100%;
+}
+
+.media-container .card .card-img {
+    width: 100%;
+    height: 100%;
+    border-bottom-left-radius: 0%;
+    border-bottom-right-radius: 0%;
+}
+
+.media-container .card .thumbnail-container {
+    width: 100%;
+    height: 56.25%; // 9:16
+    position: relative;
+    overflow: hidden;
+}
+.media-container .card .thumbnail-container .thumbnail {
+    width: 100%;
+    height: 100%;
+}
+
+.media-container .card .thumbnail-container .thumbnail .progress {
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
+    left: 0px;
+}
+
+.media-container .card .thumbnail-container .flags {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    position: absolute;
+    vertical-align: middle;
+}
+
+.media-container .card .thumbnail-container .flag {
+    @extend .far;
+    @extend %fa-icon;
+    margin-right: 5px;
+    position: relative;
+    font-size: large;
+    display: none;
+    color: white;
+    text-shadow: 0 0 1px #000;
+}
+
+.media-container .card .thumbnail-container .flag.set {
+    @extend .fas;
+}
+
+.media-container .card.highlighted .thumbnail-container .flag {
+    display: unset;
+}
+
+.media-container .card .thumbnail-container .flag.favorite {
+    &:before {
+        content: fa-content($fa-var-star);
+    }
+}
+
+.media-container .card .thumbnail-container .flag.favorite.set {
+    color: yellow;
+}
+
+.media-container .card .thumbnail-container .flag:hover {
+    color: yellow;
+}
+
+.media-container .card .thumbnail-container .flag.set:hover {
+    color: white;
+}
+
+.media-container .card .thumbnail-container .duration.badge {
+    position: absolute;
+    bottom: 7px;
+    right: 5px;
+}
+
+.media-container .card.highlighted {
+    @extend .shadow-sm;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.media-container .card .card-title {
+    overflow: hidden;
+    max-height: 2.5em;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+.media-container.folder .card .card-title {
+    text-align: center;
+}
+
+.media-container .card .card-body {
+    padding: 0.5rem;
+    height: 5rem;
+}
+
+.media-container .card .card-body p {
+    font-size: 1.1rem;
+    max-height: 3.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+.media-container .card .progress {
+    height: 2px;
+    border-radius:unset;
+}
+
+.spinner-border {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    vertical-align: text-bottom;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+}
