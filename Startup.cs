@@ -7,6 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MediaCurator.Services;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Collections.Generic;
+using System.Net;
 
 namespace MediaCurator
 {
@@ -41,6 +44,21 @@ namespace MediaCurator
          {
             configuration.RootPath = "UI/build";
          });
+
+         // Proxies running on loopback addresses (127.0.0.0/8, [::1]), including the standard localhost
+         // address (127.0.0.1), are trusted by default. If other trusted proxies or networks within the
+         // organization handle requests between the Internet and the web server, add them to the KnownProxies
+         // list in appsettings.json.
+         if (Configuration.GetSection("KnownProxies").Exists())
+         {
+            foreach (var address in Configuration.GetSection("KnownProxies").Get<IEnumerable<string>>())
+            {
+               services.Configure<ForwardedHeadersOptions>(options =>
+               {
+                  options.KnownProxies.Add(IPAddress.Parse(address));
+               });
+            }
+         }
       }
 
       // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,7 +75,19 @@ namespace MediaCurator
             app.UseHsts();
          }
 
-         app.UseHttpsRedirection();
+         if (env.IsProduction())
+         {
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+               ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
+         }
+         else
+         {
+            app.UseHttpsRedirection();
+         }
+
+         app.UseAuthentication();
          app.UseStaticFiles();
          app.UseSpaStaticFiles();
 
