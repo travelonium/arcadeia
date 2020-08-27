@@ -259,3 +259,5 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Data files and directories
+.data
