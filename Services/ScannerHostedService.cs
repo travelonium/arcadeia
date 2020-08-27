@@ -147,7 +147,7 @@ namespace MediaCurator.Services
             }
             catch (Exception e)
             {
-               _logger.LogWarning("Failed To Watch: {}, Reason: {}", folder, e.Message);
+               _logger.LogWarning("Failed To Watch: {} Because: {}", folder, e.Message);
             }
          }
 
