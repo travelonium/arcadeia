@@ -50,7 +50,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>();
+            if (_configuration.GetSection("Scanner:WatchedFolders").Exists())
+            {
+               return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>();
+            }
+            else
+            {
+               return new List<string>();
+            }
          }
       }
 
@@ -61,7 +68,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:StartupScan").Get<bool>();
+            if (_configuration.GetSection("Scanner:StartupScan").Exists())
+            {
+               return _configuration.GetSection("Scanner:StartupScan").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
          }
       }
 
@@ -72,7 +86,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:StartupUpdate").Get<bool>();
+            if (_configuration.GetSection("Scanner:StartupUpdate").Exists())
+            {
+               return _configuration.GetSection("Scanner:StartupUpdate").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
          }
       }
 
@@ -83,7 +104,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:StartupCleanup").Get<bool>();
+            if (_configuration.GetSection("Scanner:StartupCleanup").Exists())
+            {
+               return _configuration.GetSection("Scanner:StartupCleanup").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
          }
       }
 
@@ -109,7 +137,7 @@ namespace MediaCurator.Services
          {
             if (!Directory.Exists(folder))
             {
-               Debug.WriteLine("Watched Folder Unavailable: " + folder);
+               _logger.LogWarning("Watched Folder Unavailable: {}", folder);
 
                continue;
             }
