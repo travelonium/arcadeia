@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y apache2 ffmpeg; \
+    apt-get install -y apache2 ffmpeg cifs-utils nfs-common; \
     rm -rf /var/lib/apt/lists/*; \
     a2enmod rewrite ssl alias headers deflate proxy proxy_balancer proxy_http proxy_fcgi; \
     dpkg -l; \
