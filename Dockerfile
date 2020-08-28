@@ -26,7 +26,7 @@ RUN set -eux; \
     apache2 -v; \
     ffmpeg -version;
 
-COPY --from=builder /root/bin/Release/netcoreapp3.1/publish/ /var/app/
+COPY --from=builder /root/bin/Release/netcoreapp3.1/publish/ /var/lib/app/
 COPY entrypoint.sh /
 
 EXPOSE 80 443

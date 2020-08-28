@@ -260,4 +260,4 @@ Temporary Items
 .apdisk
 
 # Data files and directories
-.data
+**/data
