@@ -21,6 +21,7 @@ RUN set -eux; \
     apt-get install -y apache2 ffmpeg cifs-utils nfs-common; \
     rm -rf /var/lib/apt/lists/*; \
     a2enmod rewrite ssl alias headers deflate proxy proxy_balancer proxy_http proxy_fcgi; \
+    mkdir -p /Network /Uploads; \
     dpkg -l; \
     apache2 -v; \
     ffmpeg -version;
