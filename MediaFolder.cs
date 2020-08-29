@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
@@ -126,5 +127,20 @@ namespace MediaCurator
       }
 
       #endregion // Constructors
+
+      #region Overrides
+
+      /// <summary>
+      /// Checks whether or not this directory has physical existence.
+      /// </summary>
+      /// <returns>
+      ///   <c>true</c> if the directory physically exists and <c>false</c> otherwise.
+      /// </returns>
+      public override bool Exists()
+      {
+         return Directory.Exists(FullPath);
+      }
+
+      #endregion
    }
 }

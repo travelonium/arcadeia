@@ -144,114 +144,6 @@ namespace MediaCurator
          Document.Save(database);
       }
 
-
-      /* TODO: Implement a similar method which returns MediaContainers instead.
-      public ObservableCollection<MediaLibraryTreeItem> EnumerateMediaLibraryTree(XElement parentElement = null,
-                                                                                  uint flags = 0,
-                                                                                  uint values = 0,
-                                                                                  MediaLibraryTreeItem parentItem = null)
-      {
-         ObservableCollection<MediaLibraryTreeItem> mediaLibraryTree = new ObservableCollection<MediaLibraryTreeItem>();
-
-         if (parentElement == null)
-         {
-            parentElement = MediaCurator.MediaLibrary.Document.Root;
-         }
-
-         foreach (XElement item in parentElement.Nodes())
-         {
-            switch (item.Name.ToString())
-            {
-               case "Drive":
-
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                        (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                        (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty drive. Let's ignore it.
-                     continue;
-                  }
-
-                  MediaDrive newMediaDrive = new MediaDrive(item);
-                  string serialNumber = Tools.GetVolumeSerialNumber(newMediaDrive.Name);
-                  string volumeLabel = Tools.GetVolumeLabel(newMediaDrive.Name);
-                  if (serialNumber != null)
-                  {
-                     if (newMediaDrive.SerialNumber == serialNumber)
-                     {
-                        MediaLibraryTreeItem newDriveItem = new MediaLibraryTreeItem
-                        {
-                           Parent = parentItem,
-                           Name = volumeLabel.ToUpper() + " (" + newMediaDrive.Name + ":)",
-                           FullPath = newMediaDrive.FullPath,
-                           Thumbnail = new BitmapImage(new Uri("pack://application:,,,/Icons/24x24/Drive.png"))
-                        };
-
-                        newDriveItem.Items = EnumerateMediaLibraryTree(item, flags, values, newDriveItem);
-
-                        mediaLibraryTree.Add(newDriveItem);
-                     }
-                  }
-                  break;
-
-               case "Server":
-
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty server. Let's ignore it.
-                     continue;
-                  }
-
-                  MediaServer newMediaServer = new MediaServer(item);
-
-                  MediaLibraryTreeItem newServerItem = new MediaLibraryTreeItem
-                  {
-                     Parent = parentItem,
-                     Name = newMediaServer.Name,
-                     FullPath = newMediaServer.FullPath,
-                     Thumbnail = new BitmapImage(new Uri("pack://application:,,,/Icons/24x24/Server.png"))
-                  };
-
-                  newServerItem.Items = EnumerateMediaLibraryTree(item, flags, values, newServerItem);
-
-                  mediaLibraryTree.Add(newServerItem);
-
-                  break;
-
-               case "Folder":
-
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty folder. Let's ignore it.
-                     continue;
-                  }
-
-                  MediaFolder newMediaFolder = new MediaFolder(item);
-
-                  MediaLibraryTreeItem newFolderItem = new MediaLibraryTreeItem
-                  {
-                     Parent = parentItem,
-                     Name = newMediaFolder.Name,
-                     FullPath = newMediaFolder.FullPath,
-                     Thumbnail = new BitmapImage(new Uri("pack://application:,,,/Icons/24x24/Folder.png"))
-                  };
-
-                  newFolderItem.Items = EnumerateMediaLibraryTree(item, flags, values, newFolderItem);
-
-                  mediaLibraryTree.Add(newFolderItem);
-
-                  break;
-            }
-         }
-
-         return mediaLibraryTree;
-      }
-      */
-
       /// <summary>
       /// Enumerates and returns an ObservableCollection of the media containers having a matching
       /// flags pattern supplied using the flags and values.
@@ -286,8 +178,6 @@ namespace MediaCurator
 
          if (mediaContainer is MediaFile)
          {
-            total = 1;
-
             string flagsTag = Tools.GetAttributeValue(mediaContainer.Self, "Flags");
             uint flagsInteger = Convert.ToUInt32(flagsTag.Length > 0 ? flagsTag : "0", 16);
 
