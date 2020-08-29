@@ -50,7 +50,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>();
+            if (_configuration.GetSection("Scanner:WatchedFolders").Exists())
+            {
+               return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>();
+            }
+            else
+            {
+               return new List<string>();
+            }
          }
       }
 
@@ -61,7 +68,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:StartupScan").Get<bool>();
+            if (_configuration.GetSection("Scanner:StartupScan").Exists())
+            {
+               return _configuration.GetSection("Scanner:StartupScan").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
          }
       }
 
@@ -72,7 +86,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:StartupUpdate").Get<bool>();
+            if (_configuration.GetSection("Scanner:StartupUpdate").Exists())
+            {
+               return _configuration.GetSection("Scanner:StartupUpdate").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
          }
       }
 
@@ -83,7 +104,14 @@ namespace MediaCurator.Services
       {
          get
          {
-            return _configuration.GetSection("Scanner:StartupCleanup").Get<bool>();
+            if (_configuration.GetSection("Scanner:StartupCleanup").Exists())
+            {
+               return _configuration.GetSection("Scanner:StartupCleanup").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
          }
       }
 
@@ -109,39 +137,46 @@ namespace MediaCurator.Services
          {
             if (!Directory.Exists(folder))
             {
-               Debug.WriteLine("Watched Folder Unavailable: " + folder);
+               _logger.LogWarning("Watched Folder Unavailable: {}", folder);
 
                continue;
             }
 
-            var watcher = new FileSystemWatcher
+            try
             {
-               // Set the watched path.
-               Path = folder,
+               var watcher = new FileSystemWatcher
+               {
+                  // Set the watched path.
+                  Path = folder,
 
-               // Include the subdirectories.
-               IncludeSubdirectories = true,
+                  // Include the subdirectories.
+                  IncludeSubdirectories = true,
 
-               // Configure the filters.
-               NotifyFilter = NotifyFilters.CreationTime
-                                 | NotifyFilters.LastWrite
-                                 | NotifyFilters.FileName
-                              // | NotifyFilters.DirectoryName
-            };
+                  // Configure the filters.
+                  NotifyFilter = NotifyFilters.CreationTime
+                                    | NotifyFilters.LastWrite
+                                    | NotifyFilters.FileName
+                  // | NotifyFilters.DirectoryName
+               };
 
-            // Add event handlers.
-            watcher.Created += OnCreated;
-            watcher.Changed += OnChanged;
-            watcher.Deleted += OnChanged;
-            watcher.Renamed += OnRenamed;
+               // Add event handlers.
+               watcher.Created += OnCreated;
+               watcher.Changed += OnChanged;
+               watcher.Deleted += OnChanged;
+               watcher.Renamed += OnRenamed;
 
-            // Begin watching.
-            watcher.EnableRaisingEvents = true;
+               // Begin watching.
+               watcher.EnableRaisingEvents = true;
 
-            // Add the watcher to the list of watchers.
-            _watchers.Add(folder, watcher);
+               // Add the watcher to the list of watchers.
+               _watchers.Add(folder, watcher);
 
-            _logger.LogInformation("Started Watching: {}", folder);
+               _logger.LogInformation("Started Watching: {}", folder);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Watch: {} Because: {}", folder, e.Message);
+            }
          }
 
          // Calculate the total number of files to be processed. This will be used for the Total Progress.

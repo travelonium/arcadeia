@@ -1,0 +1,4 @@
+obj
+bin
+**/data
+**/node_modules
