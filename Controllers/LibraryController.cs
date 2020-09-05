@@ -39,13 +39,12 @@ namespace MediaCurator.Controllers
       public IActionResult Get(string path = "")
       {
          path = Platform.Separator.Path + path;
-         var progress = new Progress<Tuple<double, double, string>>();
 
          try
          {
             if (System.IO.Directory.Exists(path) || System.IO.File.Exists(path))
             {
-               var mediaContainers = _mediaLibrary.ListMediaContainers(path, progress);
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path);
 
                if (System.IO.File.Exists(path) && (mediaContainers.Count == 1))
                {

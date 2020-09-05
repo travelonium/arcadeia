@@ -136,12 +136,8 @@ namespace MediaCurator
       /// <param name="values">The flag values of interest to include/exclude in/from the returned
       /// collection.</param>
       /// <returns>An ObservableCollection containing the enumerated MediaContainers.</returns>
-      public List<IMediaContainer> ListMediaContainers(string path,
-                                                       IProgress<Tuple<double, double, string>> progress,
-                                                       uint flags = 0,
-                                                       uint values = 0)
+      public List<IMediaContainer> ListMediaContainers(string path, uint flags = 0, uint values = 0)
       {
-         double index = 0.0, total = 0.0;
          IMediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, this, path);
          List<IMediaContainer> mediaContainers = new List<IMediaContainer>();
 
@@ -170,11 +166,6 @@ namespace MediaCurator
          {
             // Using mediaFolder.Self.Descendants() instead of mediaContainer.Self.Nodes() will cause
             // a recursive display of all descending nodes of the parent node.
-
-            foreach (XElement item in mediaContainer.Self.Nodes())
-            {
-               total++;
-            }
 
             foreach (XElement item in mediaContainer.Self.Nodes())
             {
@@ -241,12 +232,8 @@ namespace MediaCurator
                      // TODO: mediaContainers.Add( new PhotoFile( item ) );
                      break;
                }
-
-               progress.Report(new Tuple<double, double, string>(++index, total, "Loading..."));
             }
          }
-
-         progress.Report(new Tuple<double, double, string>(0, 100, ""));
 
          return mediaContainers;
       }
