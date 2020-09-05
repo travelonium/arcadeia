@@ -42,18 +42,20 @@ namespace MediaCurator.Controllers
 
          try
          {
-            if (System.IO.Directory.Exists(path) || System.IO.File.Exists(path))
+            if (System.IO.File.Exists(path))
             {
                var mediaContainers = _mediaLibrary.ListMediaContainers(path);
 
-               if (System.IO.File.Exists(path) && (mediaContainers.Count == 1))
+               if (mediaContainers.Count == 1)
                {
                   return Ok(mediaContainers.First().Model);
                }
-               else
-               {
-                  return Ok(mediaContainers.Select(item => item.Model));
-               }
+            }
+            else if (System.IO.Directory.Exists(path))
+            {
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path);
+
+               return Ok(mediaContainers.Select(item => item.Model));
             }
          }
          catch (Exception e)

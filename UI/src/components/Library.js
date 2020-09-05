@@ -42,7 +42,7 @@ export class Library extends Component {
                 loading: true,
                 status: "Requesting"
             });
-            fetch("/list" + path)
+            fetch("/library" + path)
             .then((response) => {
                 this.setState({
                     status: "Loading",
@@ -50,7 +50,8 @@ export class Library extends Component {
                 });
                 return response.json();
             })
-            .then((items) => {
+            .then((json) => {
+                let items = Array.isArray(json) ? json : [json];
                 this.setState({
                     loading: false,
                     path: path,
@@ -58,6 +59,13 @@ export class Library extends Component {
                 });
                 // now change the history!
                 window.history.pushState({}, "", path);
+                // pass on the source to the viewer if this is a file
+                return Array.isArray(json) ? null : json;
+            })
+            .then((source) => {
+                if (source !== null) {
+                    this.view(source);
+                }
             })
             .catch((error) => {
                 this.setState({
