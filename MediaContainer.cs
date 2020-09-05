@@ -8,11 +8,13 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaCurator
 {
-   public class MediaContainer
+   public class MediaContainer : IMediaContainer
    {
       protected readonly IConfiguration _configuration;
 
       protected readonly IThumbnailsDatabase _thumbnailsDatabase;
+
+      protected readonly IMediaLibrary _mediaLibrary;
 
       #region Fields
 
@@ -20,7 +22,7 @@ namespace MediaCurator
       /// Gets the root MediaContainer of this particular MediaContainer descendant.
       /// </summary>
       /// <value>The root MediaContainer of this particular MediaContainer descendant.</value>
-      public MediaContainer Root
+      public IMediaContainer Root
       {
          get
          {
@@ -35,16 +37,28 @@ namespace MediaCurator
          }
       }
 
+      private IMediaContainer _parent = null;
+
       /// <summary>
       /// The parent MediaContainer based type of this instance.
       /// </summary>
-      public MediaContainer Parent = null;
+      public IMediaContainer Parent
+      {
+         get => _parent;
+         set => _parent = value;
+      }
+
+      private XElement _self = null;
 
       /// <summary>
       /// The XML Element this particular container is associated with in the MediaLibrary. This
       /// is either created or located in the MediaLibrary at the time of initialization.
       /// </summary>
-      public XElement Self = null;
+      public XElement Self
+      {
+         get => _self;
+         set => _self = value;
+      }
 
       /// <summary>
       /// Gets or sets the Name attribute of the container element. This is directly read or written
@@ -93,12 +107,16 @@ namespace MediaCurator
          get
          {
             string path = null;
-            MediaContainer container = this;
+            IMediaContainer container = this;
 
             do
             {
                switch (container.Type)
                {
+                  case "Library":
+                     path = Platform.Separator.Root + path;
+                     break;
+
                   case "Drive":
                      path = container.Name + ":\\" + path;
                      break;
@@ -108,7 +126,7 @@ namespace MediaCurator
                      break;
 
                   case "Folder":
-                     path = (container.Parent == null ? Platform.Separator.Path : "") + container.Name + Platform.Separator.Path + path;
+                     path = container.Name + Platform.Separator.Path + path;
                      break;
 
                   case "Audio":
@@ -194,15 +212,26 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaContainer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
+      public MediaContainer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
       {
          _configuration = configuration;
          _thumbnailsDatabase = thumbnailsDatabase;
+         _mediaLibrary = mediaLibrary ?? (IMediaLibrary) this;
 
          if (path == null)
          {
-            // Reached the bottom! Return for the moment. But later, perhaps the Parent could be set
-            // to the MediaLibrary itself!
+            // This can happen on two occassions:
+            // 1. The MediaLibrary instance is being initialized. On this occassion, the mediaLibrary
+            //    instance is null and so we don't need to do anything else.
+            // 2. The MediaLibrary instance has already been initialized. This happens when the MediaContainer
+            //    being initialized is not a MediaLibrary but is one of the direct children of it. Here
+            //    we set its parent to the MediaLibrary itself.
+
+            if (mediaLibrary != null)
+            {
+               Parent = mediaLibrary;
+            }
+
             return;
          }
 
@@ -219,20 +248,28 @@ namespace MediaCurator
             if (parentType != null)
             {
                // Now the Parent will be taken care of!
-               Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, thumbnailsDatabase, path);
+               Parent = (MediaContainer)Activator.CreateInstance(parentType, _configuration, _thumbnailsDatabase, _mediaLibrary, path);
             }
+         }
+         else
+         {
+            // The path supplied refers to the root of the MediaLibrary i.e. the "/". We simply set
+            // the parent to the MediaLibrary instance itself.
+
+            Parent = _mediaLibrary;
          }
 
          // Now that we're here, we can assume that the parent(s) of this element has been created
-         // or better yet located already. Now the constructor of the inherited calling class will
+         // 1or better yet located already. Now the constructor of the inherited calling class will
          // take care of the element itself. Unless the path points to a file in which case, the
          // Parent of this instance will be the real target.
       }
 
-      public MediaContainer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
+      public MediaContainer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
       {
          _configuration = configuration;
          _thumbnailsDatabase = thumbnailsDatabase;
+         _mediaLibrary = mediaLibrary;
 
          if (element != null)
          {
@@ -246,8 +283,15 @@ namespace MediaCurator
                // Now make sure a type was successfully deduced.
                if (parentType != null)
                {
-                  // Now the Parent will be taken care of!
-                  Parent = (MediaContainer)Activator.CreateInstance(parentType, configuration, thumbnailsDatabase, element.Parent, update);
+                  if (parentType == typeof(MediaLibrary))
+                  {
+                     Parent = _mediaLibrary;
+                  }
+                  else
+                  {
+                     // Now the Parent will be taken care of!
+                     Parent = (MediaContainer)Activator.CreateInstance(parentType, _configuration, _thumbnailsDatabase, _mediaLibrary, element.Parent, update);
+                  }
                }
             }
 
@@ -485,6 +529,11 @@ namespace MediaCurator
 
          if (container != null)
          {
+            if (container.Name.ToString().Equals("Library"))
+            {
+               // It's the library itself.
+               return typeof(MediaLibrary);
+            }
             if (container.Name.ToString().Equals("Drive"))
             {
                // It's a drive name.
@@ -521,7 +570,7 @@ namespace MediaCurator
                throw new NotImplementedException("Photo files cannot yet be handled!");
             }
 
-            if (container.Name.ToString().Equals("MediaLibrary"))
+            if (container.Name.ToString().Equals("Library"))
             {
                // It's the MediaLibrary itself. We hit the bottom.
                return null;

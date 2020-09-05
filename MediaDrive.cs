@@ -28,8 +28,8 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaDrive(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
-         : base(configuration, thumbnailsDatabase, MediaContainer.GetPathComponents(path).Item1)
+      public MediaDrive(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, MediaContainer.GetPathComponents(path).Item1)
       {
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
@@ -48,7 +48,7 @@ namespace MediaCurator
             }
 
             // Retrieve all the elements with the same Name attribute.
-            IEnumerable<XElement> candidates = Tools.GetElementsByNameAttribute(MediaLibrary.Document.Root, "Drive", name);
+            IEnumerable<XElement> candidates = Tools.GetElementsByNameAttribute(_mediaLibrary.Self, "Drive", name);
 
             if (candidates != null)
             {
@@ -73,13 +73,13 @@ namespace MediaCurator
             else
             {
                // Looks like there is no such element! Let's create one then!
-               MediaLibrary.Document.Root.Add(
+               _mediaLibrary.Self.Add(
                   new XElement("Drive",
                      new XAttribute("Name", name),
                      new XAttribute("SerialNumber", serialNumber)));
 
                // Retrieve the newly created element.
-               Self = MediaLibrary.Document.Root.Elements().Last();
+               Self = _mediaLibrary.Self.Elements().Last();
 
                // Make sure that we succeeded to put our hands on it.
                if ((Self == null) || (Name != name) || (SerialNumber != serialNumber))
@@ -93,8 +93,8 @@ namespace MediaCurator
          }
       }
 
-      public MediaDrive(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
-          : base(configuration, thumbnailsDatabase, element, update)
+      public MediaDrive(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
+          : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
       {
       }
 

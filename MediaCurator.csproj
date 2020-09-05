@@ -15,6 +15,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Dockerfile" />
+    <None Remove=".dockerignore" />
+    <None Remove="docker-compose.yml" />
+    <None Remove="entrypoint.sh" />
+    <None Remove="Server\etc\apache2\sites-available\example.com.conf" />
+    <None Remove="docker-compose-debug.yml" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Don't publish the SPA source files, but do show them in the project files list -->
     <Content Remove="$(SpaRoot)**" />
     <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />

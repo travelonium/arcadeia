@@ -149,8 +149,8 @@
 
             #region Constructors
 
-            public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string type, string path)
-               : base(configuration, thumbnailsDatabase, MediaContainer.GetPathComponents(path).Item1)
+            public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string type, string path)
+               : base(configuration, thumbnailsDatabase, mediaLibrary, MediaContainer.GetPathComponents(path).Item1)
             {
                // The base class constructor will take care of the parents and below we'll take care of
                // the element itself.
@@ -234,8 +234,8 @@
                }
             }
 
-            public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
-               : base(configuration, thumbnailsDatabase, element, update)
+            public MediaFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
+               : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
             {
                // Initialize the thumbnails.
                Thumbnails = new MediaFileThumbnails(_thumbnailsDatabase, Id);

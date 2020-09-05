@@ -13,8 +13,8 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaServer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
-         : base(configuration, thumbnailsDatabase, MediaContainer.GetPathComponents(path).Item1)
+      public MediaServer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, MediaContainer.GetPathComponents(path).Item1)
       {
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
@@ -25,7 +25,7 @@ namespace MediaCurator
             string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\' });
 
             // Retrieve the element if it already exists.
-            Self = Tools.GetElementByNameAttribute(MediaLibrary.Document.Root, "Server", name);
+            Self = Tools.GetElementByNameAttribute(_mediaLibrary.Self, "Server", name);
 
             // Did we find an already existing element?
             if (Self != null)
@@ -36,12 +36,12 @@ namespace MediaCurator
             else
             {
                // Looks like there is no such element! Let's create one then!
-               MediaLibrary.Document.Root.Add(
+               _mediaLibrary.Self.Add(
                   new XElement("Server",
                      new XAttribute("Name", name)));
 
                // Retrieve the newly created element.
-               Self = Tools.GetElementByNameAttribute(MediaLibrary.Document.Root, "Server", name);
+               Self = Tools.GetElementByNameAttribute(_mediaLibrary.Self, "Server", name);
 
                // Make sure that we succeeded to put our hands on it.
                if (Self == null)
@@ -55,8 +55,8 @@ namespace MediaCurator
          }
       }
 
-      public MediaServer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
-         : base(configuration, thumbnailsDatabase, element, update)
+      public MediaServer(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
       {
       }
 

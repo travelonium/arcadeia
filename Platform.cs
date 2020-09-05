@@ -39,6 +39,21 @@ namespace MediaCurator
                   throw new NotSupportedException("Platform not supported!");
             }
          }
+
+         public static string Root
+         {
+            get
+            {
+               if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                  return "/";
+               else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                  return "/";
+               else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                  return "";
+               else
+                  throw new NotSupportedException("Platform not supported!");
+            }
+         }
       }
    }
 }

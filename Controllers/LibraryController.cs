@@ -76,7 +76,7 @@ namespace MediaCurator.Controllers
 
          try
          {
-            MediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, path);
+            IMediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
             // In case of a Server or a Drive or a Folder located in the root, the mediaContainer's Self
             // will be null and it only will have found a Parent element which is the one we need. As a
@@ -88,7 +88,7 @@ namespace MediaCurator.Controllers
             }
             else if ((mediaContainer.Self == null) && (mediaContainer.Parent == null))
             {
-               mediaContainer.Self = MediaLibrary.Document.Root;
+               mediaContainer.Self = _mediaLibrary.Self;
             }
 
             if (!(System.IO.Directory.Exists(path)) && !(System.IO.File.Exists(path)))

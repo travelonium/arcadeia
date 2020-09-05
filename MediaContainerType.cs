@@ -3,6 +3,7 @@
    public enum MediaContainerType
    {
       Unknown,
+      Library,
       Drive,
       Server,
       Folder,
