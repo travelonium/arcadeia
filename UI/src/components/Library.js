@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint } from './../utils';
+import { extract, size, breakpoint, parseQuery } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 
@@ -37,7 +37,18 @@ export class Library extends Component {
     componentDidUpdate() {
     }
 
-    list(path) {
+    list(path, search = false) {
+        if (!search) {
+            // when the list() had not been specifically called from the search()
+            let params = parseQuery(path);
+            let query = extract(null, params, 'query');
+            if ((query !== null) && (query !== "") && (query !== this.props.searchForm.current.value)) {
+                this.props.searchForm.current.value = query;
+            } else {
+                // reset the search form if a query had not been supplied
+                this.props.searchForm.current.value = "";
+            }
+        }
         if (path) {
             this.setState({
                 loading: true,
@@ -79,11 +90,14 @@ export class Library extends Component {
     }
 
     search(query) {
+        let params = "";
         let recursive = true;
         let path = this.state.path.split('?')[0];
-        let params = "?recursive=" + recursive;
-        params += (query !== "") ? ("&query=" + query) : "";
-        this.list(path + params);
+        if (query) {
+            params += "?recursive=" + recursive;
+            params += (query !== "") ? ("&query=" + query) : "";
+        }
+        this.list(path + params, true);
     }
 
     open(source) {

@@ -48,7 +48,7 @@ export class NavMenu extends Component {
                             <Nav>
                                 <Nav.Item>
                                     <Form inline>
-                                        <Form.Control onChange={this.onChange.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
+                                        <Form.Control ref={this.props.searchForm} onChange={this.onChange.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
                                     </Form>
                                 </Nav.Item>
                             </Nav>

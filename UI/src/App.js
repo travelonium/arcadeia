@@ -11,12 +11,13 @@ export default class App extends Component {
     constructor(props) {
         super(props);
         this.library = React.createRef();
+        this.searchForm = React.createRef();
     }
 
     render() {
         return (
-            <Layout library={this.library}>
-                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} /> } />
+            <Layout library={this.library} searchForm={this.searchForm}>
+                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} searchForm={this.searchForm} /> } />
                 <Route path='/counter' component={Counter} />
                 <Route path='/fetch-data' component={FetchData} />
             </Layout>
