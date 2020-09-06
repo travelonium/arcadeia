@@ -38,18 +38,18 @@ export class Library extends Component {
     }
 
     list(path, search = false) {
-        if (!search) {
-            // when the list() had not been specifically called from the search()
-            let params = parseQuery(path);
-            let query = extract(null, params, 'query');
-            if ((query !== null) && (query !== "") && (query !== this.props.searchForm.current.value)) {
-                this.props.searchForm.current.value = query;
-            } else {
-                // reset the search form if a query had not been supplied
-                this.props.searchForm.current.value = "";
-            }
-        }
         if (path) {
+            if (!search) {
+                // when the list() had not been specifically called from the search()
+                let params = parseQuery(path);
+                let query = extract(null, params, 'query');
+                if ((query !== null) && (query !== "") && (query !== this.props.searchInput.current.value)) {
+                    this.props.searchInput.current.value = query;
+                } else {
+                    // reset the search form if a query had not been supplied
+                    this.props.searchInput.current.value = "";
+                }
+            }
             this.setState({
                 loading: true,
                 status: "Requesting",

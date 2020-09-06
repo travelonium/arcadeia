@@ -31,6 +31,9 @@ export class NavMenu extends Component {
         library.search(value);
     }
 
+    onKeyDown(event) {
+    }
+
     toggleNavbar() {
         this.setState({
             collapsed: !this.state.collapsed
@@ -47,9 +50,7 @@ export class NavMenu extends Component {
                         <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
                             <Nav>
                                 <Nav.Item>
-                                    <Form inline>
-                                        <Form.Control ref={this.props.searchForm} onChange={this.onChange.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
-                                    </Form>
+                                    <Form.Control ref={this.props.searchInput} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
                                 </Nav.Item>
                             </Nav>
                         </Navbar.Collapse>
