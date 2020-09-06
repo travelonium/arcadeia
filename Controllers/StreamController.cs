@@ -32,14 +32,14 @@ namespace MediaCurator.Controllers
       // GET: /<controller>/
       public IActionResult Index(string id, string name)
       {
-         XElement element = Tools.GetElementByIdAttribute(MediaLibrary.Document.Root, "Video", id);
+         XElement element = Tools.GetElementByIdAttribute(_mediaLibrary.Self, "Video", id);
 
          if (element == null)
          {
             return NotFound();
          }
 
-         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, element);
+         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
 
          if ((videoFile.Self == null) || (videoFile.Name != name) || (!videoFile.Exists()))
          {

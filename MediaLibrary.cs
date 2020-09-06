@@ -6,49 +6,19 @@ using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MediaCurator
 {
-   class MediaLibrary : IMediaLibrary
+   class MediaLibrary : MediaContainer, IMediaLibrary
    {
-      private readonly IConfiguration _configuration;
-
       private readonly ILogger<MediaLibrary> _logger;
 
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
-
-      private Lazy<string> _path => new Lazy<string>(_configuration["MediaLibrary:Path"]);
-
-      private Lazy<string> _fullPath => new Lazy<string>(_configuration["MediaLibrary:Path"] + Platform.Separator.Path + _configuration["MediaLibrary:Name"]);
-
       /// <summary>
-      /// The static XDocument that contains the media database itself. There is only one instance
-      /// of this throughout the whole application. It's either loaded from the existing XML file or
+      /// The XDocument that contains the media database itself. It's either loaded from the existing XML file or
       /// is created during the first instantiation of the MediaLibrary.
       /// </summary>
-      public static XDocument Document = null;
-
-      /// <summary>
-      /// The directory in which the database file is to be found or created.
-      /// </summary>
-      public string Path
-      {
-         get
-         {
-            return _path.Value;
-         }
-      }
-
-      /// <summary>
-      /// The full path to the database file.
-      /// </summary>
-      public string FullPath
-      {
-         get
-         {
-            return _fullPath.Value;
-         }
-      }
+      public XDocument Document = null;
 
       public static bool Modified
       {
@@ -61,6 +31,8 @@ namespace MediaCurator
       /// </summary>
       public readonly MediaContainerTypeExtensions SupportedExtensions;
 
+      #region Constructors
+
       /// <summary>
       /// Initializes a new instance of the <see cref="MediaCurator.MediaLibrary"/> class. 
       /// Before doing anything it checks whether the MediaLibrary has already been instantiated 
@@ -71,19 +43,25 @@ namespace MediaCurator
       /// it does, it loads its contents into Document and it creates a new one otherwise.
       /// </summary>
       public MediaLibrary(IConfiguration configuration, ILogger<MediaLibrary> logger, IThumbnailsDatabase thumbnailsDatabase)
+         : base(configuration, thumbnailsDatabase, null, null)
       {
          _logger = logger;
-         _configuration = configuration;
-         _thumbnailsDatabase = thumbnailsDatabase;
+
+         string name = _configuration["MediaLibrary:Name"];
+         string path = _configuration["MediaLibrary:Path"];
+         string fullPath = path + Platform.Separator.Path + name;
 
          // Read and store the supported extensions from the configuration file.
          SupportedExtensions = new MediaContainerTypeExtensions(_configuration);
 
          // Check if the XML Database file already exists.
-         if (File.Exists(FullPath))
+         if (File.Exists(fullPath))
          {
             // Yes it does! Load it then.
-            Document = XDocument.Load(FullPath);
+            Document = XDocument.Load(fullPath);
+
+            // Now set the Self to its root element.
+            Self = Document.Root;
 
             // Install a handler for the MediaLibrary's Changed event. This is where we set 
             // the Modified flag.
@@ -97,10 +75,13 @@ namespace MediaCurator
             try
             {
                // Create the hosting directory
-               Directory.CreateDirectory(Path);
+               Directory.CreateDirectory(path);
 
                // Now create the database itself
-               CreateNewDatabase(FullPath);
+               CreateNewDatabase(fullPath);
+
+               // Now set the Self to its root element.
+               Self = Document.Root;
 
                // Install a handler for the MediaLibrary's Changed event. This is where we set 
                // the Modified flag.
@@ -109,7 +90,7 @@ namespace MediaCurator
                // Reset the Modified flag.
                Modified = false;
 
-               _logger.LogInformation("Media Library Created: " + FullPath);
+               _logger.LogInformation("Media Library Created: " + fullPath);
             }
             catch (Exception e)
             {
@@ -117,6 +98,8 @@ namespace MediaCurator
             }
          }
       }
+
+      #endregion // Constructors
 
       private void Document_Changed(object sender, XObjectChangeEventArgs e)
       {
@@ -134,7 +117,7 @@ namespace MediaCurator
       {
          // Create an empty Xml Database structure.
          Document = new XDocument(
-            new XElement("MediaLibrary",
+            new XElement("Library",
                new XAttribute("Id", System.IO.Path.GetRandomFileName()),
                new XAttribute("Version", 1.0),
                new XAttribute("DateCreated", DateTime.Now.ToString(CultureInfo.InvariantCulture)),
@@ -144,132 +127,22 @@ namespace MediaCurator
          Document.Save(database);
       }
 
-
-      /* TODO: Implement a similar method which returns MediaContainers instead.
-      public ObservableCollection<MediaLibraryTreeItem> EnumerateMediaLibraryTree(XElement parentElement = null,
-                                                                                  uint flags = 0,
-                                                                                  uint values = 0,
-                                                                                  MediaLibraryTreeItem parentItem = null)
-      {
-         ObservableCollection<MediaLibraryTreeItem> mediaLibraryTree = new ObservableCollection<MediaLibraryTreeItem>();
-
-         if (parentElement == null)
-         {
-            parentElement = MediaCurator.MediaLibrary.Document.Root;
-         }
-
-         foreach (XElement item in parentElement.Nodes())
-         {
-            switch (item.Name.ToString())
-            {
-               case "Drive":
-
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                        (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                        (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty drive. Let's ignore it.
-                     continue;
-                  }
-
-                  MediaDrive newMediaDrive = new MediaDrive(item);
-                  string serialNumber = Tools.GetVolumeSerialNumber(newMediaDrive.Name);
-                  string volumeLabel = Tools.GetVolumeLabel(newMediaDrive.Name);
-                  if (serialNumber != null)
-                  {
-                     if (newMediaDrive.SerialNumber == serialNumber)
-                     {
-                        MediaLibraryTreeItem newDriveItem = new MediaLibraryTreeItem
-                        {
-                           Parent = parentItem,
-                           Name = volumeLabel.ToUpper() + " (" + newMediaDrive.Name + ":)",
-                           FullPath = newMediaDrive.FullPath,
-                           Thumbnail = new BitmapImage(new Uri("pack://application:,,,/Icons/24x24/Drive.png"))
-                        };
-
-                        newDriveItem.Items = EnumerateMediaLibraryTree(item, flags, values, newDriveItem);
-
-                        mediaLibraryTree.Add(newDriveItem);
-                     }
-                  }
-                  break;
-
-               case "Server":
-
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty server. Let's ignore it.
-                     continue;
-                  }
-
-                  MediaServer newMediaServer = new MediaServer(item);
-
-                  MediaLibraryTreeItem newServerItem = new MediaLibraryTreeItem
-                  {
-                     Parent = parentItem,
-                     Name = newMediaServer.Name,
-                     FullPath = newMediaServer.FullPath,
-                     Thumbnail = new BitmapImage(new Uri("pack://application:,,,/Icons/24x24/Server.png"))
-                  };
-
-                  newServerItem.Items = EnumerateMediaLibraryTree(item, flags, values, newServerItem);
-
-                  mediaLibraryTree.Add(newServerItem);
-
-                  break;
-
-               case "Folder":
-
-                  if ((Tools.GetDecendantsCount(item, "Audio", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Video", flags, values, true) == 0) &&
-                      (Tools.GetDecendantsCount(item, "Photo", flags, values, true) == 0))
-                  {
-                     // This would be an empty folder. Let's ignore it.
-                     continue;
-                  }
-
-                  MediaFolder newMediaFolder = new MediaFolder(item);
-
-                  MediaLibraryTreeItem newFolderItem = new MediaLibraryTreeItem
-                  {
-                     Parent = parentItem,
-                     Name = newMediaFolder.Name,
-                     FullPath = newMediaFolder.FullPath,
-                     Thumbnail = new BitmapImage(new Uri("pack://application:,,,/Icons/24x24/Folder.png"))
-                  };
-
-                  newFolderItem.Items = EnumerateMediaLibraryTree(item, flags, values, newFolderItem);
-
-                  mediaLibraryTree.Add(newFolderItem);
-
-                  break;
-            }
-         }
-
-         return mediaLibraryTree;
-      }
-      */
-
       /// <summary>
       /// Enumerates and returns an ObservableCollection of the media containers having a matching
       /// flags pattern supplied using the flags and values.
       /// </summary>
       /// <param name="path">The path in which the MediaContainers exist. It can be a Drive, a Server
       /// or a Folder.</param>
+      /// <param name="query">The partial query to search for when querying the MediaContainers.</param>
       /// <param name="flags">The flags mask of the flags we're interested in picking.</param>
       /// <param name="values">The flag values of interest to include/exclude in/from the returned
       /// collection.</param>
+      /// <param name="recursive">Whether the search should be recursive going deep into the children's children.</param>
       /// <returns>An ObservableCollection containing the enumerated MediaContainers.</returns>
-      public List<MediaContainer> ListMediaContainers(string path,
-                                                      IProgress<Tuple<double, double, string>> progress,
-                                                      uint flags = 0,
-                                                      uint values = 0)
+      public List<IMediaContainer> ListMediaContainers(string path, string query = null, uint flags = 0, uint values = 0, bool recursive = false)
       {
-         double index = 0.0, total = 0.0;
-         MediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, path);
-         List<MediaContainer> mediaContainers = new List<MediaContainer>();
+         IMediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, this, path);
+         List<IMediaContainer> mediaContainers = new List<IMediaContainer>();
 
          // In case of a Server or a Drive or a Folder located in the root, the mediaContainer's Self
          // will be null and it only will have found a Parent element which is the one we need. As a
@@ -279,15 +152,9 @@ namespace MediaCurator
          {
             mediaContainer = mediaContainer.Parent;
          }
-         else if ((mediaContainer.Self == null) && (mediaContainer.Parent == null))
-         {
-            mediaContainer.Self = Document.Root;
-         }
 
          if (mediaContainer is MediaFile)
          {
-            total = 1;
-
             string flagsTag = Tools.GetAttributeValue(mediaContainer.Self, "Flags");
             uint flagsInteger = Convert.ToUInt32(flagsTag.Length > 0 ? flagsTag : "0", 16);
 
@@ -303,12 +170,34 @@ namespace MediaCurator
             // Using mediaFolder.Self.Descendants() instead of mediaContainer.Self.Nodes() will cause
             // a recursive display of all descending nodes of the parent node.
 
-            foreach (XElement item in mediaContainer.Self.Nodes())
+            var nodes = recursive ? mediaContainer.Self.Descendants() : mediaContainer.Self.Elements();
+
+            // Filter the elements using the supplied flags.
+            if (flags != 0 || values != 0)
             {
-               total++;
+               nodes = nodes.Where(node =>
+               {
+                  var attribute = Tools.GetAttributeValue(node, "Flags");
+                  var value = Convert.ToUInt32(attribute.Length > 0 ? attribute : "0", 16);
+
+                  if (((value & flags) ^ (values & flags)) <= 0)
+                  {
+                     return true;
+                  }
+
+                  return false;
+               });
             }
 
-            foreach (XElement item in mediaContainer.Self.Nodes())
+            // Filter the elements using the supplied name.
+            if (query != null)
+            {
+               query = query.ToLower();
+
+               nodes = nodes.Where(node => Tools.GetAttributeValue(node, "Name").ToLower().Contains(query));
+            }
+
+            foreach (XElement item in nodes)
             {
                string flagsTag = Tools.GetAttributeValue(item, "Flags");
                uint flagsInteger = Convert.ToUInt32(flagsTag.Length > 0 ? flagsTag : "0", 16);
@@ -332,7 +221,7 @@ namespace MediaCurator
                         break;
                      }
 
-                     mediaContainers.Add(new MediaDrive(_configuration, _thumbnailsDatabase, item));
+                     mediaContainers.Add(new MediaDrive(_configuration, _thumbnailsDatabase, _mediaLibrary, item));
                      break;
 
                   case "Server":
@@ -345,7 +234,7 @@ namespace MediaCurator
                         break;
                      }
 
-                     mediaContainers.Add(new MediaServer(_configuration, _thumbnailsDatabase, item));
+                     mediaContainers.Add(new MediaServer(_configuration, _thumbnailsDatabase, _mediaLibrary, item));
                      break;
 
                   case "Folder":
@@ -358,7 +247,7 @@ namespace MediaCurator
                         break;
                      }
 
-                     mediaContainers.Add(new MediaFolder(_configuration, _thumbnailsDatabase, item));
+                     mediaContainers.Add(new MediaFolder(_configuration, _thumbnailsDatabase, _mediaLibrary, item));
                      break;
 
                   case "Audio":
@@ -366,19 +255,15 @@ namespace MediaCurator
                      break;
 
                   case "Video":
-                     mediaContainers.Add(new VideoFile(_configuration, _thumbnailsDatabase, item));
+                      mediaContainers.Add(new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, item));
                      break;
 
                   case "Photo":
                      // TODO: mediaContainers.Add( new PhotoFile( item ) );
                      break;
                }
-
-               progress.Report(new Tuple<double, double, string>(++index, total, "Loading..."));
             }
          }
-
-         progress.Report(new Tuple<double, double, string>(0, 100, ""));
 
          return mediaContainers;
       }
@@ -447,14 +332,14 @@ namespace MediaCurator
                               IProgress<byte[]> preview)
       {
          // Instantiate a MediaFile using the acquired element.
-         MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, element);
+         MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
 
          // Reset the Current File Progress.
          progress.Report(new Tuple<double, double>(0, 0));
 
          if (mediaFile != null)
          {
-            MediaContainer rootMediaContainer = mediaFile.Root;
+            IMediaContainer rootMediaContainer = mediaFile.Root;
 
             // Check whether the MediaDrive is located on this computer. 
             if (rootMediaContainer.Type == "Drive")
@@ -543,7 +428,7 @@ namespace MediaCurator
 
             case MediaContainerType.Video:
 
-               mediaFile = new VideoFile(_configuration, _thumbnailsDatabase, path);
+               mediaFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
                if (mediaFile.Self != null)
                {
@@ -571,7 +456,7 @@ namespace MediaCurator
 
       private VideoFile InsertVideoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
-         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, path);
+         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
          if (videoFile.Self != null)
          {
@@ -596,7 +481,7 @@ namespace MediaCurator
 
       private void UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
-         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, element, true);
+         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
 
          if (!videoFile.Flags.Deleted)
          {
@@ -635,8 +520,12 @@ namespace MediaCurator
 
             try
             {
+               string name = _configuration["MediaLibrary:Name"];
+               string path = _configuration["MediaLibrary:Path"];
+               string fullPath = path + Platform.Separator.Path + name;
+
                // Save the XML Database to the disk.
-               Document.Save(FullPath);
+               Document.Save(fullPath);
 
                // Now remove the Modified flag.
                Modified = false;

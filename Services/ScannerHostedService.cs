@@ -160,6 +160,7 @@ namespace MediaCurator.Services
                };
 
                // Add event handlers.
+               watcher.Error += OnError;
                watcher.Created += OnCreated;
                watcher.Changed += OnChanged;
                watcher.Deleted += OnChanged;
@@ -341,7 +342,7 @@ namespace MediaCurator.Services
 
          // Enumerate all the media files from the MediaLibrary database. This is used to detect
          // whether or not any files have been physically removed and thus update the MediaLibrary.
-         IEnumerable<XElement> mediaFiles = from element in MediaLibrary.Document.Descendants()
+         IEnumerable<XElement> mediaFiles = from element in _mediaLibrary.Self.Descendants()
                                             where ((element.Name == "Audio") ||
                                                    (element.Name == "Video") ||
                                                    (element.Name == "Photo"))
@@ -368,7 +369,7 @@ namespace MediaCurator.Services
             try
             {
                // Instantiate a MediaFile using the acquired element.
-               MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, element);
+               MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
 
                if (mediaFile != null)
                {
@@ -430,6 +431,12 @@ namespace MediaCurator.Services
 
       public void Dispose()
       {
+      }
+
+      private void OnError(object source, ErrorEventArgs e)
+      {
+         // Specify what is done when an error has occured.
+         Debug.WriteLine($"Error: {e.ToString()}");
       }
 
       private void OnCreated(object source, FileSystemEventArgs e)

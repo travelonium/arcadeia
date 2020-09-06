@@ -170,8 +170,8 @@ namespace MediaCurator
 
       #region Constructors
 
-      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
-         : base(configuration, thumbnailsDatabase, "Video", path)
+      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, "Video", path)
       {
          // The base class constructor will take care of the parents and the creation or retrieval
          // of the element itself. Here we'll attend to additional properties of a video file.
@@ -220,8 +220,8 @@ namespace MediaCurator
          }
       }
 
-      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
-         : base(configuration, thumbnailsDatabase, element, update)
+      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
       {
          if (Self != null)
          {
@@ -263,14 +263,14 @@ namespace MediaCurator
                      Debug.WriteLine(e.Message);
                   }
 
-                  // TODO: Remove the previously generated thumbnails as they are most likely out of date.
-                  // ThumbnailsDatabase.Instance.DeleteThumbnails(Id);
+                  // Remove the previously generated thumbnails as they are most likely out of date.
+                  _thumbnailsDatabase.DeleteThumbnails(Id);
                }
 
                if (Flags.Deleted)
                {
-                  // TODO: Remove the previously generated thumbnails as they are most likely out of date.
-                  // ThumbnailsDatabase.Instance.DeleteThumbnails(Id);
+                  // Remove the previously generated thumbnails as they are most likely out of date.
+                  _thumbnailsDatabase.DeleteThumbnails(Id);
                }
             }
          }

@@ -29,11 +29,9 @@ namespace MediaCurator.Controllers
       /// <returns></returns>
       public IEnumerable<Models.MediaContainer> Index(string path = "")
       {
-         var progress = new Progress<Tuple<double, double, string>>();
-
          if ((System.IO.Directory.Exists(Platform.Separator.Path + path) || (System.IO.File.Exists(Platform.Separator.Path + path))))
          {
-            var mediaContainers = _mediaLibrary.ListMediaContainers(Platform.Separator.Path + path, progress);
+            var mediaContainers = _mediaLibrary.ListMediaContainers(Platform.Separator.Path + path);
 
             return mediaContainers.Select(item => item.Model);
          }

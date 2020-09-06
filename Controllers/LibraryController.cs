@@ -36,25 +36,26 @@ namespace MediaCurator.Controllers
       /// <returns></returns>
       [HttpGet]
       [Produces("application/json")]
-      public IActionResult Get(string path = "")
+      public IActionResult Get(string path = "", [FromQuery] string query = null, [FromQuery] uint flags = 0, [FromQuery] uint values = 0, [FromQuery] bool recursive = false)
       {
          path = Platform.Separator.Path + path;
-         var progress = new Progress<Tuple<double, double, string>>();
 
          try
          {
-            if (System.IO.Directory.Exists(path) || System.IO.File.Exists(path))
+            if (System.IO.File.Exists(path))
             {
-               var mediaContainers = _mediaLibrary.ListMediaContainers(path, progress);
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path, query, flags, values, recursive);
 
-               if (System.IO.File.Exists(path) && (mediaContainers.Count == 1))
+               if (mediaContainers.Count == 1)
                {
                   return Ok(mediaContainers.First().Model);
                }
-               else
-               {
-                  return Ok(mediaContainers.Select(item => item.Model));
-               }
+            }
+            else if (System.IO.Directory.Exists(path))
+            {
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path, query, flags, values, recursive);
+
+               return Ok(mediaContainers.Select(item => item.Model));
             }
          }
          catch (Exception e)
@@ -76,7 +77,7 @@ namespace MediaCurator.Controllers
 
          try
          {
-            MediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, path);
+            IMediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
             // In case of a Server or a Drive or a Folder located in the root, the mediaContainer's Self
             // will be null and it only will have found a Parent element which is the one we need. As a
@@ -85,10 +86,6 @@ namespace MediaCurator.Controllers
             if ((mediaContainer.Self == null) && (mediaContainer.Parent != null))
             {
                mediaContainer = mediaContainer.Parent;
-            }
-            else if ((mediaContainer.Self == null) && (mediaContainer.Parent == null))
-            {
-               mediaContainer.Self = MediaLibrary.Document.Root;
             }
 
             if (!(System.IO.Directory.Exists(path)) && !(System.IO.File.Exists(path)))

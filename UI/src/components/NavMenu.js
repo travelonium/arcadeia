@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
-import { Collapse, Container, Navbar, NavbarBrand, NavbarToggler, NavItem, NavLink } from 'reactstrap';
-import { Link } from 'react-router-dom';
+import Container from 'react-bootstrap/Container';
+import Navbar from 'react-bootstrap/Navbar';
+import Form from 'react-bootstrap/Form';
+import Nav from 'react-bootstrap/Nav';
 import './NavMenu.css';
 
 export class NavMenu extends Component {
@@ -8,11 +10,28 @@ export class NavMenu extends Component {
 
     constructor(props) {
         super(props);
-
+        this.searchTimeout = null;
         this.toggleNavbar = this.toggleNavbar.bind(this);
         this.state = {
             collapsed: true
         };
+    }
+
+    onChange(event) {
+        let value = event.target.value;
+        if (this.searchTimeout != null) {
+            clearTimeout(this.searchTimeout);
+        }
+        this.searchTimeout = setTimeout(() => this.onTimeout(value), 700);
+    }
+
+    onTimeout(value) {
+        clearTimeout(this.searchTimeout);
+        let library = this.props.library.current;
+        library.search(value);
+    }
+
+    onKeyDown(event) {
     }
 
     toggleNavbar() {
@@ -24,17 +43,17 @@ export class NavMenu extends Component {
     render() {
         return (
             <header>
-                <Navbar className="navbar-expand-sm navbar-toggleable-sm ng-white border-bottom box-shadow mb-3" light>
+                <Navbar collapseOnSelect expand="sm" bg="light" variant="light" className="mb-3 ng-white">
                     <Container>
-                        <NavbarBrand tag={Link} to="/">Media Curator</NavbarBrand>
-                        <NavbarToggler onClick={this.toggleNavbar} className="mr-2" />
-                        <Collapse className="d-sm-inline-flex flex-sm-row-reverse" isOpen={!this.state.collapsed} navbar>
-                            <ul className="navbar-nav flex-grow">
-                                <NavItem>
-                                    <NavLink tag={Link} className="text-dark" to="/settings">Settings</NavLink>
-                                </NavItem>
-                            </ul>
-                        </Collapse>
+                        <Navbar.Brand href="/">Media Curator</Navbar.Brand>
+                        <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
+                        <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
+                            <Nav>
+                                <Nav.Item>
+                                    <Form.Control ref={this.props.searchInput} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
+                                </Nav.Item>
+                            </Nav>
+                        </Navbar.Collapse>
                     </Container>
                 </Navbar>
             </header>

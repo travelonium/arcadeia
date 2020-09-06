@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
@@ -51,8 +52,8 @@ namespace MediaCurator
 
       #region Constructors
 
-      public MediaFolder(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, string path)
-         : base(configuration, thumbnailsDatabase, MediaContainer.GetPathComponents(path).Item1)
+      public MediaFolder(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, MediaContainer.GetPathComponents(path).Item1)
       {
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
@@ -63,7 +64,7 @@ namespace MediaCurator
          if (Parent == null)
          {
             // Retrieve the element if it already exists.
-            Self = Tools.GetElementByNameAttribute(MediaLibrary.Document.Root, "Folder", name);
+            Self = Tools.GetElementByNameAttribute(_mediaLibrary.Self, "Folder", name);
 
             // This folder resides in the Linux/OSX root filesystem.
             if (Self != null)
@@ -74,12 +75,12 @@ namespace MediaCurator
             else
             {
                // Looks like there is no such element! Let's create one then!
-               MediaLibrary.Document.Root.Add(
+               _mediaLibrary.Self.Add(
                   new XElement("Folder",
                      new XAttribute("Name", name)));
 
                // Retrieve the newly created element.
-               Self = MediaLibrary.Document.Root.Elements().Last();
+               Self = _mediaLibrary.Self.Elements().Last();
 
                // Make sure that we succeeded to put our hands on it.
                if ((Self == null) || (Name != name))
@@ -120,11 +121,26 @@ namespace MediaCurator
          Flags = new MediaContainerFlags(Self);
       }
 
-      public MediaFolder(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, XElement element, bool update = false)
-         : base(configuration, thumbnailsDatabase, element, update)
+      public MediaFolder(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
+         : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
       {
       }
 
       #endregion // Constructors
+
+      #region Overrides
+
+      /// <summary>
+      /// Checks whether or not this directory has physical existence.
+      /// </summary>
+      /// <returns>
+      ///   <c>true</c> if the directory physically exists and <c>false</c> otherwise.
+      /// </returns>
+      public override bool Exists()
+      {
+         return Directory.Exists(FullPath);
+      }
+
+      #endregion
    }
 }

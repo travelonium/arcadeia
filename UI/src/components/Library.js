@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint } from './../utils';
+import { extract, size, breakpoint, parseQuery } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 
@@ -20,12 +20,13 @@ export class Library extends Component {
         this.rowCount = 1;
         this.columnCount = 1;
         this.mediaViewer = React.createRef();
-        let path = "/" + extract("", props, "match", "params", 0);
+        let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
             loading: false,
             status: "",
             path: path,
             items: [],
+            query: "",
         };
     }
 
@@ -36,13 +37,24 @@ export class Library extends Component {
     componentDidUpdate() {
     }
 
-    list(path) {
+    list(path, search = false) {
         if (path) {
+            if (!search) {
+                // when the list() had not been specifically called from the search()
+                let params = parseQuery(path);
+                let query = extract(null, params, 'query');
+                if ((query !== null) && (query !== "") && (query !== this.props.searchInput.current.value)) {
+                    this.props.searchInput.current.value = query;
+                } else {
+                    // reset the search form if a query had not been supplied
+                    this.props.searchInput.current.value = "";
+                }
+            }
             this.setState({
                 loading: true,
-                status: "Requesting"
+                status: "Requesting",
             });
-            fetch("/list" + path)
+            fetch("/library" + path)
             .then((response) => {
                 this.setState({
                     status: "Loading",
@@ -50,7 +62,8 @@ export class Library extends Component {
                 });
                 return response.json();
             })
-            .then((items) => {
+            .then((json) => {
+                let items = Array.isArray(json) ? json : [json];
                 this.setState({
                     loading: false,
                     path: path,
@@ -58,6 +71,13 @@ export class Library extends Component {
                 });
                 // now change the history!
                 window.history.pushState({}, "", path);
+                // pass on the source to the viewer if this is a file
+                return Array.isArray(json) ? null : json;
+            })
+            .then((source) => {
+                if (source !== null) {
+                    this.view(source);
+                }
             })
             .catch((error) => {
                 this.setState({
@@ -67,6 +87,17 @@ export class Library extends Component {
                 });
             });
         }
+    }
+
+    search(query) {
+        let params = "";
+        let recursive = true;
+        let path = this.state.path.split('?')[0];
+        if (query) {
+            params += "?recursive=" + recursive;
+            params += (query !== "") ? ("&query=" + query) : "";
+        }
+        this.list(path + params, true);
     }
 
     open(source) {
@@ -107,18 +138,39 @@ export class Library extends Component {
     }
 
     render() {
-        let path = "/";
+        let location = "/";
+        let url = "Library".concat(this.state.path);
+        let path = url.split('?')[0];
+        let params = url.split("?")[1];
+        let search = (params !== undefined) && (params.indexOf("query=") !== -1);
+        let folders = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
             <Container className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                 <Breadcrumb className="">
                     {
-                        "Library".concat(this.state.path).split("/").map((folder, index) => {
+                        folders.map((folder, index) => {
+                            let link = location;
+                            let active = false;
+                            let last = (index === (folders.length - 1));
                             if (folder) {
                                 if (index) {
-                                    path += folder + "/";
+                                    if (last) {
+                                        if (search) {
+                                            // it's the search results item, deactivate it
+                                            link = "";
+                                            active = true;
+                                        } else {
+                                            // don't add the trailing slash if this is a file
+                                            location += folder;
+                                            link = location;
+                                        }
+                                    } else {
+                                        location += folder + "/";
+                                        link = location;
+                                    }
                                 }
                                 return (
-                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" linkProps={{ path: path }} onClick={event => this.list(event.target.getAttribute("path"))} >{folder}</Breadcrumb.Item>
+                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link }} onClick={event => this.list(event.target.getAttribute("link"))} >{folder}</Breadcrumb.Item>
                                 );
                             } else {
                                 return null;
