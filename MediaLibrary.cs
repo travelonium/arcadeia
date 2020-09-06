@@ -6,6 +6,7 @@ using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MediaCurator
 {
@@ -132,11 +133,13 @@ namespace MediaCurator
       /// </summary>
       /// <param name="path">The path in which the MediaContainers exist. It can be a Drive, a Server
       /// or a Folder.</param>
+      /// <param name="query">The partial query to search for when querying the MediaContainers.</param>
       /// <param name="flags">The flags mask of the flags we're interested in picking.</param>
       /// <param name="values">The flag values of interest to include/exclude in/from the returned
       /// collection.</param>
+      /// <param name="recursive">Whether the search should be recursive going deep into the children's children.</param>
       /// <returns>An ObservableCollection containing the enumerated MediaContainers.</returns>
-      public List<IMediaContainer> ListMediaContainers(string path, uint flags = 0, uint values = 0)
+      public List<IMediaContainer> ListMediaContainers(string path, string query = null, uint flags = 0, uint values = 0, bool recursive = false)
       {
          IMediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, this, path);
          List<IMediaContainer> mediaContainers = new List<IMediaContainer>();
@@ -167,7 +170,34 @@ namespace MediaCurator
             // Using mediaFolder.Self.Descendants() instead of mediaContainer.Self.Nodes() will cause
             // a recursive display of all descending nodes of the parent node.
 
-            foreach (XElement item in mediaContainer.Self.Nodes())
+            var nodes = recursive ? mediaContainer.Self.Descendants() : mediaContainer.Self.Elements();
+
+            // Filter the elements using the supplied flags.
+            if (flags != 0 || values != 0)
+            {
+               nodes = nodes.Where(node =>
+               {
+                  var attribute = Tools.GetAttributeValue(node, "Flags");
+                  var value = Convert.ToUInt32(attribute.Length > 0 ? attribute : "0", 16);
+
+                  if (((value & flags) ^ (values & flags)) <= 0)
+                  {
+                     return true;
+                  }
+
+                  return false;
+               });
+            }
+
+            // Filter the elements using the supplied name.
+            if (query != null)
+            {
+               query = query.ToLower();
+
+               nodes = nodes.Where(node => Tools.GetAttributeValue(node, "Name").ToLower().Contains(query));
+            }
+
+            foreach (XElement item in nodes)
             {
                string flagsTag = Tools.GetAttributeValue(item, "Flags");
                uint flagsInteger = Convert.ToUInt32(flagsTag.Length > 0 ? flagsTag : "0", 16);
@@ -490,8 +520,12 @@ namespace MediaCurator
 
             try
             {
+               string name = _configuration["MediaLibrary:Name"];
+               string path = _configuration["MediaLibrary:Path"];
+               string fullPath = path + Platform.Separator.Path + name;
+
                // Save the XML Database to the disk.
-               Document.Save(FullPath);
+               Document.Save(fullPath);
 
                // Now remove the Modified flag.
                Modified = false;

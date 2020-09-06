@@ -36,7 +36,7 @@ namespace MediaCurator.Controllers
       /// <returns></returns>
       [HttpGet]
       [Produces("application/json")]
-      public IActionResult Get(string path = "")
+      public IActionResult Get(string path = "", [FromQuery] string query = null, [FromQuery] uint flags = 0, [FromQuery] uint values = 0, [FromQuery] bool recursive = false)
       {
          path = Platform.Separator.Path + path;
 
@@ -44,7 +44,7 @@ namespace MediaCurator.Controllers
          {
             if (System.IO.File.Exists(path))
             {
-               var mediaContainers = _mediaLibrary.ListMediaContainers(path);
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path, query, flags, values, recursive);
 
                if (mediaContainers.Count == 1)
                {
@@ -53,7 +53,7 @@ namespace MediaCurator.Controllers
             }
             else if (System.IO.Directory.Exists(path))
             {
-               var mediaContainers = _mediaLibrary.ListMediaContainers(path);
+               var mediaContainers = _mediaLibrary.ListMediaContainers(path, query, flags, values, recursive);
 
                return Ok(mediaContainers.Select(item => item.Model));
             }
@@ -86,10 +86,6 @@ namespace MediaCurator.Controllers
             if ((mediaContainer.Self == null) && (mediaContainer.Parent != null))
             {
                mediaContainer = mediaContainer.Parent;
-            }
-            else if ((mediaContainer.Self == null) && (mediaContainer.Parent == null))
-            {
-               mediaContainer.Self = _mediaLibrary.Self;
             }
 
             if (!(System.IO.Directory.Exists(path)) && !(System.IO.File.Exists(path)))
