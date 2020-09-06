@@ -116,14 +116,17 @@ export class Library extends Component {
 
     render() {
         let path = "/";
+        let folders = "Library".concat(this.state.path).split("/");
         return (
             <Container className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                 <Breadcrumb className="">
                     {
-                        "Library".concat(this.state.path).split("/").map((folder, index) => {
+                        folders.map((folder, index) => {
+                            let last = (index === (folders.length - 1));
                             if (folder) {
                                 if (index) {
-                                    path += folder + "/";
+                                    // don't add the trailing slash if this is a file
+                                    path += folder + (last ? "" : "/");
                                 }
                                 return (
                                     <Breadcrumb.Item key={"library-path-item-" + index} href="#" linkProps={{ path: path }} onClick={event => this.list(event.target.getAttribute("path"))} >{folder}</Breadcrumb.Item>
