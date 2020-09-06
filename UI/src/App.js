@@ -8,10 +8,15 @@ import { Counter } from './components/Counter';
 export default class App extends Component {
     static displayName = App.name;
 
+    constructor(props) {
+        super(props);
+        this.library = React.createRef();
+    }
+
     render() {
         return (
-            <Layout>
-                <Route exact path='/*' component={Library} />
+            <Layout library={this.library}>
+                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} /> } />
                 <Route path='/counter' component={Counter} />
                 <Route path='/fetch-data' component={FetchData} />
             </Layout>
