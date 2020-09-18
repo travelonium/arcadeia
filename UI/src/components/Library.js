@@ -26,7 +26,6 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
-            query: "",
         };
     }
 
@@ -43,11 +42,11 @@ export class Library extends Component {
                 // when the list() had not been specifically called from the search()
                 let params = parseQuery(path);
                 let query = extract(null, params, 'query');
-                if ((query !== null) && (query !== "") && (query !== this.props.searchInput.current.value)) {
-                    this.props.searchInput.current.value = query;
+                if ((query !== null) && (query !== "") && (query !== this.props.navigation.current.getSearchInput())) {
+                    this.props.navigation.current.setSearchInput(query);
                 } else {
                     // reset the search form if a query had not been supplied
-                    this.props.searchInput.current.value = "";
+                    this.props.navigation.current.setSearchInput("");
                 }
             }
             this.setState({
@@ -89,13 +88,18 @@ export class Library extends Component {
         }
     }
 
-    search(query) {
+    search(query, favorite, recursive) {
+        console.log(favorite);
         let params = "";
-        let recursive = true;
         let path = this.state.path.split('?')[0];
-        if (query) {
+        if (query || favorite || recursive) {
             params += "?recursive=" + recursive;
+        }
+        if (query) {
             params += (query !== "") ? ("&query=" + query) : "";
+        }
+        if (favorite) {
+            params += ("&flags=" + (1 << 1) + "&values=" + (1 << 1));
         }
         this.list(path + params, true);
     }
