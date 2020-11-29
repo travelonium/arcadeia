@@ -13,9 +13,9 @@ export class NavMenu extends Component {
     constructor(props) {
         super(props);
         this.searchTimeout = null;
-        this.searchInput = React.createRef();
         this.toggleNavbar = this.toggleNavbar.bind(this);
         this.state = {
+            query: "",
             collapsed: true,
         };
     }
@@ -28,7 +28,7 @@ export class NavMenu extends Component {
         let state = {
             query: "",
             favorite: false,
-            recursive: false,
+            recursive: true,
         };
         let params = new URLSearchParams(window.location.search);
         let query = params.get("query");
@@ -125,7 +125,7 @@ export class NavMenu extends Component {
                                     </div>
                                 </Nav.Item>
                                 <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                    <Form.Control ref={this.searchInput} value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
+                                    <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
                                 </Nav.Item>
                             </Nav>
                         </Navbar.Collapse>

@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint } from './../utils';
+import { extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 
@@ -30,13 +30,15 @@ export class Library extends Component {
     }
 
     componentDidMount() {
-        this.list(this.state.path, true);
+        // handle the startup query parsing
+        this.props.navigation.current.resetSearchParams(() => {
+            this.list(this.state.path, true);
+        });
         // handles the browser history operations
         window.onpopstate = (event) => {
             let path = extract(null, event, 'state', 'path');
             if (path) {
-                let navigation = this.props.navigation.current;
-                navigation.resetSearchParams(() => {
+                this.props.navigation.current.resetSearchParams(() => {
                     this.list(event.state.path, true, true);
                 });
             }
@@ -48,20 +50,29 @@ export class Library extends Component {
 
     list(path, search = false, history = false) {
         if (!path) return;
-        if (search) {
+        let query = this.props.navigation.current.state.query;
+        if (search && query) {
             let params = new URLSearchParams(path.split('?')[1]);
-            let query = this.props.navigation.current.state.query;
             let favorite = this.props.navigation.current.state.favorite;
             let recursive = this.props.navigation.current.state.recursive;
-            if (query || favorite || recursive) {
-                params.set("recursive", recursive);
+            let flags = parseInt(params.get("flags") ?? 0);
+            let values = parseInt(params.get("values") ?? 0);
+            // update the recursive parameter
+            params.set("recursive", recursive);
+            // update the query parameter
+            params.set("query", query);
+            // update the favorite flags parameters
+            flags = updateBit(flags, 1, favorite);
+            values = updateBit(values, 1, favorite);
+            if (flags) {
+                params.set("flags", flags);
+            } else {
+                params.delete("flags");
             }
-            if (query) {
-                params.set("query", query);
-            }
-            if (favorite) {
-                params.set("flags", (1 << 1));
-                params.set("values", (1 << 1));
+            if (values) {
+                params.set("values", values);
+            } else {
+                params.delete("values");
             }
             this.setState({
                 loading: true,

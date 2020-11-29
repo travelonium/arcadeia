@@ -48,3 +48,7 @@ export function breakpoint() {
 
     return null;
 }
+
+export function updateBit(number, bit, value) {
+    return ((~(1 << 1) & number) | ((value ? 1 : 0) << 1));
+}
