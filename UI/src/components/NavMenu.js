@@ -16,21 +16,26 @@ export class NavMenu extends Component {
         this.searchInput = React.createRef();
         this.toggleNavbar = this.toggleNavbar.bind(this);
         this.state = {
-            query: "",
-            favorite: false,
             collapsed: true,
-            recursive: false,
         };
     }
 
     componentDidMount() {
-        let state = {};
+        this.resetSearchParams();
+    }
+
+    resetSearchParams(callback = () => {}) {
+        let state = {
+            query: "",
+            favorite: false,
+            recursive: false,
+        };
         let params = new URLSearchParams(window.location.search);
         let query = params.get("query");
         let flags = parseInt(params.get("flags"));
         let values = parseInt(params.get("values"));
         let recursive = params.get("recursive");
-        if (query && (query !== this.state.query)) {
+        if (query) {
             state.query = query;
         }
         if (flags && values) {
@@ -41,7 +46,7 @@ export class NavMenu extends Component {
         if (recursive) {
             state.recursive = (recursive === "true");
         }
-        this.setState(state);
+        this.setState(state, callback);
     }
 
     onChange(event) {

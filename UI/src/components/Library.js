@@ -31,12 +31,22 @@ export class Library extends Component {
 
     componentDidMount() {
         this.list(this.state.path, true);
+        // handles the browser history operations
+        window.onpopstate = (event) => {
+            let path = extract(null, event, 'state', 'path');
+            if (path) {
+                let navigation = this.props.navigation.current;
+                navigation.resetSearchParams(() => {
+                    this.list(event.state.path, true, true);
+                });
+            }
+        };
     }
 
     componentDidUpdate() {
     }
 
-    list(path, search = false) {
+    list(path, search = false, history = false) {
         if (!path) return;
         if (search) {
             let params = new URLSearchParams(path.split('?')[1]);
@@ -77,8 +87,10 @@ export class Library extends Component {
                 path: path,
                 items: items
             });
-            // now change the history!
-            window.history.pushState({}, "", path);
+            // now change the history if we have to!
+            if (!history) {
+                window.history.pushState({path: path}, "", path);
+            }
             // pass on the source to the viewer if this is a file
             return Array.isArray(json) ? null : json;
         })
