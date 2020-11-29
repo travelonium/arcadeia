@@ -16,10 +16,32 @@ export class NavMenu extends Component {
         this.searchInput = React.createRef();
         this.toggleNavbar = this.toggleNavbar.bind(this);
         this.state = {
+            query: "",
             favorite: false,
             collapsed: true,
             recursive: false,
         };
+    }
+
+    componentDidMount() {
+        let state = {};
+        let params = new URLSearchParams(window.location.search);
+        let query = params.get("query");
+        let flags = parseInt(params.get("flags"));
+        let values = parseInt(params.get("values"));
+        let recursive = params.get("recursive");
+        if (query && (query !== this.state.query)) {
+            state.query = query;
+        }
+        if (flags && values) {
+            if (flags & (1 << 1)) {
+                state.favorite = ((values & (1 << 1)) !== 0);
+            }
+        }
+        if (recursive) {
+            state.recursive = (recursive === "true");
+        }
+        this.setState(state);
     }
 
     onChange(event) {
@@ -27,50 +49,55 @@ export class NavMenu extends Component {
         if (this.searchTimeout != null) {
             clearTimeout(this.searchTimeout);
         }
-        this.searchTimeout = setTimeout(() => this.onTimeout(value), 700);
+        this.setState({
+            query: value
+        }, () => {
+            this.searchTimeout = setTimeout(() => this.onTimeout(), 700);
+        })
     }
 
-    onTimeout(value) {
+    onTimeout() {
+        if (!this.state.query) return;
         clearTimeout(this.searchTimeout);
         let library = this.props.library.current;
-        library.search(value, this.state.favorite, this.state.recursive);
-    }
-
-    getSearchInput() {
-        return this.searchInput.current.value;
-    }
-
-    setSearchInput(value) {
-        this.searchInput.current.value = value;
+        library.search();
     }
 
     onKeyDown(event) {
     }
 
     onToggleFavorite() {
-        let favorite = !this.state.favorite;
         this.setState({
-            favorite: favorite
+            favorite: !this.state.favorite
+        }, () => {
+            if (!this.state.query) return;
+            clearTimeout(this.searchTimeout);
+            let library = this.props.library.current;
+            library.search();
         });
-        clearTimeout(this.searchTimeout);
-        let library = this.props.library.current;
-        library.search(this.getSearchInput(), favorite, this.state.recursive);
     }
 
     onToggleRecursive() {
-        let recursive = !this.state.recursive;
         this.setState({
-            recursive: recursive
+            recursive: !this.state.recursive
+        }, () => {
+            if (!this.state.query) return;
+            clearTimeout(this.searchTimeout);
+            let library = this.props.library.current;
+            library.search();
         });
-        clearTimeout(this.searchTimeout);
-        let library = this.props.library.current;
-        library.search(this.getSearchInput(), this.state.favorite, recursive);
     }
 
     toggleNavbar() {
         this.setState({
             collapsed: !this.state.collapsed
         });
+    }
+
+    clearSearch() {
+        this.setState({
+            query: "",
+        })
     }
 
     render() {
@@ -93,7 +120,7 @@ export class NavMenu extends Component {
                                     </div>
                                 </Nav.Item>
                                 <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                    <Form.Control ref={this.searchInput} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
+                                    <Form.Control ref={this.searchInput} value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
                                 </Nav.Item>
                             </Nav>
                         </Navbar.Collapse>

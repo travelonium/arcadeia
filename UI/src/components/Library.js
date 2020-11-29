@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint, parseQuery } from './../utils';
+import { extract, size, breakpoint } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 
@@ -30,78 +30,74 @@ export class Library extends Component {
     }
 
     componentDidMount() {
-        this.list(this.state.path);
+        this.list(this.state.path, true);
     }
 
     componentDidUpdate() {
     }
 
     list(path, search = false) {
-        if (path) {
-            if (!search) {
-                // when the list() had not been specifically called from the search()
-                let params = parseQuery(path);
-                let query = extract(null, params, 'query');
-                if ((query !== null) && (query !== "") && (query !== this.props.navigation.current.getSearchInput())) {
-                    this.props.navigation.current.setSearchInput(query);
-                } else {
-                    // reset the search form if a query had not been supplied
-                    this.props.navigation.current.setSearchInput("");
-                }
+        if (!path) return;
+        if (search) {
+            let params = new URLSearchParams(path.split('?')[1]);
+            let query = this.props.navigation.current.state.query;
+            let favorite = this.props.navigation.current.state.favorite;
+            let recursive = this.props.navigation.current.state.recursive;
+            if (query || favorite || recursive) {
+                params.set("recursive", recursive);
+            }
+            if (query) {
+                params.set("query", query);
+            }
+            if (favorite) {
+                params.set("flags", (1 << 1));
+                params.set("values", (1 << 1));
             }
             this.setState({
                 loading: true,
                 status: "Requesting",
             });
-            fetch("/library" + path)
-            .then((response) => {
-                this.setState({
-                    status: "Loading",
-                    items: []
-                });
-                return response.json();
-            })
-            .then((json) => {
-                let items = Array.isArray(json) ? json : [json];
-                this.setState({
-                    loading: false,
-                    path: path,
-                    items: items
-                });
-                // now change the history!
-                window.history.pushState({}, "", path);
-                // pass on the source to the viewer if this is a file
-                return Array.isArray(json) ? null : json;
-            })
-            .then((source) => {
-                if (source !== null) {
-                    this.view(source);
-                }
-            })
-            .catch((error) => {
-                this.setState({
-                    loading: false,
-                    status: "Error",
-                    items: []
-                });
-            });
+            path = path.split('?')[0] + "?" + params.toString();
+        } else {
+            path = path.split('?')[0];
+            this.props.navigation.current.clearSearch();
         }
+        fetch("/library" + path)
+        .then((response) => {
+            this.setState({
+                status: "Loading",
+                items: []
+            });
+            return response.json();
+        })
+        .then((json) => {
+            let items = Array.isArray(json) ? json : [json];
+            this.setState({
+                loading: false,
+                path: path,
+                items: items
+            });
+            // now change the history!
+            window.history.pushState({}, "", path);
+            // pass on the source to the viewer if this is a file
+            return Array.isArray(json) ? null : json;
+        })
+        .then((source) => {
+            if (source !== null) {
+                this.view(source);
+            }
+        })
+        .catch((error) => {
+            this.setState({
+                loading: false,
+                status: "Error",
+                items: []
+            });
+        });
     }
 
-    search(query, favorite, recursive) {
-        console.log(favorite);
-        let params = "";
-        let path = this.state.path.split('?')[0];
-        if (query || favorite || recursive) {
-            params += "?recursive=" + recursive;
-        }
-        if (query) {
-            params += (query !== "") ? ("&query=" + query) : "";
-        }
-        if (favorite) {
-            params += ("&flags=" + (1 << 1) + "&values=" + (1 << 1));
-        }
-        this.list(path + params, true);
+    search() {
+        this.list(this.state.path, true);
     }
 
     open(source) {

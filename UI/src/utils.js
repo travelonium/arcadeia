@@ -31,18 +31,6 @@ export function size(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-export function parseQuery(query) {
-    var params = {};
-    if (query) {
-        var pairs = (query[0] === '?' ? query.substr(1) : query).split('&');
-        for (var i = 0; i < pairs.length; i++) {
-            var pair = pairs[i].split('=');
-            params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-        }
-    }
-    return params;
-}
-
 export function breakpoint() {
     let breakpoints = {
         '(min-width: 1200px)': 'xl',                            // Extra large devices (large desktops)
