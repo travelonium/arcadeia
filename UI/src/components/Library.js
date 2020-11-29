@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint, parseQuery } from './../utils';
+import { extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 
@@ -26,78 +26,101 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
-            query: "",
         };
     }
 
     componentDidMount() {
-        this.list(this.state.path);
+        // handle the startup query parsing
+        this.props.navigation.current.resetSearchParams(() => {
+            this.list(this.state.path, true);
+        });
+        // handles the browser history operations
+        window.onpopstate = (event) => {
+            let path = extract(null, event, 'state', 'path');
+            if (path) {
+                this.props.navigation.current.resetSearchParams(() => {
+                    this.list(event.state.path, true, true);
+                });
+            }
+        };
     }
 
     componentDidUpdate() {
     }
 
-    list(path, search = false) {
-        if (path) {
-            if (!search) {
-                // when the list() had not been specifically called from the search()
-                let params = parseQuery(path);
-                let query = extract(null, params, 'query');
-                if ((query !== null) && (query !== "") && (query !== this.props.searchInput.current.value)) {
-                    this.props.searchInput.current.value = query;
-                } else {
-                    // reset the search form if a query had not been supplied
-                    this.props.searchInput.current.value = "";
-                }
+    list(path, search = false, history = false) {
+        if (!path) return;
+        let query = this.props.navigation.current.state.query;
+        if (search && query) {
+            let params = new URLSearchParams(path.split('?')[1]);
+            let favorite = this.props.navigation.current.state.favorite;
+            let recursive = this.props.navigation.current.state.recursive;
+            let flags = parseInt(params.get("flags") ?? 0);
+            let values = parseInt(params.get("values") ?? 0);
+            // update the recursive parameter
+            params.set("recursive", recursive);
+            // update the query parameter
+            params.set("query", query);
+            // update the favorite flags parameters
+            flags = updateBit(flags, 1, favorite);
+            values = updateBit(values, 1, favorite);
+            if (flags) {
+                params.set("flags", flags);
+            } else {
+                params.delete("flags");
+            }
+            if (values) {
+                params.set("values", values);
+            } else {
+                params.delete("values");
             }
             this.setState({
                 loading: true,
                 status: "Requesting",
             });
-            fetch("/library" + path)
-            .then((response) => {
-                this.setState({
-                    status: "Loading",
-                    items: []
-                });
-                return response.json();
-            })
-            .then((json) => {
-                let items = Array.isArray(json) ? json : [json];
-                this.setState({
-                    loading: false,
-                    path: path,
-                    items: items
-                });
-                // now change the history!
-                window.history.pushState({}, "", path);
-                // pass on the source to the viewer if this is a file
-                return Array.isArray(json) ? null : json;
-            })
-            .then((source) => {
-                if (source !== null) {
-                    this.view(source);
-                }
-            })
-            .catch((error) => {
-                this.setState({
-                    loading: false,
-                    status: "Error",
-                    items: []
-                });
-            });
+            path = path.split('?')[0] + "?" + params.toString();
+        } else {
+            path = path.split('?')[0];
+            this.props.navigation.current.clearSearch();
         }
+        fetch("/library" + path)
+        .then((response) => {
+            this.setState({
+                status: "Loading",
+                items: []
+            });
+            return response.json();
+        })
+        .then((json) => {
+            let items = Array.isArray(json) ? json : [json];
+            this.setState({
+                loading: false,
+                path: path,
+                items: items
+            });
+            // now change the history if we have to!
+            if (!history) {
+                window.history.pushState({path: path}, "", path);
+            }
+            // pass on the source to the viewer if this is a file
+            return Array.isArray(json) ? null : json;
+        })
+        .then((source) => {
+            if (source !== null) {
+                this.view(source);
+            }
+        })
+        .catch((error) => {
+            this.setState({
+                loading: false,
+                status: "Error",
+                items: []
+            });
+        });
     }
 
-    search(query) {
-        let params = "";
-        let recursive = true;
-        let path = this.state.path.split('?')[0];
-        if (query) {
-            params += "?recursive=" + recursive;
-            params += (query !== "") ? ("&query=" + query) : "";
-        }
-        this.list(path + params, true);
+    search() {
+        this.list(this.state.path, true);
     }
 
     open(source) {

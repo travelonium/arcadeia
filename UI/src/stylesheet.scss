@@ -55,6 +55,12 @@ code {
     left: 0px;
 }
 
+.navbar-nav .filters {
+    height: 100%;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
 .media-container .card .thumbnail-container .flags {
     top: 5px;
     left: 5px;
@@ -74,26 +80,59 @@ code {
     text-shadow: 0 0 1px #000;
 }
 
+.navbar-nav .filters .flag {
+    @extend .far;
+    @extend %fa-icon;
+    margin-right: 5px;
+    position: relative;
+    font-size: x-large;
+    display: none;
+    color: lightgray;
+    text-shadow: none;
+}
+
+.navbar-nav .flag.set,
 .media-container .card .thumbnail-container .flag.set {
     @extend .fas;
 }
 
+.navbar-nav .filters .flag,
 .media-container .card.highlighted .thumbnail-container .flag {
     display: unset;
 }
 
+.navbar-nav .filters .flag.favorite,
 .media-container .card .thumbnail-container .flag.favorite {
     &:before {
         content: fa-content($fa-var-star);
     }
 }
 
+.navbar-nav .filters .flag.recursive {
+    @extend .fas;
+    &:before {
+        content: fa-content($fa-var-redo-alt);
+    }
+}
+
+.navbar-nav .filters .flag.set {
+    color: darkgray;
+}
+
 .media-container .card .thumbnail-container .flag.favorite.set {
     color: yellow;
 }
 
+.navbar-nav .filters .flag:hover {
+    color: gray;
+}
+
 .media-container .card .thumbnail-container .flag:hover {
     color: yellow;
+}
+
+.navbar-nav .filters .flag.set:hover {
+    color: gray;
 }
 
 .media-container .card .thumbnail-container .flag.set:hover {
@@ -141,12 +180,12 @@ code {
 }
 
 .spinner-border {
-    display: inline-block;
     width: 2rem;
     height: 2rem;
+    border-radius: 50%;
+    display: inline-block;
     vertical-align: text-bottom;
     border: 0.15em solid currentColor;
     border-right-color: transparent;
-    border-radius: 50%;
     animation: spinner-border .75s linear infinite;
 }
