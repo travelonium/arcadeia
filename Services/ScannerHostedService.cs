@@ -275,6 +275,12 @@ namespace MediaCurator.Services
                      _logger.LogWarning("Watched Folder Unavailable: " + folder);
                      continue;
                   }
+                  catch (System.UnauthorizedAccessException e)
+                  {
+                     // We probably do not have access to the folder. Let's ignore this one and move on.
+                     _logger.LogWarning(e.Message);
+                     continue;
+                  }
 
                   // Queue the folder periodic scan.
                   _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
