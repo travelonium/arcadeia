@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# Build the docker images in the compose file.
+
+docker-compose -f docker-compose.yml build
