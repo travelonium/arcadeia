@@ -43,6 +43,8 @@ namespace MediaCurator.Services
 
       private readonly IProgress<string> _progressStatus = new Progress<string>();
 
+      private Timer _periodicScanTimer;
+
       /// <summary>
       /// The lists of folders to be watched for changes.
       /// </summary>
@@ -75,6 +77,42 @@ namespace MediaCurator.Services
             else
             {
                return false;
+            }
+         }
+      }
+
+      /// <summary>
+      /// Determines whether or not the periodic scanning is enabled.
+      /// </summary>
+      public bool PeriodicScan
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:PeriodicScan").Exists())
+            {
+               return _configuration.GetSection("Scanner:PeriodicScan").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
+         }
+      }
+
+      /// <summary>
+      /// Determines the periodic scan period if periodic scanning is enabled.
+      /// </summary>
+      public int Period
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:Period").Exists())
+            {
+               return _configuration.GetSection("Scanner:Period").Get<int>();
+            }
+            else
+            {
+               return 0;
             }
          }
       }
@@ -188,6 +226,8 @@ namespace MediaCurator.Services
          // Start the startup scanning task if necessary.
          if (StartupScan)
          {
+            _logger.LogInformation("Starting Startup Scanning...");
+
             _totalCounter = 0.0;
             _totalCounterMax = 0.0;
 
@@ -201,16 +241,54 @@ namespace MediaCurator.Services
                catch (System.IO.DirectoryNotFoundException)
                {
                   // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
-                  Debug.WriteLine("Location Not Found! : {0}", folder);
+                  _logger.LogWarning("Watched Folder Unavailable: " + folder);
                   continue;
                }
 
                // Queue the folder startup folder scan.
                _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
                {
-                  return Task.Run(() => Scan(folder, _totalCounterMax, ref _totalCounter, _progressFile, _progressFolder, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
+                  return Task.Run(() => Scan(folder, "Startup", _totalCounterMax, ref _totalCounter, _progressFile, _progressFolder, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
                });
             }
+         }
+
+         // Schedule the periodic scanning task if necessary.
+         if (PeriodicScan && (Period > 0))
+         {
+            _logger.LogInformation("Periodic Scanning Scheduled.");
+
+            _periodicScanTimer = new Timer(state =>
+            {
+               _logger.LogInformation("Periodic Scanning Started.");
+
+               foreach (var folder in WatchedFolders)
+               {
+                  try
+                  {
+                     var files = Directory.EnumerateFiles(folder, "*.*", SearchOption.AllDirectories);
+                     _totalCounterMax += files.Count();
+                  }
+                  catch (System.IO.DirectoryNotFoundException)
+                  {
+                     // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
+                     _logger.LogWarning("Watched Folder Unavailable: " + folder);
+                     continue;
+                  }
+                  catch (System.UnauthorizedAccessException e)
+                  {
+                     // We probably do not have access to the folder. Let's ignore this one and move on.
+                     _logger.LogWarning(e.Message);
+                     continue;
+                  }
+
+                  // Queue the folder periodic scan.
+                  _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
+                  {
+                     return Task.Run(() => Scan(folder, "Periodic", _totalCounterMax, ref _totalCounter, _progressFile, _progressFolder, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
+                  });
+               }
+            }, null, TimeSpan.Zero.Milliseconds, Period);
          }
 
          // Start the startup update task if necessary.
@@ -253,6 +331,7 @@ namespace MediaCurator.Services
       }
 
       private void Scan(string path,
+                        string type,
                         double totalCounterMax,
                         ref double totalCounter,
                         IProgress<Tuple<double, double>> progressFile,
@@ -262,7 +341,7 @@ namespace MediaCurator.Services
                         IProgress<string> progressStatus,
                         CancellationToken cancellationToken)
       {
-         _logger.LogInformation("Startup Scanning Started: " + path);
+         _logger.LogInformation(type + " Scanning Started: " + path);
 
          progressTotal.Report(new Tuple<double, double>(totalCounter, totalCounterMax));
 
@@ -322,7 +401,7 @@ namespace MediaCurator.Services
          // Now that we're done with this location, let's update the MediaLibrary with the new entries if any.
          _mediaLibrary.UpdateDatabase();
 
-         _logger.LogInformation("Startup Scanning Finished: " + path);
+         _logger.LogInformation(type + " Scanning Finished: " + path);
       }
 
       private void Update(ref double totalCounterMax,
