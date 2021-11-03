@@ -316,6 +316,18 @@ namespace MediaCurator
                }
             }
 
+            if (update)
+            {
+               if (String.IsNullOrEmpty(Id))
+               {
+                  // Generate a unique Id which can be used to create a unique link to each element and
+                  // also in creation of a unique folder for each file containing its thumbnails.
+                  // This takes care of the existing elements created by previous versions that lack
+                  // an Id attribute.
+                  Id = System.IO.Path.GetRandomFileName();
+               }
+            }
+
             // Initialize the flags.
             Flags = new MediaContainerFlags(Self);
          }
