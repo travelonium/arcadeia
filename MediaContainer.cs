@@ -190,6 +190,7 @@ namespace MediaCurator
          {
             return new Models.MediaContainer
             {
+               Id = Id,
                Name = Name,
                Type = Type,
                FullPath = FullPath,

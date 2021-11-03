@@ -109,7 +109,6 @@
                {
                   var model = base.Model;
 
-                  model.Id = Id;
                   model.Size = Size;
                   model.Thumbnails = Thumbnails;
                   model.DateCreated = DateCreated;
