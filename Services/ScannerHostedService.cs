@@ -64,6 +64,17 @@ namespace MediaCurator.Services
       }
 
       /// <summary>
+      /// The lists of folders to be watched for changes that are mounted or exist.
+      /// </summary>
+      public List<string> AvailableWatchedFolders
+      {
+         get
+         {
+            return WatchedFolders.Where(folder => Directory.Exists(folder)).ToList<string>();
+         }
+      }
+
+      /// <summary>
       /// Determines whether or not the startup scanning is enabled.
       /// </summary>
       public bool StartupScan
@@ -241,7 +252,7 @@ namespace MediaCurator.Services
                catch (System.IO.DirectoryNotFoundException)
                {
                   // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
-                  _logger.LogWarning("Watched Folder Unavailable: " + folder);
+                  _logger.LogWarning("Watched Folder Unavailable: {}", folder);
                   continue;
                }
 
@@ -455,8 +466,13 @@ namespace MediaCurator.Services
                   // Update the Status message.
                   progressStatus.Report(mediaFile.FullPath);
 
-                  // Update the current media file element.
-                  _mediaLibrary.UpdateMedia(element, progressFile, progressThumbnailPreview);
+                  // Make sure if the path is located in a watched folder, that folder is available.
+                  if ((WatchedFolders.Count(folder => mediaFile.FullPath.StartsWith(folder)) == 0) ||
+                      (AvailableWatchedFolders.Count(folder => mediaFile.FullPath.StartsWith(folder)) > 0))
+                  {
+                     // Update the current media file element.
+                     _mediaLibrary.UpdateMedia(element, progressFile, progressThumbnailPreview);
+                  }
                }
             }
             catch (Exception e)
