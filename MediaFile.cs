@@ -28,27 +28,6 @@
             public bool Modified = false;
 
             /// <summary>
-            /// Gets or sets the Id of the file. The Id is used to locate the thumbnails directory of the 
-            /// file as well as to uniquely locate and identify each file tag. This is directly read and 
-            /// written from and to the MediaLibrary.
-            /// </summary>
-            /// <value>
-            /// The file size in UInt64.
-            /// </value>
-            public string Id  // TODO: Change "Id" to "ID"
-            {
-               get
-               {
-                  return Tools.GetAttributeValue(Self, "Id");
-               }
-
-               set
-               {
-                  Tools.SetAttributeValue(Self, "Id", value);
-               }
-            }
-
-            /// <summary>
             /// Gets or sets the size of the file. This is directly read and written from and to the 
             /// MediaLibrary.
             /// </summary>
@@ -155,7 +134,6 @@
                // The base class constructor will take care of the parents and below we'll take care of
                // the element itself.
 
-               string id = null;
                FileInfo fileInfo = null;
 
                try
@@ -179,7 +157,7 @@
                {
                   // Generate a unique Id which can be used to create a unique link to each element and 
                   // also in creation of a unique folder for each file containing its thumbnails.
-                  id = System.IO.Path.GetRandomFileName();
+                  string id = System.IO.Path.GetRandomFileName();
 
                   // Extract the File Name from the supplied path. 
                   string name = MediaContainer.GetPathComponents(path).Item2;
@@ -197,8 +175,8 @@
                      {
                         Parent.Self.Add(
                            new XElement(type,
-                              new XAttribute("Name", name),
                               new XAttribute("Id", id),
+                              new XAttribute("Name", name),
                               new XAttribute("Size", fileInfo.Length),
                               new XAttribute("DateCreated", fileInfo.CreationTime.ToString(CultureInfo.InvariantCulture)),
                               new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture))));

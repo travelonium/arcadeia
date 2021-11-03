@@ -58,6 +58,9 @@ namespace MediaCurator
          // The base class constructor will take care of the parents and below we'll take care of
          // the element itself.
 
+         // Generate a unique Id which can be used to create a unique link to each element.
+         string id = System.IO.Path.GetRandomFileName();
+
          // Extract the Folder Name from the supplied path removing the \ and / characters.
          string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\', '/' });
 
@@ -77,6 +80,7 @@ namespace MediaCurator
                // Looks like there is no such element! Let's create one then!
                _mediaLibrary.Self.Add(
                   new XElement("Folder",
+                     new XAttribute("Id", id),
                      new XAttribute("Name", name)));
 
                // Retrieve the newly created element.
@@ -104,6 +108,7 @@ namespace MediaCurator
                // Looks like there is no such element! Let's create one then!
                Parent.Self.Add(
                   new XElement("Folder",
+                     new XAttribute("Id", id),
                      new XAttribute("Name", name)));
 
                // Retrieve the newly created element.

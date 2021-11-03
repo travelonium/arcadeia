@@ -6,6 +6,8 @@ namespace MediaCurator.Models
    {
       #region MediaContainer
 
+      public string Id { get; set; }
+
       public string Name { get; set; }
 
       public string Type { get; set; }
@@ -17,8 +19,6 @@ namespace MediaCurator.Models
       #endregion // MediaContainer
 
       #region MediaFile
-
-      public string Id { get; set; }
 
       public long Size { get; set; }
 

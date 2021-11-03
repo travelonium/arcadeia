@@ -21,6 +21,9 @@ namespace MediaCurator
 
          if (Parent == null)
          {
+            // Generate a unique Id which can be used to create a unique link to each element.
+            string id = System.IO.Path.GetRandomFileName();
+
             // Extract the Server Name from the supplied path removing the \ characters. 
             string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\' });
 
@@ -38,6 +41,7 @@ namespace MediaCurator
                // Looks like there is no such element! Let's create one then!
                _mediaLibrary.Self.Add(
                   new XElement("Server",
+                     new XAttribute("Id", id),
                      new XAttribute("Name", name)));
 
                // Retrieve the newly created element.
