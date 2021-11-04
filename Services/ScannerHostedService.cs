@@ -267,13 +267,11 @@ namespace MediaCurator.Services
          // Schedule the periodic scanning task if necessary.
          if (PeriodicScan && (Period > 0))
          {
-            _logger.LogInformation("Periodic Scanning Scheduled.");
+            _logger.LogInformation("Configuring Periodic Scanning...");
 
             _periodicScanTimer = new Timer(state =>
             {
-               _logger.LogInformation("Periodic Scanning Started.");
-
-               foreach (var folder in WatchedFolders)
+               foreach (var folder in AvailableWatchedFolders)
                {
                   try
                   {
@@ -310,6 +308,8 @@ namespace MediaCurator.Services
             {
                return Task.Run(() => Update(ref _totalCounterMax, ref _totalCounter, _progressFile, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
             });
+
+            _logger.LogInformation("Startup Update Queued.");
          }
 
          // Start the background task processor.
