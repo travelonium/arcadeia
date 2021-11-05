@@ -51,12 +51,12 @@ export class Library extends Component {
     list(path, search = false, history = false) {
         if (!path) return;
         let query = this.props.navigation.current.state.query;
+        let params = new URLSearchParams(path.split('?')[1]);
+        let flags = parseInt(params.get("flags") ?? 0);
+        let values = parseInt(params.get("values") ?? 0);
         if (search && query) {
-            let params = new URLSearchParams(path.split('?')[1]);
             let favorite = this.props.navigation.current.state.favorite;
             let recursive = this.props.navigation.current.state.recursive;
-            let flags = parseInt(params.get("flags") ?? 0);
-            let values = parseInt(params.get("values") ?? 0);
             // update the recursive parameter
             params.set("recursive", recursive);
             // update the query parameter
@@ -64,25 +64,27 @@ export class Library extends Component {
             // update the favorite flags parameters
             flags = updateBit(flags, 1, favorite);
             values = updateBit(values, 1, favorite);
-            if (flags) {
-                params.set("flags", flags);
-            } else {
-                params.delete("flags");
-            }
-            if (values) {
-                params.set("values", values);
-            } else {
-                params.delete("values");
-            }
             this.setState({
                 loading: true,
                 status: "Requesting",
             });
-            path = path.split('?')[0] + "?" + params.toString();
         } else {
-            path = path.split('?')[0];
             this.props.navigation.current.clearSearch();
         }
+        // update the deleted flags bits to exclude the deleted files
+        flags = updateBit(flags, 0, 1);
+        values = updateBit(values, 0, 0);
+        if (flags) {
+            params.set("flags", flags);
+        } else {
+            params.delete("flags");
+        }
+        if (values) {
+            params.set("values", values);
+        } else {
+            params.delete("values");
+        }
+        path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
         fetch("/library" + path)
         .then((response) => {
             this.setState({
