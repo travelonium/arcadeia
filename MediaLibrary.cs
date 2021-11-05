@@ -391,7 +391,7 @@ namespace MediaCurator
 
                case MediaContainerType.Video:
 
-                  UpdateVideoFile(element, progress, preview);
+                  mediaFile = UpdateVideoFile(element, progress, preview);
 
                   break;
 
@@ -531,7 +531,7 @@ namespace MediaCurator
          return videoFile;
       }
 
-      private void UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private VideoFile UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
          VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
 
@@ -553,6 +553,8 @@ namespace MediaCurator
                }
             }
          }
+
+         return videoFile;
       }
 
       private void InsertPhotoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)

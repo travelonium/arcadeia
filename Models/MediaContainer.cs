@@ -19,6 +19,7 @@ namespace MediaCurator.Models
       [SolrField("fullPath")]
       public string FullPath { get; set; }
 
+      [SolrField("flags")]
       public string[] Flags { get; set; }
 
       #endregion // MediaContainer
