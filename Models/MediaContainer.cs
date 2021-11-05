@@ -1,4 +1,5 @@
 ﻿using System;
+using SolrNet.Attributes;
 
 namespace MediaCurator.Models
 {
@@ -6,12 +7,16 @@ namespace MediaCurator.Models
    {
       #region MediaContainer
 
+      [SolrUniqueKey("id")]
       public string Id { get; set; }
 
+      [SolrField("name")]
       public string Name { get; set; }
 
+      [SolrField("type")]
       public string Type { get; set; }
 
+      [SolrField("fullPath")]
       public string FullPath { get; set; }
 
       public string[] Flags { get; set; }
@@ -20,10 +25,13 @@ namespace MediaCurator.Models
 
       #region MediaFile
 
+      [SolrField("size")]
       public long Size { get; set; }
 
+      [SolrField("dateCreated")]
       public DateTime DateCreated { get; set; }
 
+      [SolrField("dateModified")]
       public DateTime DateModified { get; set; }
 
       public MediaFileThumbnails Thumbnails { get; set; }
@@ -32,11 +40,11 @@ namespace MediaCurator.Models
 
       #region VideoFile
 
+      [SolrField("duration")]
       public double Duration { get; set; }
 
       public ResolutionType Resolution { get; set; }
 
       #endregion // VideoFile
-
    }
 }
