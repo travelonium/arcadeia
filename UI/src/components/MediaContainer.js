@@ -113,7 +113,7 @@ export class MediaContainer extends Component {
             <div className={"media-container" + (this.state.source.type ? (" " + this.state.source.type.toLowerCase()) : "")}>
                 <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
                     <div className="thumbnail-container">
-                        <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails', 'count')} />
+                        <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
                         <div className="flags">
                             <OverlayTrigger key="favorite" placement="top" overlay={ <Tooltip id="tooltip-favorite">{ (this.state.source.flags.includes('Favorite') ? "Unflag" : "Flag") } Favorite</Tooltip> }>

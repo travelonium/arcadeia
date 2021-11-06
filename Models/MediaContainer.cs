@@ -35,7 +35,8 @@ namespace MediaCurator.Models
       [SolrField("dateModified")]
       public DateTime DateModified { get; set; }
 
-      public MediaFileThumbnails Thumbnails { get; set; }
+      [SolrField("thumbnails")]
+      public int Thumbnails { get; set; }
 
       #endregion // MediaFile
 
@@ -43,8 +44,6 @@ namespace MediaCurator.Models
 
       [SolrField("duration")]
       public double Duration { get; set; }
-
-      public ResolutionType Resolution { get; set; }
 
       [SolrField("width")]
       public uint Width { get; set; }

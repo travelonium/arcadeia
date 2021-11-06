@@ -110,7 +110,7 @@
                   var model = base.Model;
 
                   model.Size = Size;
-                  model.Thumbnails = Thumbnails;
+                  model.Thumbnails = Thumbnails.Count;
                   model.DateCreated = DateCreated;
                   model.DateModified = DateModified;
 

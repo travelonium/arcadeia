@@ -20,7 +20,7 @@ namespace MediaCurator.Solr
 
 		private readonly ILogger<SolrIndexService<T, TSolrOperations>> _logger;
 
-		private readonly Dictionary<string, Dictionary<string, object>> _mappings = new Dictionary<string, Dictionary<string, object>>
+		private readonly Dictionary<string, Dictionary<string, object>> _schema = new Dictionary<string, Dictionary<string, object>>
 		{
 			{  "name", new Dictionary<string, object>
 				{
@@ -190,13 +190,13 @@ namespace MediaCurator.Solr
 
       public void Initialize()
       {
-         foreach (var key in _mappings.Keys)
+         foreach (var key in _schema.Keys)
          {
 				if (!FieldExistsAsync(key).Result)
 				{
 					_logger.LogInformation("Schema Field Not Found: {}", key);
 
-					if (AddField(key, _mappings[key]).Result)
+					if (AddField(key, _schema[key]).Result)
                {
 						_logger.LogInformation("Schema Field Added: {}", key);
 					}

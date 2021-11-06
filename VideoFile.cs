@@ -106,7 +106,8 @@ namespace MediaCurator
             var model = base.Model;
 
             model.Duration = Duration;
-            model.Resolution = Resolution;
+            model.Width = Resolution.Width;
+            model.Height = Resolution.Height;
 
             return model;
          }
