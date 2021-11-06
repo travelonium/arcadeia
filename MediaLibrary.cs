@@ -105,6 +105,15 @@ namespace MediaCurator
                _logger.LogError("Media Library Creation Failed! Cause: " + e.Message);
             }
          }
+
+         if (_configuration.GetSection("Solr:URL").Exists())
+         {
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+               solrIndexService.Initialize();
+            }
+         }
       }
 
       #endregion // Constructors

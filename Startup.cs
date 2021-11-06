@@ -29,6 +29,9 @@ namespace MediaCurator
       {
          services.AddControllersWithViews();
 
+         // Instantiate and configure an HTTPClient
+         services.AddHttpClient();
+
          // Instantiate the ThumbnailsDatabase
          services.AddSingleton<IThumbnailsDatabase, ThumbnailsDatabase>();
 

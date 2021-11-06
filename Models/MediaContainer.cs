@@ -46,6 +46,12 @@ namespace MediaCurator.Models
 
       public ResolutionType Resolution { get; set; }
 
+      [SolrField("width")]
+      public uint Width { get; set; }
+
+      [SolrField("height")]
+      public uint Height { get; set; }
+
       #endregion // VideoFile
    }
 }
