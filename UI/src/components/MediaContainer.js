@@ -109,6 +109,7 @@ export class MediaContainer extends Component {
     }
 
     render() {
+        const flags = extract([], this.state.source, "flags");
         return (
             <div className={"media-container" + (this.state.source.type ? (" " + this.state.source.type.toLowerCase()) : "")}>
                 <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
@@ -116,8 +117,8 @@ export class MediaContainer extends Component {
                         <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
                         <div className="flags">
-                            <OverlayTrigger key="favorite" placement="top" overlay={ <Tooltip id="tooltip-favorite">{ (this.state.source.flags.includes('Favorite') ? "Unflag" : "Flag") } Favorite</Tooltip> }>
-                                <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.source.flags.includes('Favorite') ? " set" : "")}></span>
+                            <OverlayTrigger key="favorite" placement="top" overlay={ <Tooltip id="tooltip-favorite">{ (flags.includes('Favorite') ? "Unflag" : "Flag") } Favorite</Tooltip> }>
+                                <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (flags.includes('Favorite') ? " set" : "")}></span>
                             </OverlayTrigger>
                         </div>
                     </div>

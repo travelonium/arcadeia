@@ -118,11 +118,29 @@ namespace MediaCurator.Solr
 					{ "stored", true },
 				}
 			},
+			{  "path", new Dictionary<string, object>
+				{
+					{ "name", "path" },
+					{ "type", "string" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
 			{  "fullPath", new Dictionary<string, object>
 				{
 					{ "name", "fullPath" },
 					{ "type", "text_ngram" },
 					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{  "flags", new Dictionary<string, object>
+				{
+					{ "name", "flags" },
+					{ "type", "text_general" },
+					{ "multiValued", true },
 					{ "indexed", true },
 					{ "stored", true },
 				}

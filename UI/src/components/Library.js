@@ -32,7 +32,11 @@ export class Library extends Component {
     componentDidMount() {
         // handle the startup query parsing
         this.props.navigation.current.resetSearchParams(() => {
-            this.list(this.state.path, true);
+            if (this.props.navigation.current.state.query) {
+                this.search();
+            } else {
+                this.list(this.state.path, true);
+            }
         });
         // handles the browser history operations
         window.onpopstate = (event) => {
@@ -122,7 +126,100 @@ export class Library extends Component {
     }
 
     search() {
-        this.list(this.state.path, true);
+        let path = this.state.path;
+        if (!this.state.path) return;
+        let query = this.props.navigation.current.state.query;
+        let params = new URLSearchParams(path.split('?')[1]);
+        let flags = parseInt(params.get("flags") ?? 0);
+        let values = parseInt(params.get("values") ?? 0);
+        if (!query) {
+            this.props.navigation.current.clearSearch();
+            return;
+        }
+        let deleted = false;
+        let favorite = this.props.navigation.current.state.favorite;
+        let recursive = this.props.navigation.current.state.recursive;
+        // update the recursive parameter
+        params.set("recursive", recursive);
+        // update the query parameter
+        params.set("query", query);
+        // update the favorite flags parameters
+        flags = updateBit(flags, 1, favorite);
+        values = updateBit(values, 1, favorite);
+        // update the deleted flags bits to exclude the deleted files
+        flags = updateBit(flags, 0, deleted);
+        values = updateBit(values, 0, deleted);
+        if (flags) {
+            params.set("flags", flags);
+        } else {
+            params.delete("flags");
+        }
+        if (values) {
+            params.set("values", values);
+        } else {
+            params.delete("values");
+        }
+        this.setState({
+            loading: true,
+            status: "Requesting",
+        });
+        let solr = "/search";
+        if (process.env.NODE_ENV !== "production") {
+            solr = "http://localhost:8983/solr/Library/select"
+        }
+        const input = {
+            q: query,
+            fq: [],
+            rows: 10000,
+            defType: "edismax",
+            qf: "name^10 path^5",
+            wt: "json",
+        };
+        if (favorite) {
+            input.fq.push("flags:Favorite")
+        }
+        if (deleted) {
+            input.fq.push("flags:Deleted")
+        } else {
+            input.fq.push("-flags:Deleted")
+        }
+        if (!recursive) {
+            input.fq.push("path:\"" + path.split('?')[0] + "\"")
+        }
+        path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
+        fetch(solr + "?" + this.querify(input).toString(), {
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+            },
+        })
+        .then((response) => {
+            if (!response.ok) {
+                let message = "Error querying the Solr index!";
+                return response.text().then((data) => {
+                    try {
+                        let json = JSON.parse(data);
+                        let exception = extract(null, json, "error", "msg");
+                        if (exception) message = exception;
+                    } catch (error) {}
+                    throw Error(message);
+                });
+            }
+            return response.json();
+        })
+        .then((result) => {
+            const docs = extract([], result, "response", "docs");
+            this.setState({
+                loading: false,
+                path: path,
+                items: docs
+            });
+            // now change the history if we have to!
+            window.history.pushState({path: path}, "", path);
+        })
+        .catch(error => {
+            console.error(error);
+        });
     }
 
     open(source) {
@@ -160,6 +257,21 @@ export class Library extends Component {
             if ((item.type === "Video") || (item.type === "Audio") || (item.type === "Photo")) return (count + 1);
             return count;
         }, 0) + " Files";
+    }
+
+    querify(dictionary, query = new URLSearchParams()) {
+        for (const key in dictionary) {
+            const value = dictionary[key];
+            if ((value === null) || (value === undefined)) continue;
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    query.append(key, item);
+                }
+            } else {
+                query.set(key, value);
+            }
+        }
+        return query;
     }
 
     render() {

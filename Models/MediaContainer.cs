@@ -16,6 +16,9 @@ namespace MediaCurator.Models
       [SolrField("type")]
       public string Type { get; set; }
 
+      [SolrField("path")]
+      public string Path { get; set; }
+
       [SolrField("fullPath")]
       public string FullPath { get; set; }
 
