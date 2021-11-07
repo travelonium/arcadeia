@@ -10,6 +10,8 @@ namespace MediaCurator.Solr
       bool Update(T document);
       bool Delete(T document);
 
+      Task<bool> AddFieldType(string name, Dictionary<string, object> definition);
+      Task<bool> FieldTypeExistsAsync(string name);
       Task<bool> AddField(string name, Dictionary<string, object> definition);
       Task<bool> FieldExistsAsync(string name);
 

@@ -20,12 +20,90 @@ namespace MediaCurator.Solr
 
 		private readonly ILogger<SolrIndexService<T, TSolrOperations>> _logger;
 
-		private readonly Dictionary<string, Dictionary<string, object>> _schema = new Dictionary<string, Dictionary<string, object>>
+		private readonly Dictionary<string, Dictionary<string, object>> _types = new Dictionary<string, Dictionary<string, object>>
 		{
-			{  "name", new Dictionary<string, object>
+			{
+				"text_ngram", new Dictionary<string, object>
+				{
+					{ "name", "text_ngram" },
+					{ "class", "solr.TextField" },
+					{ "positionIncrementGap", "100" },
+					{ "multiValued", true },
+					{
+						"indexAnalyzer", new Dictionary<string, object>
+						{
+							{
+								"tokenizer", new Dictionary<string, object>
+								{
+									{ "class", "solr.StandardTokenizerFactory" }
+								}
+							},
+							{
+								"filters", new List<Dictionary<string, object>>
+								{
+									new Dictionary<string, object>
+									{
+										{ "class", "solr.StopFilterFactory" },
+										{ "words", "stopwords.txt" },
+										{ "ignoreCase", "true" }
+									},
+									new Dictionary<string, object>
+									{
+										{ "class", "solr.NGramFilterFactory" },
+										{ "minGramSize", "1" },
+										{ "maxGramSize", "50" }
+									},
+									new Dictionary<string, object>
+									{
+										{ "class", "solr.LowerCaseFilterFactory" },
+									}
+								}
+							}
+						}
+					},
+					{
+						"queryAnalyzer", new Dictionary<string, object>
+						{
+							{
+								"tokenizer", new Dictionary<string, object>
+								{
+									{ "class", "solr.StandardTokenizerFactory" }
+								}
+							},
+							{
+								"filters", new List<Dictionary<string, object>>
+								{
+									new Dictionary<string, object>
+									{
+										{ "class", "solr.StopFilterFactory" },
+										{ "words", "stopwords.txt" },
+										{ "ignoreCase", "true" }
+									},
+									new Dictionary<string, object>
+									{
+										{ "class", "solr.SynonymGraphFilterFactory" },
+										{ "expand", "true" },
+										{ "ignoreCase", "true" },
+										{ "synonyms", "synonyms.txt" }
+									},
+									new Dictionary<string, object>
+									{
+										{ "class", "solr.LowerCaseFilterFactory" },
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
+		private readonly Dictionary<string, Dictionary<string, object>> _fields = new Dictionary<string, Dictionary<string, object>>
+		{
+			{	"name", new Dictionary<string, object>
 				{
 					{ "name", "name" },
-					{ "type", "text_general" },
+					{ "type", "text_ngram" },
 					{ "multiValued", false },
 					{ "indexed", true },
 					{ "stored", true },
@@ -34,7 +112,7 @@ namespace MediaCurator.Solr
 			{  "type", new Dictionary<string, object>
 				{
 					{ "name", "type" },
-					{ "type", "text_general" },
+					{ "type", "text_ngram" },
 					{ "multiValued", false },
 					{ "indexed", true },
 					{ "stored", true },
@@ -43,7 +121,7 @@ namespace MediaCurator.Solr
 			{  "fullPath", new Dictionary<string, object>
 				{
 					{ "name", "fullPath" },
-					{ "type", "text_general" },
+					{ "type", "text_ngram" },
 					{ "multiValued", false },
 					{ "indexed", true },
 					{ "stored", true },
@@ -77,7 +155,7 @@ namespace MediaCurator.Solr
 			},
 			{  "thumbnails", new Dictionary<string, object>
 				{
-					{ "name", "thumbnails" },
+               { "name", "thumbnails" },
 					{ "type", "plong" },
 					{ "multiValued", false },
 					{ "stored", true },
@@ -170,6 +248,24 @@ namespace MediaCurator.Solr
 			}
 		}
 
+		public async Task<bool> FieldTypeExistsAsync(string name)
+		{
+			HttpClient client = _factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/fieldtypes/" + name);
+			return response.IsSuccessStatusCode;
+		}
+
+		public async Task<bool> AddFieldType(string name, Dictionary<string, object> definition)
+		{
+			HttpClient client = _factory.CreateClient();
+			Dictionary<string, Dictionary<string, object>> data = new Dictionary<string, Dictionary<string, object>>
+			{
+				{ "add-field-type",  definition }
+			};
+			HttpResponseMessage response = await client.PostAsync(URL + "/schema", new StringContent(JsonSerializer.Serialize(data)));
+			return response.IsSuccessStatusCode;
+		}
+
 		public async Task<bool> AddField(string name, Dictionary<string, object> definition)
       {
 			HttpClient client = _factory.CreateClient();
@@ -190,13 +286,32 @@ namespace MediaCurator.Solr
 
       public void Initialize()
       {
-         foreach (var key in _schema.Keys)
+			// Ensure the required field types are defined and define them otherwise.
+			foreach (var key in _types.Keys)
+			{
+				if (!FieldTypeExistsAsync(key).Result)
+				{
+					_logger.LogInformation("Schema Field Type Not Found: {}", key);
+
+					if (AddFieldType(key, _types[key]).Result)
+					{
+						_logger.LogInformation("Schema Field Type Added: {}", key);
+					}
+					else
+					{
+						_logger.LogError("Failed To Add Schema Field Type: {}", key);
+					}
+				}
+			}
+
+			// Ensure the required fields are defined and define them otherwise.
+			foreach (var key in _fields.Keys)
          {
 				if (!FieldExistsAsync(key).Result)
 				{
 					_logger.LogInformation("Schema Field Not Found: {}", key);
 
-					if (AddField(key, _schema[key]).Result)
+					if (AddField(key, _fields[key]).Result)
                {
 						_logger.LogInformation("Schema Field Added: {}", key);
 					}
