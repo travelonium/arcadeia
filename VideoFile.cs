@@ -183,40 +183,6 @@ namespace MediaCurator
             {
                // This element did not exist before and has been createdn or it did exist but it has
                // been marked as "Modified". Therefore, the missing/updated fields need be filled in here.
-
-               // Acquire the additional video file information.
-               var jsonVideoFileInfo = GetFileInfo(path);
-
-               /*----------------------------------------------------------------------------------
-                                                   DURATION
-               ----------------------------------------------------------------------------------*/
-
-               try
-               {
-                  Duration = Double.Parse(jsonVideoFileInfo.GetProperty("format").GetProperty("duration").GetString(),
-                                          CultureInfo.InvariantCulture);
-               }
-               catch (Exception e)
-               {
-                  Debug.WriteLine(path + " :");
-                  Debug.WriteLine(e.Message);
-               }
-
-               /*----------------------------------------------------------------------------------
-                                                   RESOLUTION
-               ----------------------------------------------------------------------------------*/
-
-               try
-               {
-                  Resolution = new ResolutionType(String.Format("{0}x{1}",
-                                                  jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("width").GetUInt32(),
-                                                  jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("height").GetUInt32()));
-               }
-               catch (Exception e)
-               {
-                  Debug.WriteLine(path + " :");
-                  Debug.WriteLine(e.Message);
-               }
             }
          }
       }
@@ -230,48 +196,7 @@ namespace MediaCurator
             {
                if (Modified)
                {
-                  // Update the additional video file information.
-                  var jsonVideoFileInfo = GetFileInfo(FullPath);
-
-                  /*--------------------------------------------------------------------------------
-                                                    DURATION
-                  --------------------------------------------------------------------------------*/
-
-                  try
-                  {
-                     Duration = Double.Parse(jsonVideoFileInfo.GetProperty("format").GetProperty("duration").GetString(),
-                                             CultureInfo.InvariantCulture);
-                  }
-                  catch (Exception e)
-                  {
-                     Debug.WriteLine(FullPath + " : ");
-                     Debug.WriteLine(e.Message);
-                  }
-
-                  /*--------------------------------------------------------------------------------
-                                                    RESOLUTION
-                  --------------------------------------------------------------------------------*/
-
-                  try
-                  {
-                     Resolution = new ResolutionType(String.Format("{0}x{1}",
-                                                     jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("width").GetUInt32(),
-                                                     jsonVideoFileInfo.GetProperty("streams")[0].GetProperty("height").GetUInt32()));
-                  }
-                  catch (Exception e)
-                  {
-                     Debug.WriteLine(FullPath + " : ");
-                     Debug.WriteLine(e.Message);
-                  }
-
-                  // Remove the previously generated thumbnails as they are most likely out of date.
-                  _thumbnailsDatabase.DeleteThumbnails(Id);
-               }
-
-               if (Flags.Deleted)
-               {
-                  // Remove the previously generated thumbnails as they are most likely out of date.
-                  _thumbnailsDatabase.DeleteThumbnails(Id);
+                  // This file existed before but has changed since the last scan.
                }
             }
          }
@@ -281,7 +206,7 @@ namespace MediaCurator
 
       #region Video File Operations
 
-      private JsonElement GetFileInfo(string path)
+      public override void GetFileInfo(string path)
       {
          string output = null;
          string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
@@ -307,10 +232,41 @@ namespace MediaCurator
             ffprobe.WaitForExit(_configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
          }
 
-         return JsonDocument.Parse(output).RootElement;
+         var fileInfo = JsonDocument.Parse(output).RootElement;
+
+         /*--------------------------------------------------------------------------------
+                                           DURATION
+         --------------------------------------------------------------------------------*/
+
+         try
+         {
+            Duration = Double.Parse(fileInfo.GetProperty("format").GetProperty("duration").GetString(),
+                                    CultureInfo.InvariantCulture);
+         }
+         catch (Exception e)
+         {
+            Debug.WriteLine(FullPath + " : ");
+            Debug.WriteLine(e.Message);
+         }
+
+         /*--------------------------------------------------------------------------------
+                                           RESOLUTION
+         --------------------------------------------------------------------------------*/
+
+         try
+         {
+            Resolution = new ResolutionType(String.Format("{0}x{1}",
+                                            fileInfo.GetProperty("streams")[0].GetProperty("width").GetUInt32(),
+                                            fileInfo.GetProperty("streams")[0].GetProperty("height").GetUInt32()));
+         }
+         catch (Exception e)
+         {
+            Debug.WriteLine(FullPath + " : ");
+            Debug.WriteLine(e.Message);
+         }
       }
 
-      private byte[] GenerateThumbnail(string filePath, int position, int index)
+      private byte[] GenerateThumbnail(string filePath, int position)
       {
          int width = 720;
          byte[] output = null;
@@ -379,16 +335,20 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Generates the thumbnails for the current video file.
+      /// Overrides the GenerateThumbnails() method of the MediaFile generating thumbnails for the
+      /// video file.
       /// </summary>
-      /// <param name="progress">The progress which is reflected in a ProgressBar and indicates how
-      /// far the thumbnail generation for the current file has gone.</param>
-      /// <param name="preview">The name of the recently generated thumbnail file in order to be
-      /// previewed for the user.</param>
-      public void GenerateThumbnails(IProgress<Tuple<double, double>> progress,
-                                     IProgress<byte[]> preview)
+      /// <returns>The count of successfully generated thumbnails.</returns>
+      public override int GenerateThumbnails()
       {
-         int totalThumbnails = 0;
+         int index = 0;
+         int total = 0;
+
+         // Make sure the video file is valid and not corrupted or empty.
+         if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
+         {
+            return index;
+         }
 
          // TODO: Improve the thumbnail generation by generating a .webm file:
          //       ffmpeg -i happy-birthday.mp4 -vf select="eq(pict_type\,I),scale=720:-1,fps=1/5" -f image2pipe - | ffmpeg -f image2pipe -r 1 -c:v mjpeg -i - -c:v libvpx-vp9 -b:v 0 -crf 20 test.webm
@@ -397,11 +357,13 @@ namespace MediaCurator
                                          GENERATE THUMBNAILS
          ----------------------------------------------------------------------------------*/
 
+         Debug.Write("GENERATING THUMBNAILS: " + FullPath);
+
          // Determine the count of thumbnails to generate based on the duration.
          for (int row = 0; row < TotalThumbnails.GetLength(0); row++)
          {
             // Initialize the totalThumbnails with the largest value so far.
-            totalThumbnails = TotalThumbnails[row, 2];
+            total = TotalThumbnails[row, 2];
 
             if ((Duration >= TotalThumbnails[row, 0]) &&
                 (Duration <= TotalThumbnails[row, 1]))
@@ -411,46 +373,28 @@ namespace MediaCurator
             }
          }
 
-         if (progress != null)
-         {
-            // Initialize the Current File Progress ProgressBar.
-            progress.Report(new Tuple<double, double>(0.0, totalThumbnails));
-         }
-
          Debug.Write(" [");
 
-         // FIXME: The index has to be based on the number of thumbnails successfully generated.
-
-         for (int counter = 1, index = 1; counter <= totalThumbnails; counter++)
+         for (int counter = 1; counter <= total; counter++)
          {
-            int position = (int)((counter - 0.5) * Duration / totalThumbnails);
+            int position = (int)((counter - 0.5) * Duration / total);
 
             // Generate the thumbnail.
-            byte[] thumbnail = GenerateThumbnail(FullPath, position, index);
+            byte[] thumbnail = GenerateThumbnail(FullPath, position);
 
             if ((thumbnail != null) && (thumbnail.Length > 0))
             {
                // Add the newly generated thumbnail to the database.
-               Thumbnails[index - 1] = thumbnail;
-
-               if (preview != null)
-               {
-                  // Update the thumbnail preview.
-                  preview.Report(thumbnail);
-               }
+               Thumbnails[index] = thumbnail;
 
                // Increase the index
                index++;
             }
-
-            if (progress != null)
-            {
-               // Update the Current File Progress ProgressBar.
-               progress.Report(new Tuple<double, double>(counter, totalThumbnails));
-            }
          }
 
          Debug.WriteLine("]");
+
+         return index;
       }
 
       #endregion // Video File Operations

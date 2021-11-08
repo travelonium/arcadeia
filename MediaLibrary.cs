@@ -519,49 +519,12 @@ namespace MediaCurator
       {
          VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
-         if (videoFile.Self != null)
-         {
-            // Check if there are any thumbnails already generated for this file.
-            if (videoFile.Thumbnails.Count == 0)
-            {
-               // Make sure the video file is valid and not corrupted or empty.
-               if ((videoFile.Size > 0) &&
-                   (videoFile.Resolution.Height != 0) &&
-                   (videoFile.Resolution.Width != 0))
-               {
-                  Debug.Write("GENERATING THUMBNAILS: " + videoFile.FullPath);
-
-                  // Nope, looks like we need to generate the thumbnails.
-                  videoFile.GenerateThumbnails(progress, preview);
-               }
-            }
-         }
-
          return videoFile;
       }
 
       private VideoFile UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
          VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
-
-         if (!videoFile.Flags.Deleted)
-         {
-            // Check if there are any thumbnails already generated for this file or if the file is
-            // modified and update it if so.
-            if ((videoFile.Thumbnails.Count == 0) || (videoFile.Modified))
-            {
-               // Make sure the video file is valid and not corrupted or empty.
-               if ((videoFile.Size > 0) &&
-                   (videoFile.Resolution.Height != 0) &&
-                   (videoFile.Resolution.Width != 0))
-               {
-                  Debug.Write("GENERATING THUMBNAILS: " + videoFile.FullPath);
-
-                  // Nope, looks like we need to re-generate the thumbnails.
-                  videoFile.GenerateThumbnails(progress, preview);
-               }
-            }
-         }
 
          return videoFile;
       }
