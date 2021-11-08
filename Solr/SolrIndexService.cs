@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace MediaCurator.Solr
 {
@@ -266,6 +267,20 @@ namespace MediaCurator.Solr
 			}
 		}
 
+		public async Task<bool> Ping()
+      {
+         try
+         {
+				HttpClient client = _factory.CreateClient();
+				HttpResponseMessage response = await client.GetAsync(URL + "/admin/ping");
+				return response.IsSuccessStatusCode;
+			}
+			catch (System.Exception)
+         {
+				return false;
+         }
+		}
+
 		public async Task<bool> FieldTypeExistsAsync(string name)
 		{
 			HttpClient client = _factory.CreateClient();
@@ -304,40 +319,70 @@ namespace MediaCurator.Solr
 
       public void Initialize()
       {
-			// Ensure the required field types are defined and define them otherwise.
-			foreach (var key in _types.Keys)
-			{
-				if (!FieldTypeExistsAsync(key).Result)
-				{
-					_logger.LogInformation("Schema Field Type Not Found: {}", key);
+			uint retries = 10;
 
-					if (AddFieldType(key, _types[key]).Result)
+			_logger.LogInformation("Waiting For Solr Server...");
+
+			while (true)
+			{
+				if (Ping().Result)
+            {
+					break;
+            }
+
+            if (--retries == 0)
+            {
+					_logger.LogError("Timeout While Waiting For Solr Server!");
+
+					break;
+            }
+
+				Thread.Sleep(6000);
+			}
+
+			try
+         {
+				// Ensure the required field types are defined and define them otherwise.
+				foreach (var key in _types.Keys)
+				{
+					if (!FieldTypeExistsAsync(key).Result)
 					{
-						_logger.LogInformation("Schema Field Type Added: {}", key);
+						_logger.LogInformation("Schema Field Type Not Found: {}", key);
+
+						if (AddFieldType(key, _types[key]).Result)
+						{
+							_logger.LogInformation("Schema Field Type Added: {}", key);
+						}
+						else
+						{
+							_logger.LogError("Failed To Add Schema Field Type: {}", key);
+						}
 					}
-					else
+				}
+
+				// Ensure the required fields are defined and define them otherwise.
+				foreach (var key in _fields.Keys)
+				{
+					if (!FieldExistsAsync(key).Result)
 					{
-						_logger.LogError("Failed To Add Schema Field Type: {}", key);
+						_logger.LogInformation("Schema Field Not Found: {}", key);
+
+						if (AddField(key, _fields[key]).Result)
+						{
+							_logger.LogInformation("Schema Field Added: {}", key);
+						}
+						else
+						{
+							_logger.LogError("Failed To Add Schema Field: {}", key);
+						}
 					}
 				}
 			}
-
-			// Ensure the required fields are defined and define them otherwise.
-			foreach (var key in _fields.Keys)
+			catch (System.Exception e)
          {
-				if (!FieldExistsAsync(key).Result)
-				{
-					_logger.LogInformation("Schema Field Not Found: {}", key);
+				_logger.LogError("Solr Connection Error: {}" + e.Message);
 
-					if (AddField(key, _fields[key]).Result)
-               {
-						_logger.LogInformation("Schema Field Added: {}", key);
-					}
-					else
-               {
-						_logger.LogError("Failed To Add Schema Field: {}", key);
-					}
-				}
+				throw e;
 			}
 		}
    }
