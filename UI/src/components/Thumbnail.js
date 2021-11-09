@@ -11,7 +11,8 @@ export class Thumbnail extends Component {
         super(props);
         this.animateInterval = null;
         this.state = {
-            index: -1
+            index: -1,
+            loaded: false,
         };
     }
 
@@ -36,17 +37,18 @@ export class Thumbnail extends Component {
 
     animate() {
         let index = this.state.index;
-        if (this.props.count > 0) {
+        if ((this.props.count > 0) && (this.state.loaded)) {
             this.setState({
-                index: (index < (this.props.count - 1)) ? ++index : 0
-            })
+                index: (index < (this.props.count - 1)) ? ++index : 0,
+                loaded: false,
+            });
         }
     }
 
     render() {
         return (
             <div className="thumbnail">
-                <Card.Img src={this.thumbnail(this.state.index)} />
+                <Card.Img src={this.thumbnail(this.state.index)} onLoad={() => this.setState({ loaded: true })} />
                 <ProgressBar min={1} max={(this.props.id != null) ? this.props.count : 0} now={this.state.index + 1} className={((this.props.id != null) && (this.props.count)) ? "visible" : "invisible"} />
             </div>
         );
