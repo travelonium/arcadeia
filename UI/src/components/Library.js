@@ -171,6 +171,7 @@ export class Library extends Component {
             q: query,
             fq: [],
             rows: 10000,
+            "q.op": "AND",
             defType: "edismax",
             qf: "name^10 path^5",
             wt: "json",
