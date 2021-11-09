@@ -20,7 +20,7 @@
     "react-window": "^1.8.5",
     "reactstrap": "^8.4.1",
     "rimraf": "^2.6.2",
-    "video.js": "^7.8.4"
+    "video.js": "^7.16.0"
   },
   "devDependencies": {
     "ajv": "^6.9.1",
