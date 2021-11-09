@@ -12,13 +12,17 @@ export class Thumbnail extends Component {
         this.animateInterval = null;
         this.state = {
             index: -1,
-            loaded: false,
+            loaded: true,
         };
     }
 
     componentDidMount() {
         if ((this.animateInterval == null) && (this.props.id != null) && (this.props.count > 0)) {
-            this.animateInterval = setInterval(() => this.animate(), 500);
+            if (this.props.count == 1) {
+                this.animate();
+            } else {
+                this.animateInterval = setInterval(() => this.animate(), 500);
+            }
         }
     }
 
@@ -49,7 +53,7 @@ export class Thumbnail extends Component {
         return (
             <div className="thumbnail">
                 <Card.Img src={this.thumbnail(this.state.index)} onLoad={() => this.setState({ loaded: true })} />
-                <ProgressBar min={1} max={(this.props.id != null) ? this.props.count : 0} now={this.state.index + 1} className={((this.props.id != null) && (this.props.count)) ? "visible" : "invisible"} />
+                { (this.props.count > 1) ? <ProgressBar min={1} max={(this.props.id != null) ? this.props.count : 0} now={this.state.index + 1} className={((this.props.id != null) && (this.props.count)) ? "visible" : "invisible"} /> : <></> }
             </div>
         );
     }
