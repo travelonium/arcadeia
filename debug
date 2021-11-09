@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Stop the docker instance, restart the docker instance in debug mode.
+
+docker-compose down
+docker-compose -f docker-compose.yml -f docker-compose-debug.yml up

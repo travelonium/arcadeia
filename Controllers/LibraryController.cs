@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using MediaCurator.Solr;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -18,14 +20,20 @@ namespace MediaCurator.Controllers
    {
       private readonly IMediaLibrary _mediaLibrary;
       private readonly IConfiguration _configuration;
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
+      private readonly IServiceProvider _serviceProvider;
       private readonly ILogger<LibraryController> _logger;
+      private readonly IThumbnailsDatabase _thumbnailsDatabase;
 
-      public LibraryController(ILogger<LibraryController> logger, IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary)
+      public LibraryController(IConfiguration configuration,
+                               ILogger<LibraryController> logger,
+                               IThumbnailsDatabase thumbnailsDatabase,
+                               IServiceProvider serviceProvider,
+                               IMediaLibrary mediaLibrary)
       {
          _logger = logger;
          _mediaLibrary = mediaLibrary;
          _configuration = configuration;
+         _serviceProvider = serviceProvider;
          _thumbnailsDatabase = thumbnailsDatabase;
       }
 
@@ -96,9 +104,17 @@ namespace MediaCurator.Controllers
                });
             }
 
-            var id = modified.Id;
-
             mediaContainer.Model = modified;
+
+            // Update the media in the Solr index if indexing is enabled.
+            if (_configuration.GetSection("Solr:URL").Exists())
+            {
+               using (IServiceScope scope = _serviceProvider.CreateScope())
+               {
+                  ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+                  solrIndexService.Update(mediaContainer.Model);
+               }
+            }
 
             _mediaLibrary.UpdateDatabase();
 

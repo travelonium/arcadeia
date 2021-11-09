@@ -7,6 +7,7 @@ namespace MediaCurator
       IMediaContainer Root { get; }
       public IMediaContainer Parent { get; set; }
       public XElement Self { get; set; }
+      string Id { get; set; }
       string Name { get; set; }
       string Type { get; }
       string FullPath { get; }

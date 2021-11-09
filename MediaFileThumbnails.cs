@@ -77,5 +77,10 @@ namespace MediaCurator
          byte[] thumbnail = await _database.GetThumbnailAsync(_id, index, cancellationToken);
          return thumbnail;
       }
+
+      public int DeleteAll()
+      {
+         return _database.DeleteThumbnails(_id);
+      }
    }
 }

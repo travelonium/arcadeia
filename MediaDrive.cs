@@ -36,6 +36,9 @@ namespace MediaCurator
 
          if (Parent == null)
          {
+            // Generate a unique Id which can be used to create a unique link to each element.
+            string id = System.IO.Path.GetRandomFileName();
+
             // Extract the Drive Name from the supplied path removing the \ and : characters. 
             string name = MediaContainer.GetPathComponents(path).Item2.Trim(new Char[] { '\\', ':' });
 
@@ -75,6 +78,7 @@ namespace MediaCurator
                // Looks like there is no such element! Let's create one then!
                _mediaLibrary.Self.Add(
                   new XElement("Drive",
+                     new XAttribute("Id", id),
                      new XAttribute("Name", name),
                      new XAttribute("SerialNumber", serialNumber)));
 

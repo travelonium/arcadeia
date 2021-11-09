@@ -12,6 +12,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="3.1.6" />
     <PackageReference Include="System.Data.SQLite" Version="1.0.113.1" />
+    <PackageReference Include="SolrNet" Version="1.0.19" />
+    <PackageReference Include="SolrNet.Microsoft.DependencyInjection" Version="1.0.19" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +23,9 @@
     <None Remove="entrypoint.sh" />
     <None Remove="Server\etc\apache2\sites-available\example.com.conf" />
     <None Remove="docker-compose-debug.yml" />
+    <None Remove="SolrNet" />
+    <None Remove="SolrNet.Microsoft.DependencyInjection" />
+    <None Remove="Solr\" />
   </ItemGroup>
   <ItemGroup>
     <!-- Don't publish the SPA source files, but do show them in the project files list -->
@@ -32,6 +37,7 @@
   <ItemGroup>
     <Folder Include="Models\" />
     <Folder Include="Services\" />
+    <Folder Include="Solr\" />
   </ItemGroup>
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
     <!-- Ensure Node.js is installed -->

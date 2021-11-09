@@ -61,6 +61,27 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets or sets the Id of the file. The Id is used to locate the thumbnails directory of the 
+      /// file, to uniquely locate and identify each file tag and as the unique identifier in the
+      /// SolR index. This is directly read and written from and to the MediaLibrary.
+      /// </summary>
+      /// <value>
+      /// The unique identifier of the container element.
+      /// </value>
+      public string Id
+      {
+         get
+         {
+            return Tools.GetAttributeValue(Self, "Id");
+         }
+
+         set
+         {
+            Tools.SetAttributeValue(Self, "Id", value);
+         }
+      }
+
+      /// <summary>
       /// Gets or sets the Name attribute of the container element. This is directly read or written
       /// from and to the MediaLibrary.
       /// </summary>
@@ -169,8 +190,10 @@ namespace MediaCurator
          {
             return new Models.MediaContainer
             {
+               Id = Id,
                Name = Name,
                Type = Type,
+               Path = Parent.FullPath,
                FullPath = FullPath,
                Flags = Flags.All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray()
             };
@@ -260,7 +283,7 @@ namespace MediaCurator
          }
 
          // Now that we're here, we can assume that the parent(s) of this element has been created
-         // 1or better yet located already. Now the constructor of the inherited calling class will
+         // or better yet located already. Now the constructor of the inherited calling class will
          // take care of the element itself. Unless the path points to a file in which case, the
          // Parent of this instance will be the real target.
       }
@@ -292,6 +315,18 @@ namespace MediaCurator
                      // Now the Parent will be taken care of!
                      Parent = (MediaContainer)Activator.CreateInstance(parentType, _configuration, _thumbnailsDatabase, _mediaLibrary, element.Parent, update);
                   }
+               }
+            }
+
+            if (update)
+            {
+               if (String.IsNullOrEmpty(Id))
+               {
+                  // Generate a unique Id which can be used to create a unique link to each element and
+                  // also in creation of a unique folder for each file containing its thumbnails.
+                  // This takes care of the existing elements created by previous versions that lack
+                  // an Id attribute.
+                  Id = System.IO.Path.GetRandomFileName();
                }
             }
 

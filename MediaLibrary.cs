@@ -1,18 +1,22 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using System.Linq;
+using MediaCurator.Solr;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaCurator
 {
    class MediaLibrary : MediaContainer, IMediaLibrary
    {
       private readonly ILogger<MediaLibrary> _logger;
+
+      private readonly IServiceProvider _serviceProvider;
 
       /// <summary>
       /// The XDocument that contains the media database itself. It's either loaded from the existing XML file or
@@ -42,10 +46,14 @@ namespace MediaCurator
       /// If it has not before been instantiated, it checks whether the database XML file exists. If
       /// it does, it loads its contents into Document and it creates a new one otherwise.
       /// </summary>
-      public MediaLibrary(IConfiguration configuration, ILogger<MediaLibrary> logger, IThumbnailsDatabase thumbnailsDatabase)
+      public MediaLibrary(IConfiguration configuration,
+                          ILogger<MediaLibrary> logger,
+                          IThumbnailsDatabase thumbnailsDatabase,
+                          IServiceProvider serviceProvider)
          : base(configuration, thumbnailsDatabase, null, null)
       {
          _logger = logger;
+         _serviceProvider = serviceProvider;
 
          string name = _configuration["MediaLibrary:Name"];
          string path = _configuration["MediaLibrary:Path"];
@@ -95,6 +103,15 @@ namespace MediaCurator
             catch (Exception e)
             {
                _logger.LogError("Media Library Creation Failed! Cause: " + e.Message);
+            }
+         }
+
+         if (_configuration.GetSection("Solr:URL").Exists())
+         {
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+               solrIndexService.Initialize();
             }
          }
       }
@@ -317,6 +334,16 @@ namespace MediaCurator
                break;
          }
 
+         // Add the new media to the Solr index if indexing is enabled.
+         if ((mediaFile != null) && (_configuration.GetSection("Solr:URL").Exists()))
+         {
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+               solrIndexService.Add(mediaFile.Model);
+            }
+         }
+
          return mediaFile;
       }
 
@@ -373,7 +400,7 @@ namespace MediaCurator
 
                case MediaContainerType.Video:
 
-                  UpdateVideoFile(element, progress, preview);
+                  mediaFile = UpdateVideoFile(element, progress, preview);
 
                   break;
 
@@ -384,6 +411,23 @@ namespace MediaCurator
                case MediaContainerType.Photo:
 
                   throw new NotImplementedException("Photo files cannot yet be handled!");
+            }
+
+            // Update or Delete the new media in the Solr index if indexing is enabled.
+            if ((mediaFile != null) && (_configuration.GetSection("Solr:URL").Exists()))
+            {
+               using (IServiceScope scope = _serviceProvider.CreateScope())
+               {
+                  ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+                  if (mediaFile.Flags.Deleted)
+                  {
+                     solrIndexService.Delete(mediaFile.Model);
+                  }
+                  else
+                  {
+                     solrIndexService.Update(mediaFile.Model);
+                  }
+               }
             }
          }
       }
@@ -446,6 +490,23 @@ namespace MediaCurator
                throw new NotImplementedException("Photo files cannot yet be handled!");
          }
 
+         // Update or Delete the new media in the Solr index if indexing is enabled.
+         if ((mediaFile != null) && (_configuration.GetSection("Solr:URL").Exists()))
+         {
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+               if (mediaFile.Flags.Deleted)
+               {
+                  solrIndexService.Delete(mediaFile.Model);
+               }
+               else
+               {
+                  solrIndexService.Update(mediaFile.Model);
+               }
+            }
+         }
+
          return mediaFile;
       }
 
@@ -458,49 +519,14 @@ namespace MediaCurator
       {
          VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
-         if (videoFile.Self != null)
-         {
-            // Check if there are any thumbnails already generated for this file.
-            if (videoFile.Thumbnails.Count == 0)
-            {
-               // Make sure the video file is valid and not corrupted or empty.
-               if ((videoFile.Size > 0) &&
-                   (videoFile.Resolution.Height != 0) &&
-                   (videoFile.Resolution.Width != 0))
-               {
-                  Debug.Write("GENERATING THUMBNAILS: " + videoFile.FullPath);
-
-                  // Nope, looks like we need to generate the thumbnails.
-                  videoFile.GenerateThumbnails(progress, preview);
-               }
-            }
-         }
-
          return videoFile;
       }
 
-      private void UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private VideoFile UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
          VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
 
-         if (!videoFile.Flags.Deleted)
-         {
-            // Check if there are any thumbnails already generated for this file or if the file is
-            // modified and update it if so.
-            if ((videoFile.Thumbnails.Count == 0) || (videoFile.Modified))
-            {
-               // Make sure the video file is valid and not corrupted or empty.
-               if ((videoFile.Size > 0) &&
-                   (videoFile.Resolution.Height != 0) &&
-                   (videoFile.Resolution.Width != 0))
-               {
-                  Debug.Write("GENERATING THUMBNAILS: " + videoFile.FullPath);
-
-                  // Nope, looks like we need to re-generate the thumbnails.
-                  videoFile.GenerateThumbnails(progress, preview);
-               }
-            }
-         }
+         return videoFile;
       }
 
       private void InsertPhotoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
