@@ -1,9 +1,11 @@
-@import "bootstrap";
-@import "~video.js/dist/video-js.css";
 @import "~@fortawesome/fontawesome-free/scss/fontawesome.scss";
 @import "~@fortawesome/fontawesome-free/scss/regular.scss";
 @import "~@fortawesome/fontawesome-free/scss/solid.scss";
 @import "~@fortawesome/fontawesome-free/scss/brands.scss";
+// @import "~bootswatch/dist/darkly/variables";
+@import "~bootstrap/scss/bootstrap";
+// @import "~bootswatch/dist/darkly/bootswatch";
+@import "~video.js/dist/video-js.css";
 
 a {
     color: #0366d6;
