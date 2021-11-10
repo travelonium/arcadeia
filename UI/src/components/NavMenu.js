@@ -108,28 +108,26 @@ export class NavMenu extends Component {
     render() {
         return (
             <header>
-                <Navbar collapseOnSelect expand="sm" bg="light" variant="light" className="mb-3 ng-white">
-                    <Container>
-                        <Navbar.Brand href="/">Media Curator</Navbar.Brand>
-                        <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
-                        <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
-                            <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
-                                <Nav.Item>
-                                    <div className="filters d-flex align-items-center">
-                                        <OverlayTrigger key="favorite" placement="bottom" overlay={ <Tooltip id="tooltip-favorite">{ "" } Favorite</Tooltip> }>
-                                            <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.favorite ? " set" : "")}></span>
-                                        </OverlayTrigger>
-                                        <OverlayTrigger key="recursive" placement="bottom" overlay={ <Tooltip id="tooltip-recursive">{ "" } Recursive</Tooltip> }>
-                                            <span onClick={this.onToggleRecursive.bind(this)} className={"flag recursive" + (this.state.recursive ? " set" : "")}></span>
-                                        </OverlayTrigger>
-                                    </div>
-                                </Nav.Item>
-                                <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                    <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
-                                </Nav.Item>
-                            </Nav>
-                        </Navbar.Collapse>
-                    </Container>
+                <Navbar collapseOnSelect expand="sm" bg="dark" variant="dark" className="mb-3 py-2">
+                    <Navbar.Brand href="/">Media Curator</Navbar.Brand>
+                    <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
+                    <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
+                        <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
+                            <Nav.Item>
+                                <div className="filters d-flex align-items-center">
+                                    <OverlayTrigger key="favorite" placement="bottom" overlay={ <Tooltip id="tooltip-favorite">{ "" } Favorite</Tooltip> }>
+                                        <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.favorite ? " set" : "")}></span>
+                                    </OverlayTrigger>
+                                    <OverlayTrigger key="recursive" placement="bottom" overlay={ <Tooltip id="tooltip-recursive">{ "" } Recursive</Tooltip> }>
+                                        <span onClick={this.onToggleRecursive.bind(this)} className={"flag recursive" + (this.state.recursive ? " set" : "")}></span>
+                                    </OverlayTrigger>
+                                </div>
+                            </Nav.Item>
+                            <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
+                                <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
+                            </Nav.Item>
+                        </Nav>
+                    </Navbar.Collapse>
                 </Navbar>
             </header>
         );

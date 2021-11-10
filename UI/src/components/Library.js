@@ -2,6 +2,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import React, { Component } from 'react';
 import Modal from 'react-bootstrap/Modal';
+import Navbar from 'react-bootstrap/Navbar';
 import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
@@ -283,101 +284,103 @@ export class Library extends Component {
         let search = (params !== undefined) && (params.indexOf("query=") !== -1);
         let folders = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
-            <Container className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                <Breadcrumb className="">
-                    {
-                        folders.map((folder, index) => {
-                            let link = location;
-                            let active = false;
-                            let last = (index === (folders.length - 1));
-                            if (folder) {
-                                if (index) {
-                                    if (last) {
-                                        if (search) {
-                                            // it's the search results item, deactivate it
-                                            link = "";
-                                            active = true;
+            <>
+                <div className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                    <Breadcrumb className="mx-3" listProps={ { className: "py-3 px-4" } }>
+                        {
+                            folders.map((folder, index) => {
+                                let link = location;
+                                let active = false;
+                                let last = (index === (folders.length - 1));
+                                if (folder) {
+                                    if (index) {
+                                        if (last) {
+                                            if (search) {
+                                                // it's the search results item, deactivate it
+                                                link = "";
+                                                active = true;
+                                            } else {
+                                                // don't add the trailing slash if this is a file
+                                                location += folder;
+                                                link = location;
+                                            }
                                         } else {
-                                            // don't add the trailing slash if this is a file
-                                            location += folder;
+                                            location += folder + "/";
                                             link = location;
                                         }
-                                    } else {
-                                        location += folder + "/";
-                                        link = location;
                                     }
+                                    return (
+                                        <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link }} onClick={event => this.list(event.target.getAttribute("link"))} >{folder}</Breadcrumb.Item>
+                                    );
+                                } else {
+                                    return null;
                                 }
-                                return (
-                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link }} onClick={event => this.list(event.target.getAttribute("link"))} >{folder}</Breadcrumb.Item>
-                                );
-                            } else {
-                                return null;
-                            }
-                        })
-                    }
-                </Breadcrumb>
-                <div className="mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                    <AutoSizer>
-                        {({ height, width }) => {
-                            let offset = 0;
-                            let size = breakpoint();
-                            switch (size) {
-                                case 'xs':
-                                    offset = 15;
-                                    this.columnCount = 1;
-                                    break;
-                                case 'sm':
-                                    offset = 15;
-                                    this.columnCount = 1;
-                                    break;
-                                case 'md':
-                                    offset = 8;
-                                    this.columnCount = 2;
-                                    break;
-                                case 'lg':
-                                    offset = 5;
-                                    this.columnCount = 3;
-                                    break;
-                                case 'xl':
-                                    offset = 4;
-                                    this.columnCount = 4;
-                                    break;
-                                default:
-                                    break;
-                            }
-                            let rowHeight = (width / this.columnCount);
-                            let columnWidth = (width / this.columnCount) - offset;
-                            this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
-                            return (
-                                <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
-                                    {this.cell.bind(this)}
-                                </Grid>
-                            )}
+                            })
                         }
-                    </AutoSizer>
-                    <MediaViewer ref={this.mediaViewer} />
-                    <Modal show={this.state.loading} backdrop={false} animation={false} size="sm" aria-labelledby="contained-modal-title-vcenter" centered>
-                        <Modal.Body className="shadow-sm">
-                            <Container>
-                                <Row>
-                                    <Col className="text-center mt-4 mb-2">
-                                        <Spinner className="loading-spinner" animation="border" variant="dark" />
-                                    </Col>
-                                </Row>
-                                <Row>
-                                    <Col className="text-center">
-                                        <p className="font-weight-light text-uppercase" >{this.state.status}</p>
-                                    </Col>
-                                </Row>
-                            </Container>
-                        </Modal.Body>
-                    </Modal>
+                    </Breadcrumb>
+                    <div className="ml-3 mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                        <AutoSizer>
+                            {({ height, width }) => {
+                                let offset = 0;
+                                let size = breakpoint();
+                                switch (size) {
+                                    case 'xs':
+                                        offset = 15;
+                                        this.columnCount = 1;
+                                        break;
+                                    case 'sm':
+                                        offset = 8;
+                                        this.columnCount = 2;
+                                        break;
+                                    case 'md':
+                                        offset = 6;
+                                        this.columnCount = 3;
+                                        break;
+                                    case 'lg':
+                                        offset = 5;
+                                        this.columnCount = 4;
+                                        break;
+                                    case 'xl':
+                                        offset = 3;
+                                        this.columnCount = 5;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                let rowHeight = (width / this.columnCount);
+                                let columnWidth = (width / this.columnCount) - offset;
+                                this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
+                                return (
+                                    <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
+                                        {this.cell.bind(this)}
+                                    </Grid>
+                                )}
+                            }
+                        </AutoSizer>
+                        <MediaViewer ref={this.mediaViewer} />
+                        <Modal show={this.state.loading} backdrop={false} animation={false} size="sm" aria-labelledby="contained-modal-title-vcenter" centered>
+                            <Modal.Body className="shadow-sm">
+                                <Container>
+                                    <Row>
+                                        <Col className="text-center mt-4 mb-2">
+                                            <Spinner className="loading-spinner" animation="border" variant="dark" />
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col className="text-center">
+                                            <p className="font-weight-light text-uppercase" >{this.state.status}</p>
+                                        </Col>
+                                    </Row>
+                                </Container>
+                            </Modal.Body>
+                        </Modal>
+                    </div>
                 </div>
-                <Breadcrumb>
+                <Navbar collapseOnSelect expand="sm" bg="dark" variant="dark" className="p-3">
                     <div style={{flexGrow: 1}}>{this.files()}</div>
                     <div>{size(this.state.items.reduce((sum, item) => sum + item.size, 0))}</div>
-                </Breadcrumb>
-            </Container>
+                </Navbar>
+            </>
         );
     }
 }
