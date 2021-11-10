@@ -34,7 +34,6 @@ export class Thumbnail extends Component {
     }
 
     thumbnail(index) {
-        if (this.props.type === "Folder") return "/folder.png";
         if ((index < 0) || (this.props.id === null)) return "/placeholder.png";
         return "/thumbnails/" + this.props.id + "/" + index + ".jpg";
     }
@@ -51,9 +50,12 @@ export class Thumbnail extends Component {
 
     render() {
         return (
-            <div className="thumbnail">
+            <div className="thumbnail d-flex">
+                <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
+                    { (this.props.type === "Folder") ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
+                </div>
                 <Card.Img src={this.thumbnail(this.state.index)} onLoad={() => this.setState({ loaded: true })} />
-                { (this.props.count > 1) ? <ProgressBar min={1} max={(this.props.id != null) ? this.props.count : 0} now={this.state.index + 1} className={((this.props.id != null) && (this.props.count)) ? "visible" : "invisible"} /> : <></> }
+                { (this.props.count > 1) ? <ProgressBar variant="info" min={1} max={(this.props.id != null) ? this.props.count : 0} now={this.state.index + 1} className={((this.props.id != null) && (this.props.count)) ? "visible" : "invisible"} /> : <></> }
             </div>
         );
     }
