@@ -3,9 +3,9 @@
 @import "~@fortawesome/fontawesome-free/scss/solid.scss";
 @import "~@fortawesome/fontawesome-free/scss/brands.scss";
 @import "~bootstrap-icons/font/bootstrap-icons";
-@import "~bootswatch/dist/darkly/variables";
+// @import "~bootswatch/dist/darkly/variables";
 @import "~bootstrap/scss/bootstrap";
-@import "~bootswatch/dist/darkly/bootswatch";
+// @import "~bootswatch/dist/darkly/bootswatch";
 @import "~video.js/dist/video-js.css";
 
 code {
@@ -61,7 +61,6 @@ code {
 
 .navbar-nav .filters {
     height: 100%;
-    margin-right: 5px;
     cursor: pointer;
 }
 
@@ -87,7 +86,6 @@ code {
 .navbar-nav .filters .flag {
     @extend .far;
     @extend %fa-icon;
-    margin-right: 5px;
     position: relative;
     font-size: x-large;
     display: none;
@@ -105,38 +103,24 @@ code {
     display: unset;
 }
 
-.navbar-nav .filters .flag.favorite,
-.media-container .card .thumbnail-container .flag.favorite {
-    &:before {
-        content: fa-content($fa-var-star);
-    }
+.navbar-nav .filters .flag:not(.set) {
+    opacity: 30%;
 }
-
-.navbar-nav .filters .flag.recursive {
-    @extend .fas;
-    &:before {
-        content: fa-content($fa-var-redo-alt);
-    }
-}
-
-.navbar-nav .filters .flag.set {
-    color: darkgray;
-}
-
-.media-container .card .thumbnail-container .flag.favorite.set {
-    color: yellow;
-}
-
+/*
 .navbar-nav .filters .flag:hover {
     color: gray;
 }
 
-.media-container .card .thumbnail-container .flag:hover {
+.navbar-nav .filters .flag.set:hover {
+    color: gray;
+}
+*/
+.media-container .card .thumbnail-container .flag.favorite.set {
     color: yellow;
 }
 
-.navbar-nav .filters .flag.set:hover {
-    color: gray;
+.media-container .card .thumbnail-container .flag:hover {
+    color: yellow;
 }
 
 .media-container .card .thumbnail-container .flag.set:hover {

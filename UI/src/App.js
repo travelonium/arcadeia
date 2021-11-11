@@ -22,7 +22,7 @@ export default class App extends Component {
         return (
             <Layout library={this.library} navigation={this.navigation}>
                 <Helmet>
-                    {/*<link rel="stylesheet" href={`/bootswatch/${this.state.theme}/bootstrap.min.css`} />*/}
+                    <link rel="stylesheet" href={`/bootswatch/${this.state.theme}/bootstrap.min.css`} />
                 </Helmet>
                 <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} navigation={this.navigation} /> } />
                 <Route path='/counter' component={Counter} />

@@ -1,10 +1,11 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
-import { Thumbnail } from './Thumbnail';
 import Tooltip from 'react-bootstrap/Tooltip';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract } from './../utils';
+import { Thumbnail } from './Thumbnail';
+import { Flag } from './Flag';
 
 export class MediaContainer extends Component {
 
@@ -103,8 +104,7 @@ export class MediaContainer extends Component {
         }
     }
 
-    onToggleFavorite(event) {
-        event.stopPropagation();
+    onToggleFavorite(value, event) {
         this.toggle("Favorite");
     }
 
@@ -116,10 +116,8 @@ export class MediaContainer extends Component {
                     <div className="thumbnail-container">
                         <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
-                        <div className="flags">
-                            <OverlayTrigger key="favorite" placement="top" overlay={ <Tooltip id="tooltip-favorite">{ (flags.includes('Favorite') ? "Unflag" : "Flag") } Favorite</Tooltip> }>
-                                <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (flags.includes('Favorite') ? " set" : "")}></span>
-                            </OverlayTrigger>
+                        <div className="flags px-1">
+                            <Flag name="favorite" tooltip={(flags.includes('Favorite') ? "Unflag" : "Flag") + " Favorite"} default={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">

@@ -286,7 +286,7 @@ export class Library extends Component {
         return (
             <>
                 <div className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                    <Breadcrumb className="mx-3" listProps={ { className: "py-3 px-4" } }>
+                    <Breadcrumb className="mx-3" listProps={ { className: "py-2 px-3" } }>
                         {
                             folders.map((folder, index) => {
                                 let link = location;
