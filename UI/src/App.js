@@ -31,7 +31,7 @@ export default class App extends Component {
         return (
             <Layout library={this.library} navigation={this.navigation} darkMode={this.state.darkMode}>
                 <Helmet>
-                    <link rel="stylesheet" href={`/bootswatch/${this.state.darkMode ? themes.dark.at(0) : themes.light.at(0)}/bootstrap.min.css`} />
+                    <link rel="stylesheet" href={`/bootswatch/${this.state.darkMode ? themes.dark[0] : themes.light[0]}/bootstrap.min.css`} />
                 </Helmet>
                 <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} navigation={this.navigation} darkMode={this.state.darkMode} /> } />
                 <Route path='/counter' component={Counter} />
