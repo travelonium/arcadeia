@@ -59,7 +59,7 @@ code {
     font-size: 7rem;
 }
 
-.navbar-nav .filters {
+.navbar-nav .toolbar {
     height: 100%;
     cursor: pointer;
 }
@@ -83,7 +83,7 @@ code {
     text-shadow: 0 0 1px #000;
 }
 
-.navbar-nav .filters .flag {
+.navbar-nav .toolbar .flag {
     @extend .far;
     @extend %fa-icon;
     position: relative;
@@ -98,20 +98,20 @@ code {
     @extend .fas;
 }
 
-.navbar-nav .filters .flag,
+.navbar-nav .toolbar .flag,
 .media-container .card.highlighted .thumbnail-container .flag {
     display: unset;
 }
 
-.navbar-nav .filters .flag:not(.set) {
+.navbar-nav .toolbar .flag:not(.set) {
     opacity: 30%;
 }
 /*
-.navbar-nav .filters .flag:hover {
+.navbar-nav .toolbar .flag:hover {
     color: gray;
 }
 
-.navbar-nav .filters .flag.set:hover {
+.navbar-nav .toolbar .flag.set:hover {
     color: gray;
 }
 */

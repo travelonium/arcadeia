@@ -110,13 +110,13 @@ export class NavMenu extends Component {
     render() {
         return (
             <header>
-                <Navbar collapseOnSelect expand="sm" bg="dark" variant="dark" className="mb-3 py-2">
+                <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
                     <Navbar.Brand href="/">Media Curator</Navbar.Brand>
                     <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
                     <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
                         <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
-                                <div className="filters d-flex align-items-center px-2">
+                                <div className="toolbar d-flex align-items-center px-2">
                                     <Flag className="mr-1" button name="favorite" tooltip="Favorite" default={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="mr-1" button name="recursive" tooltip="Recursive" default={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                 </div>
