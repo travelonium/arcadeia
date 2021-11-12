@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Helmet } from "react-helmet";
 import { Route } from 'react-router';
 import { Layout } from './components/Layout';
 import { Library } from './components/Library';
@@ -25,14 +24,16 @@ export default class App extends Component {
         this.state = {
             darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches ? true : false
         };
+        // add a class to the <html> tag specifying whether we should use the dark or the light theme
+        const themeClassName = this.state.darkMode ? 'dark-theme' : 'light-theme';
+        if (!document.documentElement.classList.contains(themeClassName)) {
+            document.documentElement.className += ` ${themeClassName}`;
+        }
     }
 
     render() {
         return (
             <Layout library={this.library} navigation={this.navigation} darkMode={this.state.darkMode}>
-                <Helmet>
-                    <link rel="stylesheet" href={`/bootswatch/${this.state.darkMode ? themes.dark[0] : themes.light[0]}/bootstrap.min.css`} />
-                </Helmet>
                 <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} navigation={this.navigation} darkMode={this.state.darkMode} /> } />
                 <Route path='/counter' component={Counter} />
                 <Route path='/fetch-data' component={FetchData} />

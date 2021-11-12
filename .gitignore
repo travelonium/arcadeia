@@ -261,6 +261,3 @@ Temporary Items
 
 # Data files and directories
 **/data
-
-# Files and directories generated at build
-UI/public/bootswatch/

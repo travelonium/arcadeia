@@ -1,12 +1,29 @@
-@import "~@fortawesome/fontawesome-free/scss/fontawesome.scss";
-@import "~@fortawesome/fontawesome-free/scss/regular.scss";
-@import "~@fortawesome/fontawesome-free/scss/solid.scss";
-@import "~@fortawesome/fontawesome-free/scss/brands.scss";
 @import "~bootstrap-icons/font/bootstrap-icons";
-// @import "~bootswatch/dist/darkly/variables";
-@import "~bootstrap/scss/bootstrap";
-// @import "~bootswatch/dist/darkly/bootswatch";
 @import "~video.js/dist/video-js.css";
+
+.light-theme {
+    @import "~bootswatch/dist/flatly/variables";
+    @import "~bootstrap/scss/bootstrap";
+    @import "~bootswatch/dist/flatly/bootswatch";
+
+    .media-container .card.highlighted {
+        box-shadow: 0 .125rem .25rem rgba($black, .075);
+        border: 1px solid rgba($black, 0.125);
+    }
+}
+
+.dark-theme {
+    @import "~bootswatch/dist/darkly/variables";
+    @import "~bootstrap/scss/bootstrap";
+    @import "~bootswatch/dist/darkly/bootswatch";
+
+    .media-container .card.highlighted {
+        box-shadow: 0 .125rem .75rem rgba($white, .050);
+        border: 1px solid rgba($white, 0.125);
+    }
+}
+
+@import "~bootstrap/scss/bootstrap";
 
 code {
     color: #E01A76;
@@ -73,29 +90,32 @@ code {
 }
 
 .media-container .card .thumbnail-container .flag {
-    @extend .far;
-    @extend %fa-icon;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 0 0 1px #000;
+    color: white;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    font-size: large;
+    line-height: 1;
     margin-right: 5px;
     position: relative;
-    font-size: large;
     display: none;
-    color: white;
-    text-shadow: 0 0 1px #000;
 }
 
 .navbar-nav .toolbar .flag {
-    @extend .far;
-    @extend %fa-icon;
-    position: relative;
-    font-size: x-large;
-    display: none;
-    color: lightgray;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
     text-shadow: none;
-}
-
-.navbar-nav .flag.set,
-.media-container .card .thumbnail-container .flag.set {
-    @extend .fas;
+    color: lightgray;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    font-size: x-large;
+    position: relative;
+    line-height: 1;
+    display: none;
 }
 
 .navbar-nav .toolbar .flag,
@@ -106,15 +126,7 @@ code {
 .navbar-nav .toolbar .flag:not(.set) {
     opacity: 30%;
 }
-/*
-.navbar-nav .toolbar .flag:hover {
-    color: gray;
-}
 
-.navbar-nav .toolbar .flag.set:hover {
-    color: gray;
-}
-*/
 .media-container .card .thumbnail-container .flag.favorite.set {
     color: yellow;
 }
@@ -131,11 +143,6 @@ code {
     position: absolute;
     bottom: 7px;
     right: 5px;
-}
-
-.media-container .card.highlighted {
-    @extend .shadow-sm;
-    border: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 .media-container .card .card-title {
