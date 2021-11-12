@@ -1,7 +1,7 @@
 @import "~bootstrap-icons/font/bootstrap-icons";
 @import "~video.js/dist/video-js.css";
 
-.light-theme {
+.light {
     @import "~bootswatch/dist/flatly/variables";
     @import "~bootstrap/scss/bootstrap";
     @import "~bootswatch/dist/flatly/bootswatch";
@@ -12,7 +12,7 @@
     }
 }
 
-.dark-theme {
+.dark {
     @import "~bootswatch/dist/darkly/variables";
     @import "~bootstrap/scss/bootstrap";
     @import "~bootswatch/dist/darkly/bootswatch";

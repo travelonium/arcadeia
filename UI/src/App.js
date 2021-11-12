@@ -25,7 +25,7 @@ export default class App extends Component {
             darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches ? true : false
         };
         // add a class to the <html> tag specifying whether we should use the dark or the light theme
-        const themeClassName = this.state.darkMode ? 'dark-theme' : 'light-theme';
+        const themeClassName = this.state.darkMode ? 'dark' : 'light';
         if (!document.documentElement.classList.contains(themeClassName)) {
             document.documentElement.className += ` ${themeClassName}`;
         }

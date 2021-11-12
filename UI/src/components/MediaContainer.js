@@ -110,6 +110,7 @@ export class MediaContainer extends Component {
 
     render() {
         const flags = extract([], this.state.source, "flags");
+        const favorite = flags.includes('Favorite');
         return (
             <div className={"media-container" + (this.state.source.type ? (" " + this.state.source.type.toLowerCase()) : "")}>
                 <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
@@ -117,7 +118,7 @@ export class MediaContainer extends Component {
                         <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
                         <div className="flags px-1">
-                            <Flag name="favorite" tooltip={(flags.includes('Favorite') ? "Unflag" : "Flag") + " Favorite"} default={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                            <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} default={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">

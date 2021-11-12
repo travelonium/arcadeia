@@ -77,10 +77,13 @@ export class NavMenu extends Component {
         this.setState({
             favorite: value
         }, () => {
-            if (!this.state.query) return;
-            clearTimeout(this.searchTimeout);
             let library = this.props.library.current;
-            library.search();
+            if (this.state.query) {
+                clearTimeout(this.searchTimeout);
+                library.search();
+            } else {
+                library.list(library.state.path, true);
+            }
         });
     }
 

@@ -55,17 +55,11 @@ export class Library extends Component {
 
     list(path, search = false, history = false) {
         if (!path) return;
-        let query = this.props.navigation.current.state.query;
         let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (search && query) {
+        if (search) {
             let favorite = this.props.navigation.current.state.favorite;
-            let recursive = this.props.navigation.current.state.recursive;
-            // update the recursive parameter
-            params.set("recursive", recursive);
-            // update the query parameter
-            params.set("query", query);
             // update the favorite flags parameters
             flags = updateBit(flags, 1, favorite);
             values = updateBit(values, 1, favorite);
