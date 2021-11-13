@@ -25,153 +25,151 @@
 
 @import "~bootstrap/scss/bootstrap";
 
-code {
-    color: #E01A76;
-}
+.navbar-nav {
+    .toolbar {
+        .flag {
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-font-smoothing: antialiased;
+            text-shadow: none;
+            color: lightgray;
+            font-style: normal;
+            font-variant: normal;
+            font-weight: normal;
+            font-size: x-large;
+            position: relative;
+            line-height: 1;
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+            &:not(.set) {
+                opacity: 0.3;
+            }
+        }
+    }
 }
 
 .media-container {
     height: 100%;
-}
 
-.media-container .card {
-    border: 1px solid rgba(0, 0, 0, 0.125);
-    margin-bottom: 15px;
-    cursor: pointer;
-    height: 100%;
-}
+    .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        margin-bottom: 15px;
+        cursor: pointer;
+        height: 100%;
 
-.media-container .card .card-img {
-    width: 100%;
-    height: 100%;
-    border-bottom-left-radius: 0%;
-    border-bottom-right-radius: 0%;
-}
+        &.highlighted {
+            .thumbnail-container {
+                .flag {
+                    display: unset;
+                }
+            }
+        }
+        .thumbnail-container {
+            width: 100%;
+            height: 56.25%; // 9:16
+            position: relative;
+            overflow: hidden;
 
-.media-container .card .thumbnail-container {
-    width: 100%;
-    height: 56.25%; // 9:16
-    position: relative;
-    overflow: hidden;
-}
+            .thumbnail {
+                width: 100%;
+                height: 100%;
 
-.media-container .card .thumbnail-container .thumbnail {
-    width: 100%;
-    height: 100%;
-}
+                .thumbnail-icon {
+                    font-size: 7rem;
+                }
+            }
 
-.media-container .card .thumbnail-container .thumbnail .progress {
-    position: absolute;
-    width: 100%;
-    bottom: 0px;
-    left: 0px;
-}
+            .flags {
+                top: 5px;
+                left: 5px;
+                right: 5px;
+                position: absolute;
+                vertical-align: middle;
+            }
 
-.media-container .card .thumbnail-container .thumbnail .thumbnail-icon {
-    font-size: 7rem;
-}
+            .flag {
+                -moz-osx-font-smoothing: grayscale;
+                -webkit-font-smoothing: antialiased;
+                text-shadow: 0 0 1px #000;
+                color: white;
+                font-style: normal;
+                font-variant: normal;
+                font-weight: normal;
+                font-size: large;
+                line-height: 1;
+                margin-right: 5px;
+                position: relative;
+                display: none;
 
-.navbar-nav .toolbar {
-    height: 100%;
-    cursor: pointer;
-}
+                &.favorite {
+                    &.set {
+                        color: yellow;
 
-.media-container .card .thumbnail-container .flags {
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    position: absolute;
-    vertical-align: middle;
-}
+                        &:hover {
+                            color: white;
+                        }
+                    }
+                    &:hover {
+                        color: yellow;
+                    }
+                }
 
-.media-container .card .thumbnail-container .flag {
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-font-smoothing: antialiased;
-    text-shadow: 0 0 1px #000;
-    color: white;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    font-size: large;
-    line-height: 1;
-    margin-right: 5px;
-    position: relative;
-    display: none;
-}
+                &.set {
+                    display: unset;
+                }
+            }
 
-.navbar-nav .toolbar .flag {
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-font-smoothing: antialiased;
-    text-shadow: none;
-    color: lightgray;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    font-size: x-large;
-    position: relative;
-    line-height: 1;
-    display: none;
-}
+            .duration {
+                &.badge {
+                    position: absolute;
+                    bottom: 7px;
+                    right: 5px;
+                }
+            }
+        }
 
-.navbar-nav .toolbar .flag,
-.media-container .card.highlighted .thumbnail-container .flag {
-    display: unset;
-}
+        .card-img {
+            width: 100%;
+            height: 100%;
+            border-bottom-left-radius: 0%;
+            border-bottom-right-radius: 0%;
+        }
 
-.navbar-nav .toolbar .flag:not(.set) {
-    opacity: 0.3;
-}
+        .card-title {
+            overflow: hidden;
+            max-height: 2.5em;
+            text-overflow: ellipsis;
+            white-space: normal;
+        }
 
-.media-container .card .thumbnail-container .flag.favorite.set {
-    color: yellow;
-}
+        .card-body {
+            padding: 0.5rem;
+            height: 5rem;
 
-.media-container .card .thumbnail-container .flag:hover {
-    color: yellow;
-}
+            p {
+                font-size: 1.1rem;
+                max-height: 3.5rem;
+                text-overflow: ellipsis;
+                white-space: normal;
+                overflow: hidden;
+            }
+        }
 
-.media-container .card .thumbnail-container .flag.set:hover {
-    color: white;
-}
+        .progress {
+            left: 0px;
+            bottom: 0px;
+            width: 100%;
+            height: 2px;
+            position: absolute;
+            border-radius:unset;
+        }
+    }
 
-.media-container .card .thumbnail-container .duration.badge {
-    position: absolute;
-    bottom: 7px;
-    right: 5px;
-}
-
-.media-container .card .card-title {
-    overflow: hidden;
-    max-height: 2.5em;
-    text-overflow: ellipsis;
-    white-space: normal;
-}
-
-.media-container.folder .card .card-title {
-    text-align: center;
-}
-
-.media-container .card .card-body {
-    padding: 0.5rem;
-    height: 5rem;
-}
-
-.media-container .card .card-body p {
-    font-size: 1.1rem;
-    max-height: 3.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal;
-}
-
-.media-container .card .progress {
-    height: 2px;
-    border-radius:unset;
+    &.folder {
+        .card {
+            .card-title {
+                text-align: center;
+            }
+        }
+    }
 }
 
 .spinner-border {
