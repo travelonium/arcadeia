@@ -67,13 +67,15 @@ export class MediaContainer extends Component {
     }
 
     toggle(flag) {
-        let source = this.state.source;
-        let index = source.flags.indexOf(flag);
+        let source = Object.assign({}, this.state.source);
+        let flags = extract([], source, 'flags');
+        let index = flags.indexOf(flag);
         if (index !== -1) {
-            source.flags.splice(index, 1);
+            flags.splice(index, 1);
         } else {
-            source.flags.push(flag);
+            flags.push(flag);
         }
+        source['flags'] = flags;
         this.apply(source);
     }
 
