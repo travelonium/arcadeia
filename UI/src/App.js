@@ -31,6 +31,26 @@ export default class App extends Component {
         }
     }
 
+    componentDidMount() {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => this.onSelectMode(e.matches ? 'dark' : 'light'));
+    }
+
+    componentWillUnmount() {
+        window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', e => this.onSelectMode(this, e.matches ? 'dark' : 'light'));
+    }
+
+    onSelectMode(mode) {
+        if (mode === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.remove('light');
+        }
+        document.documentElement.className += ` ${mode}`;
+        this.setState({
+            darkMode: ((mode === 'dark') ? true : false)
+        });
+    }
+
     render() {
         return (
             <Layout library={this.library} navigation={this.navigation} darkMode={this.state.darkMode}>
