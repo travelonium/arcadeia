@@ -64,10 +64,6 @@ export class Library extends Component {
             // update the favorite flags parameters
             flags = updateBit(flags, 1, favorite);
             values = updateBit(values, 1, favorite);
-            this.setState({
-                loading: true,
-                status: "Requesting",
-            });
         } else {
             this.props.navigation.current.clearSearch();
         }
@@ -85,39 +81,45 @@ export class Library extends Component {
             params.delete("values");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        fetch("/library" + path)
-        .then((response) => {
-            this.setState({
-                status: "Loading",
-                items: []
-            });
-            return response.json();
-        })
-        .then((json) => {
-            let items = Array.isArray(json) ? json : [json];
-            this.setState({
-                loading: false,
-                status: items.length ? "" : "No Items",
-                path: path,
-                items: items
-            });
-            // now change the history if we have to!
-            if (!history) {
-                window.history.pushState({path: path}, "", path);
-            }
-            // pass on the source to the viewer if this is a file
-            return Array.isArray(json) ? null : json;
-        })
-        .then((source) => {
-            if (source !== null) {
-                this.view(source);
-            }
-        })
-        .catch((error) => {
-            this.setState({
-                loading: false,
-                status: error,
-                items: []
+        this.setState({
+            items: [],
+            loading: true,
+            status: "Requesting",
+        }, () => {
+            fetch("/library" + path)
+            .then((response) => {
+                this.setState({
+                    status: "Loading",
+                    items: []
+                });
+                return response.json();
+            })
+            .then((json) => {
+                let items = Array.isArray(json) ? json : [json];
+                this.setState({
+                    loading: false,
+                    status: items.length ? "" : "No Items",
+                    path: path,
+                    items: items
+                });
+                // now change the history if we have to!
+                if (!history) {
+                    window.history.pushState({path: path}, "", path);
+                }
+                // pass on the source to the viewer if this is a file
+                return Array.isArray(json) ? null : json;
+            })
+            .then((source) => {
+                if (source !== null) {
+                    this.view(source);
+                }
+            })
+            .catch((error) => {
+                this.setState({
+                    loading: false,
+                    status: error,
+                    items: []
+                });
             });
         });
     }
@@ -156,10 +158,6 @@ export class Library extends Component {
         } else {
             params.delete("values");
         }
-        this.setState({
-            loading: true,
-            status: "Requesting",
-        });
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select"
@@ -185,48 +183,54 @@ export class Library extends Component {
             input.fq.push("path:\"" + path.split('?')[0] + "\"")
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        fetch(solr + "?" + this.querify(input).toString(), {
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-            },
-        })
-        .then((response) => {
-            if (!response.ok) {
-                let message = "Error querying the Solr index!";
-                return response.text().then((data) => {
-                    try {
-                        let json = JSON.parse(data);
-                        let exception = extract(null, json, "error", "msg");
-                        if (exception) message = exception;
-                    } catch (error) {}
-                    throw Error(message);
-                });
-            } else {
+        this.setState({
+            items: [],
+            loading: true,
+            status: "Requesting",
+        }, () => {
+            fetch(solr + "?" + this.querify(input).toString(), {
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            })
+            .then((response) => {
+                if (!response.ok) {
+                    let message = "Error querying the Solr index!";
+                    return response.text().then((data) => {
+                        try {
+                            let json = JSON.parse(data);
+                            let exception = extract(null, json, "error", "msg");
+                            if (exception) message = exception;
+                        } catch (error) {}
+                        throw Error(message);
+                    });
+                } else {
+                    this.setState({
+                        status: "Loading",
+                        items: []
+                    });
+                }
+                return response.json();
+            })
+            .then((result) => {
+                const docs = extract([], result, "response", "docs");
                 this.setState({
-                    status: "Loading",
+                    loading: false,
+                    status: docs.length ? "" : "No Results",
+                    path: path,
+                    items: docs
+                });
+                // now change the history if we have to!
+                window.history.pushState({path: path}, "", path);
+            })
+            .catch(error => {
+                console.error(error);
+                this.setState({
+                    loading: false,
+                    status: "Connection Error",
                     items: []
                 });
-            }
-            return response.json();
-        })
-        .then((result) => {
-            const docs = extract([], result, "response", "docs");
-            this.setState({
-                loading: false,
-                status: docs.length ? "" : "No Results",
-                path: path,
-                items: docs
-            });
-            // now change the history if we have to!
-            window.history.pushState({path: path}, "", path);
-        })
-        .catch(error => {
-            console.error(error);
-            this.setState({
-                loading: false,
-                status: "Connection Error",
-                items: []
             });
         });
     }
