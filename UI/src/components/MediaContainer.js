@@ -1,8 +1,6 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
-import Tooltip from 'react-bootstrap/Tooltip';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract } from './../utils';
 import { Thumbnail } from './Thumbnail';
 import { Flag } from './Flag';

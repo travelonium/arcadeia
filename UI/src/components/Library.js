@@ -276,39 +276,28 @@ export class Library extends Component {
         let path = url.split('?')[0];
         let params = url.split("?")[1];
         let search = (params !== undefined) && (params.indexOf("query=") !== -1);
-        let folders = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
+        let components = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
             <>
                 <div className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                     <Breadcrumb className="mx-3" listProps={{ className: "py-2 px-3" }}>
                         {
-                            folders.map((folder, index) => {
+                            components.filter((component) => component).map((component, index, array) => {
                                 let link = location;
                                 let active = false;
-                                let last = (index === (folders.length - 1));
-                                if (folder) {
-                                    if (index) {
-                                        if (last) {
-                                            if (search) {
-                                                // it's the search results item, deactivate it
-                                                link = "";
-                                                active = true;
-                                            } else {
-                                                // don't add the trailing slash if this is a file
-                                                location += folder;
-                                                link = location;
-                                            }
-                                        } else {
-                                            location += folder + "/";
-                                            link = location;
-                                        }
+                                let last = (index === (array.length - 1));
+                                if (index) {
+                                    if (last) {
+                                        link = "";
+                                        active = true;
+                                    } else {
+                                        location += component + "/";
+                                        link = location;
                                     }
-                                    return (
-                                        <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={event => this.list(event.target.getAttribute("link"))} >{folder}</Breadcrumb.Item>
-                                    );
-                                } else {
-                                    return null;
                                 }
+                                return (
+                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={event => this.list(event.target.getAttribute("link"))} >{component}</Breadcrumb.Item>
+                                );
                             })
                         }
                     </Breadcrumb>

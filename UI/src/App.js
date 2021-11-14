@@ -5,15 +5,6 @@ import { Library } from './components/Library';
 import { FetchData } from './components/FetchData';
 import { Counter } from './components/Counter';
 
-const themes = {
-    "light": [
-        "flatly",
-    ],
-    "dark": [
-        "darkly",
-    ]
-};
-
 export default class App extends Component {
     static displayName = App.name;
 

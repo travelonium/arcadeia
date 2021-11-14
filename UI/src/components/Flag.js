@@ -43,7 +43,7 @@ export class Flag extends Component {
                     <Button className={"border-0 shadow-none" + (this.props.className ? ` ${this.props.className}` : "")} variant="outline-secondary" onClick={this.onToggle.bind(this)}>
                         <i className={["flag", "bi", icon, this.props.name, (this.state.value ? "set" : "")].join(" ")}></i>
                     </Button> :
-                    <i className={this.props.className ? ` ${this.props.className}` : null} onClick={this.onToggle.bind(this)} className={["flag", "bi", icon, this.props.name, (this.state.value ? "set" : "")].join(" ")}></i>
+                    <i className={[this.props.className ? this.props.className : "", "flag", "bi", icon, this.props.name, (this.state.value ? "set" : "")].join(" ")} onClick={this.onToggle.bind(this)}></i>
                 }
             </OverlayTrigger>
         );
