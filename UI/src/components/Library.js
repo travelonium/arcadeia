@@ -59,14 +59,13 @@ export class Library extends Component {
         let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (search) {
-            let favorite = this.props.navigation.current.state.favorite;
-            // update the favorite flags parameters
-            flags = updateBit(flags, 1, favorite);
-            values = updateBit(values, 1, favorite);
-        } else {
+        let favorite = this.props.navigation.current.state.favorite;
+        if (!search) {
             this.props.navigation.current.clearSearch();
         }
+        // update the favorite flags parameters
+        flags = updateBit(flags, 1, favorite);
+        values = updateBit(values, 1, favorite);
         // update the deleted flags bits to exclude the deleted files
         flags = updateBit(flags, 0, 1);
         values = updateBit(values, 0, 0);
