@@ -335,7 +335,7 @@ namespace MediaCurator
          }
 
          // Add the new media to the Solr index if indexing is enabled.
-         if ((mediaFile != null) && (_configuration.GetSection("Solr:URL").Exists()))
+         if ((mediaFile != null) && mediaFile.Created && (_configuration.GetSection("Solr:URL").Exists()))
          {
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
@@ -414,7 +414,7 @@ namespace MediaCurator
             }
 
             // Update or Delete the new media in the Solr index if indexing is enabled.
-            if ((mediaFile != null) && (_configuration.GetSection("Solr:URL").Exists()))
+            if ((mediaFile != null) && mediaFile.Modified && (_configuration.GetSection("Solr:URL").Exists()))
             {
                using (IServiceScope scope = _serviceProvider.CreateScope())
                {
