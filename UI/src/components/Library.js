@@ -11,6 +11,7 @@ import { FixedSizeGrid as Grid } from 'react-window';
 import { extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import cx from 'classnames';
 
 export class Library extends Component {
 
@@ -96,6 +97,7 @@ export class Library extends Component {
             let items = Array.isArray(json) ? json : [json];
             this.setState({
                 loading: false,
+                status: items.length ? "" : "No Items",
                 path: path,
                 items: items
             });
@@ -114,7 +116,7 @@ export class Library extends Component {
         .catch((error) => {
             this.setState({
                 loading: false,
-                status: "Error",
+                status: error,
                 items: []
             });
         });
@@ -200,6 +202,11 @@ export class Library extends Component {
                     } catch (error) {}
                     throw Error(message);
                 });
+            } else {
+                this.setState({
+                    status: "Loading",
+                    items: []
+                });
             }
             return response.json();
         })
@@ -207,6 +214,7 @@ export class Library extends Component {
             const docs = extract([], result, "response", "docs");
             this.setState({
                 loading: false,
+                status: docs.length ? "" : "No Results",
                 path: path,
                 items: docs
             });
@@ -215,6 +223,11 @@ export class Library extends Component {
         })
         .catch(error => {
             console.error(error);
+            this.setState({
+                loading: false,
+                status: "Connection Error",
+                items: []
+            });
         });
     }
 
@@ -275,6 +288,8 @@ export class Library extends Component {
         let url = "Library".concat(this.state.path);
         let path = url.split('?')[0];
         let params = url.split("?")[1];
+        let status = this.state.status;
+        let loading = this.state.loading;
         let search = (params !== undefined) && (params.indexOf("query=") !== -1);
         let components = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
@@ -301,7 +316,7 @@ export class Library extends Component {
                             })
                         }
                     </Breadcrumb>
-                    <div className="ml-3 mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                    <div className="d-flex ml-3 mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                         <AutoSizer>
                             {({ height, width }) => {
                                 let offset = 0;
@@ -341,22 +356,18 @@ export class Library extends Component {
                             }
                         </AutoSizer>
                         <MediaViewer ref={this.mediaViewer} />
-                        <Modal show={this.state.loading} backdrop={false} animation={false} size="sm" aria-labelledby="contained-modal-title-vcenter" centered>
-                            <Modal.Body className="shadow-sm">
-                                <Container>
-                                    <Row>
-                                        <Col className="text-center mt-4 mb-2">
-                                            <Spinner className="loading-spinner" animation="border" variant="dark" />
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col className="text-center">
-                                            <p className="font-weight-light text-uppercase" >{this.state.status}</p>
-                                        </Col>
-                                    </Row>
-                                </Container>
-                            </Modal.Body>
-                        </Modal>
+                        <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
+                            <Row className="mt-auto">
+                                <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>
+                                    <Spinner className="loading-spinner" animation="border" role="status"/>
+                                </Col>
+                            </Row>
+                            <Row className="mb-auto">
+                                <Col className={cx(status ? "d-flex" : "d-none", "text-center")}>
+                                    <p className="font-weight-light h5 text-uppercase" >{this.state.status}</p>
+                                </Col>
+                            </Row>
+                        </Container>
                     </div>
                 </div>
                 <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "light"} variant="dark" className="p-3">
