@@ -181,7 +181,7 @@ export class Library extends Component {
         if (!recursive) {
             input.fq.push("path:\"" + path.split('?')[0] + "\"");
         } else {
-            input.fq.push(("path:" + path.split('?')[0] + "*").replace(/\//g, '\\/'));
+            input.fq.push("path:" + (path.split('?')[0]).replace(/([\+\-!\(\)\{\}\[\]\^\"\~\*\?\:\\\/ ])/g, "\\$1") + "*");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
         this.setState({
