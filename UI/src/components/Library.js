@@ -159,7 +159,7 @@ export class Library extends Component {
         }
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
-            solr = "http://localhost:8983/solr/Library/select"
+            solr = "http://localhost:8983/solr/Library/select";
         }
         const input = {
             q: query,
@@ -171,15 +171,17 @@ export class Library extends Component {
             wt: "json",
         };
         if (favorite) {
-            input.fq.push("flags:Favorite")
+            input.fq.push("flags:Favorite");
         }
         if (deleted) {
-            input.fq.push("flags:Deleted")
+            input.fq.push("flags:Deleted");
         } else {
-            input.fq.push("-flags:Deleted")
+            input.fq.push("-flags:Deleted");
         }
         if (!recursive) {
-            input.fq.push("path:\"" + path.split('?')[0] + "\"")
+            input.fq.push("path:\"" + path.split('?')[0] + "\"");
+        } else {
+            input.fq.push(("path:" + path.split('?')[0] + "*").replace(/\//g, '\\/'));
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
         this.setState({
