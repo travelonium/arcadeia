@@ -1,7 +1,6 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import React, { Component } from 'react';
-import Modal from 'react-bootstrap/Modal';
 import Navbar from 'react-bootstrap/Navbar';
 import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
@@ -181,7 +180,7 @@ export class Library extends Component {
         if (!recursive) {
             input.fq.push("path:\"" + path.split('?')[0] + "\"");
         } else {
-            input.fq.push("path:" + (path.split('?')[0]).replace(/([\+\-!\(\)\{\}\[\]\^\"\~\*\?\:\\\/ ])/g, "\\$1") + "*");
+            input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
         this.setState({
