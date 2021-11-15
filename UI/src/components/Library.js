@@ -315,7 +315,7 @@ export class Library extends Component {
                                 let active = false;
                                 let last = (index === (array.length - 1));
                                 if (index) {
-                                    if (last) {
+                                    if (last && search) {
                                         link = "";
                                         active = true;
                                     } else {
