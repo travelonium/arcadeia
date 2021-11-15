@@ -352,7 +352,7 @@ export class Library extends Component {
                                         this.columnCount = 4;
                                         break;
                                     case 'xl':
-                                        offset = 3;
+                                        offset = 4;
                                         this.columnCount = 5;
                                         break;
                                     default:
