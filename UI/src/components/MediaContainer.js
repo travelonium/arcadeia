@@ -118,7 +118,7 @@ export class MediaContainer extends Component {
                         <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
                         <div className="flags px-1">
-                            <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} default={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                            <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">

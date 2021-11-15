@@ -2,6 +2,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
+import cx from 'classnames';
 
 export class Flag extends Component {
 
@@ -9,9 +10,7 @@ export class Flag extends Component {
 
     constructor(props) {
         super(props);
-        this.state = {
-            value: this.props.default ?? false
-        };
+        this.state = {};
     }
 
     componentDidMount() {
@@ -23,27 +22,23 @@ export class Flag extends Component {
     onToggle(event) {
         event.stopPropagation();
         event.persist();
-        this.setState({
-            value: !this.state.value,
-        }, () => {
-            if (this.props.onChange) {
-                this.props.onChange(this.state.value, event);
-            }
-        })
+        if (this.props.onChange) {
+            this.props.onChange(!this.props.value, event);
+        }
     }
 
     render() {
-        let icon = this.state.value ? this.props.set : this.props.unset;
+        let icon = this.props.value ? this.props.set : this.props.unset;
         return (
             <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                 (this.props.tooltip) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
             }>
                 {
                     (this.props.button) ?
-                    <Button className={"border-0 shadow-none" + (this.props.className ? ` ${this.props.className}` : "")} variant="outline-secondary" onClick={this.onToggle.bind(this)}>
-                        <i className={["flag", "bi", icon, this.props.name, (this.state.value ? "set" : "")].join(" ")}></i>
+                    <Button className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" onClick={this.onToggle.bind(this)}>
+                        <i className={cx("flag bi", icon, this.props.name, (this.props.value ? "set" : ""))}></i>
                     </Button> :
-                    <i className={[this.props.className ? this.props.className : "", "flag", "bi", icon, this.props.name, (this.state.value ? "set" : "")].join(" ")} onClick={this.onToggle.bind(this)}></i>
+                    <i className={cx(this.props.className, "flag bi", icon, this.props.name, (this.props.value ? "set" : ""))} onClick={this.onToggle.bind(this)}></i>
                 }
             </OverlayTrigger>
         );

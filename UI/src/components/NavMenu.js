@@ -118,8 +118,8 @@ export class NavMenu extends Component {
                         <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
-                                    <Flag className="mr-1" button name="favorite" tooltip="Favorite" default={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
-                                    <Flag className="mr-1" button name="recursive" tooltip="Recursive" default={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
+                                    <Flag className="mr-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                                    <Flag className="mr-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                 </div>
                             </Nav.Item>
                             <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
