@@ -21,6 +21,7 @@ export class Library extends Component {
         this.rowCount = 1;
         this.columnCount = 1;
         this.mediaViewer = React.createRef();
+        this.controller = new AbortController();
         let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
             loading: false,
@@ -79,12 +80,15 @@ export class Library extends Component {
             params.delete("values");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
+        if (this.state.loading) this.controller.abort();
         this.setState({
             items: [],
             loading: true,
             status: "Requesting",
         }, () => {
-            fetch("/library" + path)
+            fetch("/library" + path, {
+                signal: this.controller.signal,
+            })
             .then((response) => {
                 this.setState({
                     status: "Loading",
@@ -113,9 +117,10 @@ export class Library extends Component {
                 }
             })
             .catch((error) => {
+                if (error.name === 'AbortError') return;
                 this.setState({
                     loading: false,
-                    status: error,
+                    status: error.message,
                     items: []
                 });
             });
@@ -183,12 +188,14 @@ export class Library extends Component {
             input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
+        if (this.state.loading) this.controller.abort();
         this.setState({
             items: [],
             loading: true,
             status: "Requesting",
         }, () => {
             fetch(solr + "?" + this.querify(input).toString(), {
+                signal: this.controller.signal,
                 credentials: 'include',
                 headers: {
                     'Accept': 'application/json',
@@ -225,10 +232,10 @@ export class Library extends Component {
                 window.history.pushState({path: path}, "", path);
             })
             .catch(error => {
-                console.error(error);
+                if (error.name === 'AbortError') return;
                 this.setState({
                     loading: false,
-                    status: "Connection Error",
+                    status: error.message,
                     items: []
                 });
             });
