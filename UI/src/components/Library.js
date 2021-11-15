@@ -80,7 +80,8 @@ export class Library extends Component {
             params.delete("values");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        if (this.state.loading) this.controller.abort();
+        this.controller.abort();
+        this.controller = new AbortController();
         this.setState({
             items: [],
             loading: true,
@@ -188,7 +189,8 @@ export class Library extends Component {
             input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        if (this.state.loading) this.controller.abort();
+        this.controller.abort();
+        this.controller = new AbortController();
         this.setState({
             items: [],
             loading: true,
