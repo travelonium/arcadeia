@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Container from 'react-bootstrap/Container';
-import Tooltip from 'react-bootstrap/Tooltip';
 import Navbar from 'react-bootstrap/Navbar';
 import Form from 'react-bootstrap/Form';
 import Nav from 'react-bootstrap/Nav';
+import { Flag } from './Flag';
 import './NavMenu.css';
 
 export class NavMenu extends Component {
@@ -17,6 +15,8 @@ export class NavMenu extends Component {
         this.state = {
             query: "",
             collapsed: true,
+            favorite: false,
+            recursive: true,
         };
     }
 
@@ -25,11 +25,11 @@ export class NavMenu extends Component {
     }
 
     resetSearchParams(callback = () => {}) {
-        let state = {
+        let state = Object.assign(this.state, {
             query: "",
             favorite: false,
             recursive: true,
-        };
+        });
         let params = new URLSearchParams(window.location.search);
         let query = params.get("query");
         let flags = parseInt(params.get("flags"));
@@ -71,20 +71,23 @@ export class NavMenu extends Component {
     onKeyDown(event) {
     }
 
-    onToggleFavorite() {
+    onToggleFavorite(value) {
         this.setState({
-            favorite: !this.state.favorite
+            favorite: value
         }, () => {
-            if (!this.state.query) return;
-            clearTimeout(this.searchTimeout);
             let library = this.props.library.current;
-            library.search();
+            if (this.state.query) {
+                clearTimeout(this.searchTimeout);
+                library.search();
+            } else {
+                library.list(library.state.path, true);
+            }
         });
     }
 
-    onToggleRecursive() {
+    onToggleRecursive(value) {
         this.setState({
-            recursive: !this.state.recursive
+            recursive: value
         }, () => {
             if (!this.state.query) return;
             clearTimeout(this.searchTimeout);
@@ -108,28 +111,22 @@ export class NavMenu extends Component {
     render() {
         return (
             <header>
-                <Navbar collapseOnSelect expand="sm" bg="light" variant="light" className="mb-3 ng-white">
-                    <Container>
-                        <Navbar.Brand href="/">Media Curator</Navbar.Brand>
-                        <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
-                        <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
-                            <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
-                                <Nav.Item>
-                                    <div className="filters d-flex align-items-center">
-                                        <OverlayTrigger key="favorite" placement="bottom" overlay={ <Tooltip id="tooltip-favorite">{ "" } Favorite</Tooltip> }>
-                                            <span onClick={this.onToggleFavorite.bind(this)} className={"flag favorite" + (this.state.favorite ? " set" : "")}></span>
-                                        </OverlayTrigger>
-                                        <OverlayTrigger key="recursive" placement="bottom" overlay={ <Tooltip id="tooltip-recursive">{ "" } Recursive</Tooltip> }>
-                                            <span onClick={this.onToggleRecursive.bind(this)} className={"flag recursive" + (this.state.recursive ? " set" : "")}></span>
-                                        </OverlayTrigger>
-                                    </div>
-                                </Nav.Item>
-                                <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                    <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
-                                </Nav.Item>
-                            </Nav>
-                        </Navbar.Collapse>
-                    </Container>
+                <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
+                    <Navbar.Brand href="/">Media Curator</Navbar.Brand>
+                    <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
+                    <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
+                        <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
+                            <Nav.Item>
+                                <div className="toolbar d-flex align-items-center px-2">
+                                    <Flag className="mr-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                                    <Flag className="mr-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
+                                </div>
+                            </Nav.Item>
+                            <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
+                                <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" mr-sm-2" />
+                            </Nav.Item>
+                        </Nav>
+                    </Navbar.Collapse>
                 </Navbar>
             </header>
         );

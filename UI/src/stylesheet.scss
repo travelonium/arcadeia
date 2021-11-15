@@ -1,182 +1,191 @@
-@import "bootstrap";
+@import "~bootstrap-icons/font/bootstrap-icons";
 @import "~video.js/dist/video-js.css";
-@import "~@fortawesome/fontawesome-free/scss/fontawesome.scss";
-@import "~@fortawesome/fontawesome-free/scss/regular.scss";
-@import "~@fortawesome/fontawesome-free/scss/solid.scss";
-@import "~@fortawesome/fontawesome-free/scss/brands.scss";
 
-a {
-    color: #0366d6;
+.light {
+    @import "~bootswatch/dist/flatly/variables";
+    @import "~bootstrap/scss/bootstrap";
+    @import "~bootswatch/dist/flatly/bootswatch";
+
+    /* FIXME: Not working as expected. This is meant to eliminate the need for passing the darkMode.
+    header {
+        .navbar {
+            @extend .bg-primary;
+        }
+    }*/
+
+    .media-container .card.highlighted {
+        box-shadow: 0 .125rem .25rem rgba($black, .075);
+        border: 1px solid rgba($black, 0.125);
+    }
 }
 
-code {
-    color: #E01A76;
+.dark {
+    @import "~bootswatch/dist/darkly/variables";
+    @import "~bootstrap/scss/bootstrap";
+    @import "~bootswatch/dist/darkly/bootswatch";
+
+    /* FIXME: Not working as expected. This is meant to eliminate the need for passing the darkMode.
+    header {
+        .navbar {
+            @extend .bg-dark;
+        }
+    }
+    */
+
+    .media-container .card.highlighted {
+        box-shadow: 0 .125rem .75rem rgba($white, .050);
+        border: 1px solid rgba($white, 0.125);
+    }
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+@import "~bootstrap/scss/bootstrap";
+
+.navbar-nav {
+    .toolbar {
+        .flag {
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-font-smoothing: antialiased;
+            text-shadow: none;
+            color: lightgray;
+            font-style: normal;
+            font-variant: normal;
+            font-weight: normal;
+            font-size: x-large;
+            position: relative;
+            line-height: 1;
+
+            &:not(.set) {
+                opacity: 0.3;
+            }
+        }
+    }
 }
 
 .media-container {
     height: 100%;
-}
 
-.media-container .card {
-    border: 1px solid rgba(0, 0, 0, 0.125);
-    margin-bottom: 15px;
-    cursor: pointer;
-    height: 100%;
-}
+    .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        margin-bottom: 15px;
+        cursor: pointer;
+        height: 100%;
 
-.media-container .card .card-img {
-    width: 100%;
-    height: 100%;
-    border-bottom-left-radius: 0%;
-    border-bottom-right-radius: 0%;
-}
+        &.highlighted {
+            .thumbnail-container {
+                .flag {
+                    display: unset;
+                }
+            }
+        }
 
-.media-container .card .thumbnail-container {
-    width: 100%;
-    height: 56.25%; // 9:16
-    position: relative;
-    overflow: hidden;
-}
-.media-container .card .thumbnail-container .thumbnail {
-    width: 100%;
-    height: 100%;
-}
+        .thumbnail-container {
+            width: 100%;
+            height: 56.25%; // 9:16
+            position: relative;
+            overflow: hidden;
 
-.media-container .card .thumbnail-container .thumbnail .progress {
-    position: absolute;
-    width: 100%;
-    bottom: 0px;
-    left: 0px;
-}
+            .thumbnail {
+                width: 100%;
+                height: 100%;
 
-.navbar-nav .filters {
-    height: 100%;
-    margin-right: 5px;
-    cursor: pointer;
-}
+                .thumbnail-icon {
+                    font-size: 7rem;
+                }
+            }
 
-.media-container .card .thumbnail-container .flags {
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    position: absolute;
-    vertical-align: middle;
-}
+            .flags {
+                top: 5px;
+                left: 5px;
+                right: 5px;
+                position: absolute;
+                vertical-align: middle;
+            }
 
-.media-container .card .thumbnail-container .flag {
-    @extend .far;
-    @extend %fa-icon;
-    margin-right: 5px;
-    position: relative;
-    font-size: large;
-    display: none;
-    color: white;
-    text-shadow: 0 0 1px #000;
-}
+            .flag {
+                -moz-osx-font-smoothing: grayscale;
+                -webkit-font-smoothing: antialiased;
+                text-shadow: 0 0 1px #000;
+                color: white;
+                font-style: normal;
+                font-variant: normal;
+                font-weight: normal;
+                font-size: large;
+                line-height: 1;
+                margin-right: 5px;
+                position: relative;
+                display: none;
 
-.navbar-nav .filters .flag {
-    @extend .far;
-    @extend %fa-icon;
-    margin-right: 5px;
-    position: relative;
-    font-size: x-large;
-    display: none;
-    color: lightgray;
-    text-shadow: none;
-}
+                &.favorite {
+                    &.set {
+                        color: yellow;
 
-.navbar-nav .flag.set,
-.media-container .card .thumbnail-container .flag.set {
-    @extend .fas;
-}
+                        &:hover {
+                            color: white;
+                        }
+                    }
+                    &:hover {
+                        color: yellow;
+                    }
+                }
 
-.navbar-nav .filters .flag,
-.media-container .card.highlighted .thumbnail-container .flag {
-    display: unset;
-}
+                &.set {
+                    display: unset;
+                }
+            }
 
-.navbar-nav .filters .flag.favorite,
-.media-container .card .thumbnail-container .flag.favorite {
-    &:before {
-        content: fa-content($fa-var-star);
+            .duration {
+                &.badge {
+                    position: absolute;
+                    bottom: 7px;
+                    right: 5px;
+                }
+            }
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            border-bottom-left-radius: 0%;
+            border-bottom-right-radius: 0%;
+        }
+
+        .card-title {
+            overflow: hidden;
+            max-height: 2.5em;
+            text-overflow: ellipsis;
+            white-space: normal;
+        }
+
+        .card-body {
+            padding: 0.5rem;
+            height: 5rem;
+
+            p {
+                font-size: 1.1rem;
+                max-height: 3.5rem;
+                text-overflow: ellipsis;
+                white-space: normal;
+                overflow: hidden;
+            }
+        }
+
+        .progress {
+            left: 0px;
+            bottom: 0px;
+            width: 100%;
+            height: 2px;
+            position: absolute;
+            border-radius:unset;
+        }
     }
-}
 
-.navbar-nav .filters .flag.recursive {
-    @extend .fas;
-    &:before {
-        content: fa-content($fa-var-redo-alt);
+    &.folder {
+        .card {
+            .card-title {
+                text-align: center;
+            }
+        }
     }
-}
-
-.navbar-nav .filters .flag.set {
-    color: darkgray;
-}
-
-.media-container .card .thumbnail-container .flag.favorite.set {
-    color: yellow;
-}
-
-.navbar-nav .filters .flag:hover {
-    color: gray;
-}
-
-.media-container .card .thumbnail-container .flag:hover {
-    color: yellow;
-}
-
-.navbar-nav .filters .flag.set:hover {
-    color: gray;
-}
-
-.media-container .card .thumbnail-container .flag.set:hover {
-    color: white;
-}
-
-.media-container .card .thumbnail-container .duration.badge {
-    position: absolute;
-    bottom: 7px;
-    right: 5px;
-}
-
-.media-container .card.highlighted {
-    @extend .shadow-sm;
-    border: 1px solid rgba(0, 0, 0, 0.125);
-}
-
-.media-container .card .card-title {
-    overflow: hidden;
-    max-height: 2.5em;
-    text-overflow: ellipsis;
-    white-space: normal;
-}
-
-.media-container.folder .card .card-title {
-    text-align: center;
-}
-
-.media-container .card .card-body {
-    padding: 0.5rem;
-    height: 5rem;
-}
-
-.media-container .card .card-body p {
-    font-size: 1.1rem;
-    max-height: 3.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal;
-}
-
-.media-container .card .progress {
-    height: 2px;
-    border-radius:unset;
 }
 
 .spinner-border {

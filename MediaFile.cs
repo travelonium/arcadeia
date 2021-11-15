@@ -294,6 +294,9 @@ namespace MediaCurator
                   // No, it does not. Mark it as deleted.
                   Flags.Deleted = true;
 
+                  // Mark the file as Modified so that the child MediaFile would take care of it.
+                  Modified = true;
+
                   // Delete the thumbnails belonging to the deleted file.
                   Thumbnails.DeleteAll();
 

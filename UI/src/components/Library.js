@@ -1,7 +1,7 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import React, { Component } from 'react';
-import Modal from 'react-bootstrap/Modal';
+import Navbar from 'react-bootstrap/Navbar';
 import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
@@ -10,6 +10,7 @@ import { FixedSizeGrid as Grid } from 'react-window';
 import { extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import cx from 'classnames';
 
 export class Library extends Component {
 
@@ -20,6 +21,7 @@ export class Library extends Component {
         this.rowCount = 1;
         this.columnCount = 1;
         this.mediaViewer = React.createRef();
+        this.controller = new AbortController();
         let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
             loading: false,
@@ -54,27 +56,16 @@ export class Library extends Component {
 
     list(path, search = false, history = false) {
         if (!path) return;
-        let query = this.props.navigation.current.state.query;
         let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (search && query) {
-            let favorite = this.props.navigation.current.state.favorite;
-            let recursive = this.props.navigation.current.state.recursive;
-            // update the recursive parameter
-            params.set("recursive", recursive);
-            // update the query parameter
-            params.set("query", query);
-            // update the favorite flags parameters
-            flags = updateBit(flags, 1, favorite);
-            values = updateBit(values, 1, favorite);
-            this.setState({
-                loading: true,
-                status: "Requesting",
-            });
-        } else {
+        let favorite = this.props.navigation.current.state.favorite;
+        if (!search) {
             this.props.navigation.current.clearSearch();
         }
+        // update the favorite flags parameters
+        flags = updateBit(flags, 1, favorite);
+        values = updateBit(values, 1, favorite);
         // update the deleted flags bits to exclude the deleted files
         flags = updateBit(flags, 0, 1);
         values = updateBit(values, 0, 0);
@@ -89,38 +80,50 @@ export class Library extends Component {
             params.delete("values");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        fetch("/library" + path)
-        .then((response) => {
-            this.setState({
-                status: "Loading",
-                items: []
-            });
-            return response.json();
-        })
-        .then((json) => {
-            let items = Array.isArray(json) ? json : [json];
-            this.setState({
-                loading: false,
-                path: path,
-                items: items
-            });
-            // now change the history if we have to!
-            if (!history) {
-                window.history.pushState({path: path}, "", path);
-            }
-            // pass on the source to the viewer if this is a file
-            return Array.isArray(json) ? null : json;
-        })
-        .then((source) => {
-            if (source !== null) {
-                this.view(source);
-            }
-        })
-        .catch((error) => {
-            this.setState({
-                loading: false,
-                status: "Error",
-                items: []
+        this.controller.abort();
+        this.controller = new AbortController();
+        this.setState({
+            items: [],
+            loading: true,
+            status: "Requesting",
+        }, () => {
+            fetch("/library" + path, {
+                signal: this.controller.signal,
+            })
+            .then((response) => {
+                this.setState({
+                    status: "Loading",
+                    items: []
+                });
+                return response.json();
+            })
+            .then((json) => {
+                let items = Array.isArray(json) ? json : [json];
+                this.setState({
+                    loading: false,
+                    status: items.length ? "" : "No Items",
+                    path: path,
+                    items: items
+                });
+                // now change the history if we have to!
+                if (!history) {
+                    window.history.pushState({path: path}, "", path);
+                }
+                // pass on the source to the viewer if this is a file
+                return Array.isArray(json) ? null : json;
+            })
+            .then((source) => {
+                if (source !== null) {
+                    this.view(source);
+                }
+            })
+            .catch((error) => {
+                if (error.name === 'AbortError') return;
+                this.setState({
+                    loading: false,
+                    status: error.message,
+                    items: []
+                });
             });
         });
     }
@@ -159,13 +162,9 @@ export class Library extends Component {
         } else {
             params.delete("values");
         }
-        this.setState({
-            loading: true,
-            status: "Requesting",
-        });
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
-            solr = "http://localhost:8983/solr/Library/select"
+            solr = "http://localhost:8983/solr/Library/select";
         }
         const input = {
             q: query,
@@ -177,49 +176,71 @@ export class Library extends Component {
             wt: "json",
         };
         if (favorite) {
-            input.fq.push("flags:Favorite")
+            input.fq.push("flags:Favorite");
         }
         if (deleted) {
-            input.fq.push("flags:Deleted")
+            input.fq.push("flags:Deleted");
         } else {
-            input.fq.push("-flags:Deleted")
+            input.fq.push("-flags:Deleted");
         }
         if (!recursive) {
-            input.fq.push("path:\"" + path.split('?')[0] + "\"")
+            input.fq.push("path:\"" + path.split('?')[0] + "\"");
+        } else {
+            input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        fetch(solr + "?" + this.querify(input).toString(), {
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-            },
-        })
-        .then((response) => {
-            if (!response.ok) {
-                let message = "Error querying the Solr index!";
-                return response.text().then((data) => {
-                    try {
-                        let json = JSON.parse(data);
-                        let exception = extract(null, json, "error", "msg");
-                        if (exception) message = exception;
-                    } catch (error) {}
-                    throw Error(message);
+        this.controller.abort();
+        this.controller = new AbortController();
+        this.setState({
+            items: [],
+            loading: true,
+            status: "Requesting",
+        }, () => {
+            fetch(solr + "?" + this.querify(input).toString(), {
+                signal: this.controller.signal,
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            })
+            .then((response) => {
+                if (!response.ok) {
+                    let message = "Error querying the Solr index!";
+                    return response.text().then((data) => {
+                        try {
+                            let json = JSON.parse(data);
+                            let exception = extract(null, json, "error", "msg");
+                            if (exception) message = exception;
+                        } catch (error) {}
+                        throw Error(message);
+                    });
+                } else {
+                    this.setState({
+                        status: "Loading",
+                        items: []
+                    });
+                }
+                return response.json();
+            })
+            .then((result) => {
+                const docs = extract([], result, "response", "docs");
+                this.setState({
+                    loading: false,
+                    status: docs.length ? "" : "No Results",
+                    path: path,
+                    items: docs
                 });
-            }
-            return response.json();
-        })
-        .then((result) => {
-            const docs = extract([], result, "response", "docs");
-            this.setState({
-                loading: false,
-                path: path,
-                items: docs
+                // now change the history if we have to!
+                window.history.pushState({path: path}, "", path);
+            })
+            .catch(error => {
+                if (error.name === 'AbortError') return;
+                this.setState({
+                    loading: false,
+                    status: error.message,
+                    items: []
+                });
             });
-            // now change the history if we have to!
-            window.history.pushState({path: path}, "", path);
-        })
-        .catch(error => {
-            console.error(error);
         });
     }
 
@@ -280,104 +301,93 @@ export class Library extends Component {
         let url = "Library".concat(this.state.path);
         let path = url.split('?')[0];
         let params = url.split("?")[1];
+        let status = this.state.status;
+        let loading = this.state.loading;
         let search = (params !== undefined) && (params.indexOf("query=") !== -1);
-        let folders = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
+        let components = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
-            <Container className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                <Breadcrumb className="">
-                    {
-                        folders.map((folder, index) => {
-                            let link = location;
-                            let active = false;
-                            let last = (index === (folders.length - 1));
-                            if (folder) {
+            <>
+                <div className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                    <Breadcrumb className="mx-3" listProps={{ className: "py-2 px-3" }}>
+                        {
+                            components.filter((component) => component).map((component, index, array) => {
+                                let link = location;
+                                let active = false;
+                                let last = (index === (array.length - 1));
                                 if (index) {
-                                    if (last) {
-                                        if (search) {
-                                            // it's the search results item, deactivate it
-                                            link = "";
-                                            active = true;
-                                        } else {
-                                            // don't add the trailing slash if this is a file
-                                            location += folder;
-                                            link = location;
-                                        }
+                                    if (last && search) {
+                                        link = "";
+                                        active = true;
                                     } else {
-                                        location += folder + "/";
+                                        location += component + "/";
                                         link = location;
                                     }
                                 }
                                 return (
-                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link }} onClick={event => this.list(event.target.getAttribute("link"))} >{folder}</Breadcrumb.Item>
+                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={event => this.list(event.target.getAttribute("link"))} >{component}</Breadcrumb.Item>
                                 );
-                            } else {
-                                return null;
-                            }
-                        })
-                    }
-                </Breadcrumb>
-                <div className="mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                    <AutoSizer>
-                        {({ height, width }) => {
-                            let offset = 0;
-                            let size = breakpoint();
-                            switch (size) {
-                                case 'xs':
-                                    offset = 15;
-                                    this.columnCount = 1;
-                                    break;
-                                case 'sm':
-                                    offset = 15;
-                                    this.columnCount = 1;
-                                    break;
-                                case 'md':
-                                    offset = 8;
-                                    this.columnCount = 2;
-                                    break;
-                                case 'lg':
-                                    offset = 5;
-                                    this.columnCount = 3;
-                                    break;
-                                case 'xl':
-                                    offset = 4;
-                                    this.columnCount = 4;
-                                    break;
-                                default:
-                                    break;
-                            }
-                            let rowHeight = (width / this.columnCount);
-                            let columnWidth = (width / this.columnCount) - offset;
-                            this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
-                            return (
-                                <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
-                                    {this.cell.bind(this)}
-                                </Grid>
-                            )}
+                            })
                         }
-                    </AutoSizer>
-                    <MediaViewer ref={this.mediaViewer} />
-                    <Modal show={this.state.loading} backdrop={false} animation={false} size="sm" aria-labelledby="contained-modal-title-vcenter" centered>
-                        <Modal.Body className="shadow-sm">
-                            <Container>
-                                <Row>
-                                    <Col className="text-center mt-4 mb-2">
-                                        <Spinner className="loading-spinner" animation="border" variant="dark" />
-                                    </Col>
-                                </Row>
-                                <Row>
-                                    <Col className="text-center">
-                                        <p className="font-weight-light text-uppercase" >{this.state.status}</p>
-                                    </Col>
-                                </Row>
-                            </Container>
-                        </Modal.Body>
-                    </Modal>
+                    </Breadcrumb>
+                    <div className="d-flex ml-3 mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                        <AutoSizer>
+                            {({ height, width }) => {
+                                let offset = 0;
+                                let size = breakpoint();
+                                switch (size) {
+                                    case 'xs':
+                                        offset = 15;
+                                        this.columnCount = 1;
+                                        break;
+                                    case 'sm':
+                                        offset = 8;
+                                        this.columnCount = 2;
+                                        break;
+                                    case 'md':
+                                        offset = 6;
+                                        this.columnCount = 3;
+                                        break;
+                                    case 'lg':
+                                        offset = 5;
+                                        this.columnCount = 4;
+                                        break;
+                                    case 'xl':
+                                        offset = 4;
+                                        this.columnCount = 5;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                let rowHeight = (width / this.columnCount);
+                                let columnWidth = (width / this.columnCount) - offset;
+                                this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
+                                return (
+                                    <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
+                                        {this.cell.bind(this)}
+                                    </Grid>
+                                )}
+                            }
+                        </AutoSizer>
+                        <MediaViewer ref={this.mediaViewer} />
+                        <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
+                            <Row className="mt-auto">
+                                <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>
+                                    <Spinner className="loading-spinner" animation="border" role="status"/>
+                                </Col>
+                            </Row>
+                            <Row className="mb-auto">
+                                <Col className={cx(status ? "d-flex" : "d-none", "text-center")}>
+                                    <p className="font-weight-light h5 text-uppercase" >{this.state.status}</p>
+                                </Col>
+                            </Row>
+                        </Container>
+                    </div>
                 </div>
-                <Breadcrumb>
+                <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "light"} variant="dark" className="p-3">
                     <div style={{flexGrow: 1}}>{this.files()}</div>
                     <div>{size(this.state.items.reduce((sum, item) => sum + item.size, 0))}</div>
-                </Breadcrumb>
-            </Container>
+                </Navbar>
+            </>
         );
     }
 }
