@@ -2,4 +2,4 @@
 #
 # Start the docker compose application in production mode.
 
-docker-compose -f docker-compose.yml -f docker-compose-production.yml up
+docker-compose -f docker-compose.yml -f docker-compose-production.yml up -d
