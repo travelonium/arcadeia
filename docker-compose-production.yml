@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  kestrel:
+    volumes:
+      - data:/var/lib/app/data
+      - type: bind
+        source: ./appsettings.Production.json
+        target: /var/lib/app/appsettings.Production.json
+        consistency: cached
+        read_only: false

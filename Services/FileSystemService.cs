@@ -98,8 +98,6 @@ namespace MediaCurator.Services
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
 
-            _logger.LogInformation("Mounting: {}", process.StartInfo.Arguments);
-
             process.Start();
 
             output = process.StandardOutput.ReadToEnd();
