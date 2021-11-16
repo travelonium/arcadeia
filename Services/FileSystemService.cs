@@ -43,12 +43,6 @@ namespace MediaCurator.Services
          _logger = logger;
          _configuration = configuration;
          _cancellationToken = applicationLifetime.ApplicationStopping;
-
-         // Try to mount all the configured mounts.
-         foreach (var mount in Mounts)
-         {
-            Mount(mount);
-         }
       }
 
       #endregion // Constructors
@@ -56,6 +50,14 @@ namespace MediaCurator.Services
       [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
       public Task StartAsync(CancellationToken cancellationToken)
       {
+         _logger.LogInformation("Starting FileSystem Service...");
+
+         // Try to mount all the configured mounts.
+         foreach (var mount in Mounts)
+         {
+            Mount(mount);
+         }
+
          _logger.LogInformation("FileSystem Service Started.");
 
          return Task.CompletedTask;
@@ -63,6 +65,12 @@ namespace MediaCurator.Services
 
       public Task StopAsync(CancellationToken cancellationToken)
       {
+         // Unmount all the configured mounts.
+         foreach (var mount in Mounts)
+         {
+            Unmount(mount);
+         }
+
          _logger.LogInformation("FileSystem Service Stopped.");
 
          return Task.CompletedTask;
@@ -107,6 +115,40 @@ namespace MediaCurator.Services
          }
 
          _logger.LogInformation("Mounted: {} @ {}", device, directory);
+
+         return true;
+      }
+
+      public bool Unmount(Dictionary<string, string> mount)
+      {
+         string output = null;
+         string executable = "/bin/umount";
+         string device = mount.GetValueOrDefault("Device", null);
+         string directory = mount.GetValueOrDefault("Directory", null);
+
+         using (Process process = new Process())
+         {
+            process.StartInfo.FileName = executable;
+            process.StartInfo.Arguments = directory;
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+
+            process.Start();
+
+            output = process.StandardOutput.ReadToEnd();
+
+            process.WaitForExit(10000);
+
+            if (!process.HasExited || (process.ExitCode != 0))
+            {
+               _logger.LogError("Failed To Unmount: {} Because: ", device, output);
+
+               return false;
+            }
+         }
+
+         _logger.LogInformation("Unmounted: {} @ {}", device, directory);
 
          return true;
       }
