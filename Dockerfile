@@ -4,7 +4,7 @@ COPY ./ ./
 RUN set -eux; \
     apt-get update; \
     apt-get -y install curl gnupg build-essential; \
-    curl -sL https://deb.nodesource.com/setup_12.x | bash -; \
+    curl -fsSL https://deb.nodesource.com/setup_14.x | bash -; \
     apt-get -y install nodejs; \
     node --version; \
     npm version; \
