@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# Start the docker compose application in production mode.
+
+docker-compose logs -f $1
