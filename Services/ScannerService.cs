@@ -244,22 +244,10 @@ namespace MediaCurator.Services
 
             foreach (var folder in WatchedFolders)
             {
-               try
-               {
-                  var files = Directory.EnumerateFiles(folder, "*.*", SearchOption.AllDirectories);
-                  _totalCounterMax += files.Count();
-               }
-               catch (System.IO.DirectoryNotFoundException)
-               {
-                  // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
-                  _logger.LogWarning("Watched Folder Unavailable: {}", folder);
-                  continue;
-               }
-
                // Queue the folder startup folder scan.
                _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
                {
-                  return Task.Run(() => Scan(folder, "Startup", _totalCounterMax, ref _totalCounter, _progressFile, _progressFolder, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
+                  return Task.Run(() => Scan(folder, "Startup"));
                });
             }
          }
@@ -273,28 +261,10 @@ namespace MediaCurator.Services
             {
                foreach (var folder in AvailableWatchedFolders)
                {
-                  try
-                  {
-                     var files = Directory.EnumerateFiles(folder, "*.*", SearchOption.AllDirectories);
-                     _totalCounterMax += files.Count();
-                  }
-                  catch (System.IO.DirectoryNotFoundException)
-                  {
-                     // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
-                     _logger.LogWarning("Watched Folder Unavailable: " + folder);
-                     continue;
-                  }
-                  catch (System.UnauthorizedAccessException e)
-                  {
-                     // We probably do not have access to the folder. Let's ignore this one and move on.
-                     _logger.LogWarning(e.Message);
-                     continue;
-                  }
-
                   // Queue the folder periodic scan.
                   _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
                   {
-                     return Task.Run(() => Scan(folder, "Periodic", _totalCounterMax, ref _totalCounter, _progressFile, _progressFolder, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
+                     return Task.Run(() => Scan(folder, "Periodic"));
                   });
                }
             }, null, TimeSpan.Zero.Milliseconds, Period);
@@ -341,25 +311,35 @@ namespace MediaCurator.Services
          _logger.LogInformation("Scanner Service Background Task Processor Stopped.");
       }
 
-      private void Scan(string path,
-                        string type,
-                        double totalCounterMax,
-                        ref double totalCounter,
-                        IProgress<Tuple<double, double>> progressFile,
-                        IProgress<Tuple<double, double>> progressFolder,
-                        IProgress<Tuple<double, double>> progressTotal,
-                        IProgress<byte[]> progressThumbnailPreview,
-                        IProgress<string> progressStatus,
-                        CancellationToken cancellationToken)
+      private void Scan(string path, string type)
       {
          _logger.LogInformation(type + " Scanning Started: " + path);
 
-         progressTotal.Report(new Tuple<double, double>(totalCounter, totalCounterMax));
+         try
+         {
+            _totalCounterMax += Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Count();
+         }
+         catch (System.IO.DirectoryNotFoundException)
+         {
+            // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
+            _logger.LogWarning("Path Unavailable: " + path);
+
+            return;
+         }
+         catch (System.UnauthorizedAccessException e)
+         {
+            // We probably do not have access to the folder. Let's ignore this one and move on.
+            _logger.LogWarning(e.Message);
+
+            return;
+         }
+
+         _progressTotal.Report(new Tuple<double, double>(_totalCounter, _totalCounterMax));
 
          double fileCounter = 1.0;
 
          // Update the Status message.
-         progressStatus.Report("Enumerating Files...");
+         _progressStatus.Report("Enumerating Files...");
 
          var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
 
@@ -367,15 +347,15 @@ namespace MediaCurator.Services
          double fileCounterMax = files.Count();
 
          // Initialize the Current Folder Progress.
-         progressFolder.Report(new Tuple<double, double>(fileCounter, fileCounterMax));
+         _progressFolder.Report(new Tuple<double, double>(fileCounter, fileCounterMax));
 
          // Update the Status message.
-         progressStatus.Report("Processing Files...");
+         _progressStatus.Report("Processing Files...");
 
          // Loop through the files in the specific MediaLocation.
          foreach (var file in files)
          {
-            if (cancellationToken.IsCancellationRequested)
+            if (_cancellationToken.IsCancellationRequested)
             {
                // Let's update the MediaLibrary with the new entries if any so far.
                _mediaLibrary.UpdateDatabase();
@@ -385,12 +365,12 @@ namespace MediaCurator.Services
             }
 
             // Update the Status message.
-            progressStatus.Report(file);
+            _progressStatus.Report(file);
 
             try
             {
                // Add the file to the MediaLibrary.
-               MediaFile newMediaFile = _mediaLibrary.InsertMedia(file, progressFile, progressThumbnailPreview);
+               MediaFile newMediaFile = _mediaLibrary.InsertMedia(file, _progressFile, _progressThumbnailPreview);
             }
             catch (Exception e)
             {
@@ -400,13 +380,13 @@ namespace MediaCurator.Services
             }
 
             // Update the Current Folder Progress.
-            progressFolder.Report(new Tuple<double, double>(fileCounter++, fileCounterMax));
+            _progressFolder.Report(new Tuple<double, double>(fileCounter++, fileCounterMax));
 
             // Update the Total Progress.
-            progressTotal.Report(new Tuple<double, double>(totalCounter++, totalCounterMax));
+            _progressTotal.Report(new Tuple<double, double>(_totalCounter++, _totalCounterMax));
 
             // Clear the thumbnail preview.
-            progressThumbnailPreview.Report(null);
+            _progressThumbnailPreview.Report(null);
          }
 
          // Now that we're done with this location, let's update the MediaLibrary with the new entries if any.
