@@ -4,7 +4,7 @@ COPY ./ ./
 RUN set -eux; \
     apt-get update; \
     apt-get -y install curl gnupg build-essential; \
-    curl -sL https://deb.nodesource.com/setup_12.x | bash -; \
+    curl -fsSL https://deb.nodesource.com/setup_14.x | bash -; \
     apt-get -y install nodejs; \
     node --version; \
     npm version; \
@@ -16,7 +16,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y ffmpeg cifs-utils nfs-common; \
+    apt-get install -y iputils-ping net-tools ffmpeg cifs-utils nfs-common; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -p /Network /Uploads; \
     dpkg -l; \

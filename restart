@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Stop the docker compose application and restart it in production mode.
+
+./stop
+./run

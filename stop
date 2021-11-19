@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# Stop the docker compose application.
+
+docker-compose down

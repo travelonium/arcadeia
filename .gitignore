@@ -261,3 +261,6 @@ Temporary Items
 
 # Data files and directories
 **/data
+
+# Custom development and production settings
+appsettings.*.json
