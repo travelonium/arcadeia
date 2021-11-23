@@ -128,6 +128,49 @@ export class Library extends Component {
         });
     }
 
+    /**
+     * Update a MediaContainer with new attributes.
+     *
+     * Note: The problem with using this method instead of the local update() method
+     *       inside the MediaContainer class is that this when pushed to the state cause
+     *       a global re-render of all the MediaContainers whereas inside the MediaContainer
+     *       only that particular instance will be re-rendered.
+     * @param {*} source The modified MediaContainer to update.
+     */
+    update(source) {
+        let item = JSON.parse(JSON.stringify(source));
+        fetch("/library" + item.fullPath, {
+            method: "PUT",
+            headers: {
+                accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(item)
+        })
+        .then(async (response) => {
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            } else {
+                return response.json();
+            }
+        })
+        .then((response) => {
+            // update the properties of the original instance of the source
+            item = Object.assign({}, item, response);
+            // update the state and the virtual copies of the source
+            let items = this.state.items;
+            const index = this.state.items.findIndex(x => x.id === item.id);
+            items[index] = item;
+            this.setState({
+                items: items
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+    }
+
     search() {
         let path = this.state.path;
         if (!this.state.path) return;
@@ -263,7 +306,7 @@ export class Library extends Component {
         if (source !== undefined) {
             return (
                 <div className="p-1" style={style}>
-                    <MediaContainer source={source} open={this.open.bind(this)} view={this.view.bind(this)} highlight={this.highlight.bind(this)} />
+                    <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
                 </div>
             );
         } else {
