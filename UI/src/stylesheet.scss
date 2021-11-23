@@ -65,8 +65,18 @@
     }
     */
 
+    .breadcrumb {
+        .breadcrumb-item {
+            a {
+                &:hover {
+                    color: rgba($body-color, 0.7);
+                }
+            }
+        }
+    }
+
     .media-container .card.highlighted {
-        box-shadow: 0 .125rem .75rem rgba($white, .050);
+        box-shadow: 0 .125rem .75rem rgba($white, 0.050);
         border: 1px solid rgba($white, 0.125);
     }
 
