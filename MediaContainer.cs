@@ -117,6 +117,27 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Get the path the contianer is located in which is the parent's full path.
+      /// </summary>
+      /// <value>
+      /// The path of the container.
+      /// </value>
+      public string Path
+      {
+         get
+         {
+            if (Parent == null)
+            {
+               return FullPath;
+            }
+            else
+            {
+               return Parent.FullPath;
+            }
+         }
+      }
+
+      /// <summary>
       /// Gets the full path of the container including the filename if the container is of a
       /// MediaFile type.
       /// </summary>
@@ -193,7 +214,7 @@ namespace MediaCurator
                Id = Id,
                Name = Name,
                Type = Type,
-               Path = Parent.FullPath,
+               Path = Path,
                FullPath = FullPath,
                Flags = Flags.All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray()
             };
@@ -201,16 +222,25 @@ namespace MediaCurator
 
          set
          {
-            if (!String.IsNullOrEmpty(value.Name) && (value.Name != Name))
+            if (String.IsNullOrEmpty(value.Name) || String.IsNullOrEmpty(value.Path))
             {
-               // TODO: Implement Rename() and use it here.
+               throw new ArgumentException("Either the container's path or its name is empty or null!");
             }
 
-            if (!String.IsNullOrEmpty(value.FullPath) && (value.FullPath != FullPath))
+            if (value.Path != Path)
             {
-               // TODO: Implement Move() and use it here.
+               throw new NotSupportedException("Moving media container is currently not supported.");
             }
 
+            // Handle the rename
+            if (value.Name != Name)
+            {
+               Move(FullPath, value.Path + value.Name);
+
+               Name = value.Name;
+            }
+
+            // Handle flags updates
             if (value.Flags != null)
             {
                Flags.SetFlags(value.Flags.Where(flag => Enum.GetNames(typeof(MediaContainerFlags.Flag)).Contains(flag))
@@ -401,6 +431,35 @@ namespace MediaCurator
          throw new NotImplementedException("This MediaContainer does not offer a Delete() method!");
       }
 
+      /// <summary>
+      /// Moves (or Renames) the MediaContainer from one location or name to another. Each MediaContainer type
+      /// can if needed override and implement its own Move method.
+      /// </summary>
+      /// <param name="source">The fullpath of the original name and location.</param>
+      /// <param name="destination">The fullpath of the new name and location.</param>
+      public virtual void Move(string source, string destination)
+      {
+         switch (Type)
+         {
+            case "Drive":
+            case "Server":
+               throw new InvalidOperationException("This media container does not support a Move() operation!");
+            case "Folder":
+               throw new InvalidOperationException("This media container does not support a Move() operation!");
+               // TODO: Moving folders need a bit more work namely to check whether the destination files and
+               //       folders already exist on disk or in the library and throw an exception if so.
+               // Directory.Move(source, destination);
+               // break;
+            case "Audio":
+            case "Video":
+            case "Photo":
+               File.Move(source, destination);
+               break;
+            default:
+               throw new InvalidOperationException("This media container does not support a Move() operation!");
+         }
+      }
+
       #endregion // Overridables
 
       #region Static Methods
@@ -524,7 +583,7 @@ namespace MediaCurator
             var supportedExtensions = new MediaContainerTypeExtensions(_configuration);
 
             // Extract the file extension including the '.' character.
-            string extension = Path.GetExtension(container).ToLower();
+            string extension = System.IO.Path.GetExtension(container).ToLower();
 
             if ((extension != null) && (extension.Length != 0))
             {
