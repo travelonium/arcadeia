@@ -4,6 +4,7 @@ import Badge from 'react-bootstrap/Badge';
 import { duration, size, extract } from './../utils';
 import { EditableText } from './EditableText';
 import { Thumbnail } from './Thumbnail';
+import { toast } from 'react-toastify';
 import { Flag } from './Flag';
 
 export class MediaContainer extends Component {
@@ -42,10 +43,11 @@ export class MediaContainer extends Component {
             },
             body: JSON.stringify(source)
         })
-        .then(async (response) => {
+        .then((response) => {
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message);
+                return response.json().then((error) => {
+                    throw new Error(error.message);
+                });
             } else {
                 return response.json();
             }
@@ -61,6 +63,7 @@ export class MediaContainer extends Component {
         })
         .catch((error) => {
             console.error(error);
+            toast.error(error.message);
             this.setState({
                 current: JSON.parse(JSON.stringify(this.state.previous)),
             });

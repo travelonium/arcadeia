@@ -10,6 +10,7 @@ import { FixedSizeGrid as Grid } from 'react-window';
 import { extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import { toast } from 'react-toastify';
 import cx from 'classnames';
 
 export class Library extends Component {
@@ -147,10 +148,11 @@ export class Library extends Component {
             },
             body: JSON.stringify(item)
         })
-        .then(async (response) => {
+        .then((response) => {
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message);
+                return response.json().then((error) => {
+                    throw new Error(error.message);
+                });
             } else {
                 return response.json();
             }
@@ -168,6 +170,7 @@ export class Library extends Component {
         })
         .catch((error) => {
             console.error(error);
+            toast.error(error.message);
         });
     }
 
