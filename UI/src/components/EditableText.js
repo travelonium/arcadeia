@@ -16,15 +16,6 @@ export class EditableText extends Component {
         };
     }
 
-    componentDidMount() {
-    }
-
-    componentDidUpdate() {
-    }
-
-    componentWillUnmount() {
-    }
-
     componentDidUpdate(prevProps) {
         if (this.props.value !== prevProps.value) {
             this.setState({
@@ -106,7 +97,7 @@ export class EditableText extends Component {
         return (
             <div className={cx("editable-text", this.props.className, this.state.editing ? "editing" : null)} onBlur={this.onBlur.bind(this)} onClick={this.onClick.bind(this)}>
             {
-                this.state.editing ? <textarea ref={this.textArea} rows="2" defaultValue={this.state.current} onBlur={this.onBlur.bind(this)} onFocus={this.onFocus.bind(this)} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} /> : this.state.current
+                this.state.editing ? <textarea ref={this.textArea} rows={this.props.row ?? "2"} defaultValue={this.state.current} onBlur={this.onBlur.bind(this)} onFocus={this.onFocus.bind(this)} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} /> : this.state.current
             }
             </div>
         );

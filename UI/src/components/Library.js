@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint, updateBit } from './../utils';
+import { clone, extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 import { toast } from 'react-toastify';
@@ -131,15 +131,17 @@ export class Library extends Component {
 
     /**
      * Update a MediaContainer with new attributes.
-     *
-     * Note: The problem with using this method instead of the local update() method
-     *       inside the MediaContainer class is that this when pushed to the state cause
-     *       a global re-render of all the MediaContainers whereas inside the MediaContainer
-     *       only that particular instance will be re-rendered.
      * @param {*} source The modified MediaContainer to update.
+     * @param {boolean} refresh Forces a state update and a refresh following the modifications.
+     * @param {(source, succeeded) => void} callback The callback function to call with either the updated or unmodified source when the operation is thorough.
      */
-    update(source) {
-        let item = JSON.parse(JSON.stringify(source));
+    update(source, refresh = true, callback = undefined) {
+        let item = clone(source);
+        const index = this.state.items.findIndex(x => x.id === item.id);
+        if (index === -1) {
+            toast.error("Unabled to find the item that was to be updated.");
+            return;
+        }
         fetch("/library" + item.fullPath, {
             method: "PUT",
             headers: {
@@ -158,19 +160,28 @@ export class Library extends Component {
             }
         })
         .then((response) => {
-            // update the properties of the original instance of the source
-            item = Object.assign({}, item, response);
             // update the state and the virtual copies of the source
-            let items = this.state.items;
-            const index = this.state.items.findIndex(x => x.id === item.id);
-            items[index] = item;
-            this.setState({
-                items: items
-            });
+            this.state.items[index] = Object.assign(this.state.items[index], response);
+            if (refresh) {
+                this.setState({
+                    items: this.state.items
+                }, () => {
+                    if (callback !== undefined) {
+                        callback(this.state.items[index], true);
+                    }
+                });
+            } else {
+                if (callback !== undefined) {
+                    callback(this.state.items[index], true);
+                }
+            }
         })
         .catch((error) => {
             console.error(error);
             toast.error(error.message);
+            if (callback !== undefined) {
+                callback(this.state.items[index], false);
+            }
         });
     }
 
@@ -414,7 +425,7 @@ export class Library extends Component {
                                 )}
                             }
                         </AutoSizer>
-                        <MediaViewer ref={this.mediaViewer} />
+                        <MediaViewer ref={this.mediaViewer} onUpdate={this.update.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>

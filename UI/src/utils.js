@@ -52,3 +52,11 @@ export function breakpoint() {
 export function updateBit(number, bit, value) {
     return (((~(1 << bit)) & number) | ((value ? 1 : 0) << bit));
 }
+
+export function clone(object, shallow = false) {
+    if (shallow) {
+        Object.assign(Array.isArray(object) ? [] : {}, object);
+    } else {
+        return JSON.parse(JSON.stringify(object));
+    }
+}

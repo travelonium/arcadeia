@@ -273,3 +273,9 @@
     border-right-color: transparent;
     animation: spinner-border .75s linear infinite;
 }
+
+.media-viewer {
+    .editable-text {
+        min-height: 2em;
+    }
+}

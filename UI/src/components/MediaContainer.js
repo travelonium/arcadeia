@@ -1,7 +1,7 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
-import { duration, size, extract } from './../utils';
+import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
 import { Thumbnail } from './Thumbnail';
 import { toast } from 'react-toastify';
@@ -17,55 +17,20 @@ export class MediaContainer extends Component {
         this.state = {
             index: -1,
             hover: false,
-            current: JSON.parse(JSON.stringify(this.props.source)),
-            previous: JSON.parse(JSON.stringify(this.props.source)),
+            current: clone(this.props.source),
+            previous: clone(this.props.source),
         };
-    }
-
-    componentDidMount() {
-    }
-
-    componentDidUpdate() {
-    }
-
-    componentWillUnmount() {
     }
 
     update(source) {
         this.setState({
             current: source,
-        });
-        fetch("/library" + source.fullPath, {
-            method: "PUT",
-            headers: {
-                accept: "application/json",
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(source)
-        })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((error) => {
-                    throw new Error(error.message);
+        }, () => {
+            this.props.onUpdate(source, false, (source, succeeded) => {
+                this.setState({
+                    current: succeeded ? clone(source) : clone(this.state.previous),
+                    previous: succeeded ? clone(source) : clone(this.state.previous),
                 });
-            } else {
-                return response.json();
-            }
-        })
-        .then((response) => {
-            // update the properties of the original instance of the source
-            Object.assign(this.props.source, response);
-            // update the state and the virtual copies of the source
-            this.setState({
-                current: JSON.parse(JSON.stringify(response)),
-                previous: JSON.parse(JSON.stringify(response)),
-            });
-        })
-        .catch((error) => {
-            console.error(error);
-            toast.error(error.message);
-            this.setState({
-                current: JSON.parse(JSON.stringify(this.state.previous)),
             });
         });
     }
