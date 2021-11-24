@@ -136,6 +136,61 @@
     }
 }
 
+.flags {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    position: absolute;
+    vertical-align: middle;
+}
+
+.flag {
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 0 0 1px #000;
+    color: white;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    font-size: large;
+    line-height: 1;
+    margin-right: 5px;
+    position: relative;
+    cursor: pointer;
+    display: none;
+
+    &.favorite {
+        &.set {
+            color: yellow;
+
+            &:hover {
+                color: white;
+            }
+        }
+        &:hover {
+            color: yellow;
+        }
+    }
+
+    &.set {
+        display: unset;
+    }
+}
+
+.media-viewer {
+
+    .flag {
+        font-size: xx-large;
+    }
+
+    .modal-body:hover {
+
+        .flag {
+            display: unset;
+        }
+    }
+}
+
 .media-container {
     height: 100%;
 
@@ -165,46 +220,6 @@
 
                 .thumbnail-icon {
                     font-size: 7rem;
-                }
-            }
-
-            .flags {
-                top: 5px;
-                left: 5px;
-                right: 5px;
-                position: absolute;
-                vertical-align: middle;
-            }
-
-            .flag {
-                -moz-osx-font-smoothing: grayscale;
-                -webkit-font-smoothing: antialiased;
-                text-shadow: 0 0 1px #000;
-                color: white;
-                font-style: normal;
-                font-variant: normal;
-                font-weight: normal;
-                font-size: large;
-                line-height: 1;
-                margin-right: 5px;
-                position: relative;
-                display: none;
-
-                &.favorite {
-                    &.set {
-                        color: yellow;
-
-                        &:hover {
-                            color: white;
-                        }
-                    }
-                    &:hover {
-                        color: yellow;
-                    }
-                }
-
-                &.set {
-                    display: unset;
                 }
             }
 
