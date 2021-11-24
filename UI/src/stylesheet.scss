@@ -171,10 +171,6 @@
             color: yellow;
         }
     }
-
-    &.set {
-        display: unset;
-    }
 }
 
 .media-viewer {
@@ -203,6 +199,14 @@
         &.highlighted {
             .thumbnail-container {
                 .flag {
+                    display: unset;
+                }
+            }
+        }
+
+        .thumbnail-container {
+            .flag {
+                &.set {
                     display: unset;
                 }
             }
