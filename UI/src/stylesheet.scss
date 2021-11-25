@@ -14,9 +14,11 @@
         }
     }*/
 
-    .media-container .card.highlighted {
-        box-shadow: 0 .125rem .25rem rgba($black, .075);
-        border: 1px solid rgba($black, 0.125);
+    .media-container {
+        .card.highlighted {
+            box-shadow: 0 .125rem .25rem rgba($black, .075);
+            border: 1px solid rgba($black, 0.125);
+        }
     }
 
     .editable-text {
@@ -75,9 +77,11 @@
         }
     }
 
-    .media-container .card.highlighted {
-        box-shadow: 0 .125rem .75rem rgba($white, 0.050);
-        border: 1px solid rgba($white, 0.125);
+    .media-container {
+        .card.highlighted {
+            box-shadow: 0 .125rem .75rem rgba($white, 0.050);
+            border: 1px solid rgba($white, 0.125);
+        }
     }
 
     .editable-text {
@@ -115,7 +119,7 @@
 
 @import "~bootstrap/scss/bootstrap";
 
-@mixin flag {
+@mixin flag-styles {
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
     text-shadow: 0 0 1px #000;
@@ -144,14 +148,6 @@
     }
 }
 
-@mixin flags {
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    position: absolute;
-    vertical-align: middle;
-}
-
 .navbar-nav {
     .toolbar {
         .flag {
@@ -176,16 +172,20 @@
 .media-viewer {
 
     .flags {
-        @include flags;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        position: absolute;
+        vertical-align: middle;
 
         .flag {
-            @include flag;
+            @include flag-styles;
+
             font-size: xx-large;
         }
     }
 
     .modal-body:hover {
-
         .flag {
             display: unset;
         }
@@ -215,16 +215,20 @@
             position: relative;
             overflow: hidden;
 
-            .flag {
-                @include flag;
-
-                &.set {
-                    display: unset;
-                }
-            }
-
             .flags {
-                @include flags;
+                top: 5px;
+                left: 5px;
+                right: 5px;
+                position: absolute;
+                vertical-align: middle;
+
+                .flag {
+                    @include flag-styles;
+
+                    &.set {
+                        display: unset;
+                    }
+                }
             }
 
             .thumbnail {
