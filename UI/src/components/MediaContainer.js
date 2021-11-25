@@ -76,8 +76,14 @@ export class MediaContainer extends Component {
         if (this.state.current.type === "Folder") {
             this.props.onOpen(this.state.current, false);
         } else {
-            let player = !(event.shiftKey || event.metaKey);
+            let player = !(event.shiftKey || event.metaKey || (event.button === 1));
             this.props.onView(this.state.current, player);
+        }
+    }
+
+    onAuxClick(event) {
+        if ((this.state.current.type !== "Folder") && (event.button === 1)) {
+            this.props.onView(this.state.current, false);
         }
     }
 
@@ -90,7 +96,7 @@ export class MediaContainer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <div className={"media-container" + (this.state.current.type ? (" " + this.state.current.type.toLowerCase()) : "")}>
-                <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
+                <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
                     <div className="thumbnail-container">
                         <Thumbnail id={this.state.current.id} type={this.state.current.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((this.state.current.duration > 0) ? "visible" : "invisible")}>{duration(this.state.current.duration)}</Badge>
