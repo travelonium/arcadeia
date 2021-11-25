@@ -1,3 +1,4 @@
+@import '~react-toastify/dist/ReactToastify.css';
 @import "~bootstrap-icons/font/bootstrap-icons";
 @import "~video.js/dist/video-js.css";
 
@@ -13,9 +14,49 @@
         }
     }*/
 
-    .media-container .card.highlighted {
-        box-shadow: 0 .125rem .25rem rgba($black, .075);
-        border: 1px solid rgba($black, 0.125);
+    .media-container {
+        .card.highlighted {
+            box-shadow: 0 .125rem .25rem rgba($black, .075);
+            border: 1px solid rgba($black, 0.125);
+        }
+    }
+
+    .editable-text {
+        width: 100%;
+        height: 100%;
+        cursor: text;
+        padding-top: 2px;
+        padding-left: 5px;
+        padding-right: 5px;
+        padding-bottom: 2px;
+        border-bottom: 3px solid rgba($black, 0.0);
+
+        &:hover {
+            border-bottom: 3px solid rgba($black, 0.1);
+        }
+
+        &.editing {
+            border-bottom: 3px solid rgba($info, 1.0);
+        }
+
+        .label {
+            height: 100%;
+            overflow: hidden;
+            white-space: pre-wrap;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            resize: none;
+            border: none;
+            outline: none;
+            color: inherit;
+            overflow: hidden;
+            text-align: inherit;
+            background-color: var(--bs-body-bg);
+        }
     }
 }
 
@@ -32,13 +73,92 @@
     }
     */
 
-    .media-container .card.highlighted {
-        box-shadow: 0 .125rem .75rem rgba($white, .050);
-        border: 1px solid rgba($white, 0.125);
+    .breadcrumb {
+        .breadcrumb-item {
+            a {
+                &:hover {
+                    color: rgba($body-color, 0.7);
+                }
+            }
+        }
+    }
+
+    .media-container {
+        .card.highlighted {
+            box-shadow: 0 .125rem .75rem rgba($white, 0.050);
+            border: 1px solid rgba($white, 0.125);
+        }
+    }
+
+    .editable-text {
+        width: 100%;
+        height: 100%;
+        cursor: text;
+        padding-top: 2px;
+        padding-left: 5px;
+        padding-right: 5px;
+        padding-bottom: 2px;
+        border-bottom: 3px solid rgba($black, 0.0);
+
+        &:hover {
+            border-bottom: 3px solid rgba($white, 0.1);
+        }
+
+        &.editing {
+            border-bottom: 3px solid rgba($info, 1.0);
+        }
+
+        .label {
+            height: 100%;
+            overflow: hidden;
+            white-space: pre-wrap;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            resize: none;
+            border: none;
+            outline: none;
+            color: inherit;
+            overflow: hidden;
+            text-align: inherit;
+            background-color: var(--bs-body-bg);
+        }
     }
 }
 
 @import "~bootstrap/scss/bootstrap";
+
+@mixin flag-styles {
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 0 0 1px #000;
+    color: white;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    font-size: large;
+    line-height: 1;
+    margin-right: 5px;
+    position: relative;
+    cursor: pointer;
+    display: none;
+
+    &.favorite {
+        &.set {
+            color: yellow;
+
+            &:hover {
+                color: white;
+            }
+        }
+        &:hover {
+            color: yellow;
+        }
+    }
+}
 
 .navbar-nav {
     .toolbar {
@@ -57,6 +177,29 @@
             &:not(.set) {
                 opacity: 0.3;
             }
+        }
+    }
+}
+
+.media-viewer {
+
+    .flags {
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        position: absolute;
+        vertical-align: middle;
+    }
+
+    .flag {
+        @include flag-styles;
+
+        font-size: xx-large;
+    }
+
+    .modal-body:hover {
+        .flag {
+            display: unset;
         }
     }
 }
@@ -84,15 +227,6 @@
             position: relative;
             overflow: hidden;
 
-            .thumbnail {
-                width: 100%;
-                height: 100%;
-
-                .thumbnail-icon {
-                    font-size: 7rem;
-                }
-            }
-
             .flags {
                 top: 5px;
                 left: 5px;
@@ -102,34 +236,19 @@
             }
 
             .flag {
-                -moz-osx-font-smoothing: grayscale;
-                -webkit-font-smoothing: antialiased;
-                text-shadow: 0 0 1px #000;
-                color: white;
-                font-style: normal;
-                font-variant: normal;
-                font-weight: normal;
-                font-size: large;
-                line-height: 1;
-                margin-right: 5px;
-                position: relative;
-                display: none;
-
-                &.favorite {
-                    &.set {
-                        color: yellow;
-
-                        &:hover {
-                            color: white;
-                        }
-                    }
-                    &:hover {
-                        color: yellow;
-                    }
-                }
+                @include flag-styles;
 
                 &.set {
                     display: unset;
+                }
+            }
+
+            .thumbnail {
+                width: 100%;
+                height: 100%;
+
+                .thumbnail-icon {
+                    font-size: 7rem;
                 }
             }
 
@@ -151,7 +270,7 @@
 
         .card-title {
             overflow: hidden;
-            max-height: 2.5em;
+            max-height: 2.8em;
             text-overflow: ellipsis;
             white-space: normal;
         }
@@ -197,4 +316,10 @@
     border: 0.15em solid currentColor;
     border-right-color: transparent;
     animation: spinner-border .75s linear infinite;
+}
+
+.media-viewer {
+    .editable-text {
+        min-height: 2em;
+    }
 }

@@ -1,8 +1,10 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
-import { duration, size, extract } from './../utils';
+import { duration, size, extract, clone } from './../utils';
+import { EditableText } from './EditableText';
 import { Thumbnail } from './Thumbnail';
+import { toast } from 'react-toastify';
 import { Flag } from './Flag';
 
 export class MediaContainer extends Component {
@@ -15,57 +17,26 @@ export class MediaContainer extends Component {
         this.state = {
             index: -1,
             hover: false,
-            source: JSON.parse(JSON.stringify(this.props.source)),
-            previous: JSON.parse(JSON.stringify(this.props.source)),
+            current: clone(this.props.source),
+            previous: clone(this.props.source),
         };
     }
 
-    componentDidMount() {
-    }
-
-    componentDidUpdate() {
-    }
-
-    componentWillUnmount() {
-    }
-
-    apply(source) {
+    update(source) {
         this.setState({
-            source: source,
-        });
-        fetch("/library" + source.fullPath, {
-            method: "PUT",
-            headers: {
-                accept: "application/json",
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(source)
-        })
-        .then((response) => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error(response.json());
-            }
-        })
-        .then((response) => {
-            // update the properties of the original instance of the source
-            Object.assign(this.props.source, response);
-            // update the state and the virtual copies of the source
-            this.setState({
-                source: JSON.parse(JSON.stringify(response)),
-                previous: JSON.parse(JSON.stringify(response)),
-            });
-        })
-        .catch((error) => {
-            this.setState({
-                source: JSON.parse(JSON.stringify(this.state.previous)),
+            current: source,
+        }, () => {
+            this.props.onUpdate(source, false, (source, succeeded) => {
+                this.setState({
+                    current: succeeded ? clone(source) : clone(this.state.previous),
+                    previous: succeeded ? clone(source) : clone(this.state.previous),
+                });
             });
         });
     }
 
     toggle(flag) {
-        let source = Object.assign({}, this.state.source);
+        let source = Object.assign({}, this.state.current);
         let flags = extract([], source, 'flags');
         let index = flags.indexOf(flag);
         if (index !== -1) {
@@ -74,12 +45,18 @@ export class MediaContainer extends Component {
             flags.push(flag);
         }
         source['flags'] = flags;
-        this.apply(source);
+        this.update(source);
+    }
+
+    rename(name) {
+        let source = Object.assign({}, this.state.current);
+        source.name = name;
+        this.update(source);
     }
 
     onMouseOver() {
-        if (! this.state.hover) {
-            this.props.highlight(this.state.source);
+        if (!this.state.hover) {
+            this.props.onHighlight(this.state.current);
             this.setState({
                 hover: true
             });
@@ -88,7 +65,7 @@ export class MediaContainer extends Component {
 
     onMouseOut() {
         if (this.state.hover) {
-            this.props.highlight(null);
+            this.props.onHighlight(null);
             this.setState({
                 hover: false
             });
@@ -96,11 +73,11 @@ export class MediaContainer extends Component {
     }
 
     onClick(event) {
-        if (this.state.source.type === "Folder") {
-            this.props.open(this.state.source, false);
+        if (this.state.current.type === "Folder") {
+            this.props.onOpen(this.state.current, false);
         } else {
             let player = !(event.shiftKey || event.metaKey);
-            this.props.view(this.state.source, player);
+            this.props.onView(this.state.current, player);
         }
     }
 
@@ -109,29 +86,31 @@ export class MediaContainer extends Component {
     }
 
     render() {
-        const flags = extract([], this.state.source, "flags");
+        const flags = extract([], this.state.current, "flags");
         const favorite = flags.includes('Favorite');
         return (
-            <div className={"media-container" + (this.state.source.type ? (" " + this.state.source.type.toLowerCase()) : "")}>
+            <div className={"media-container" + (this.state.current.type ? (" " + this.state.current.type.toLowerCase()) : "")}>
                 <Card onClick={this.onClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
                     <div className="thumbnail-container">
-                        <Thumbnail id={this.state.source.id} type={this.state.source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
-                        <Badge variant="dark" className={"duration " + ((this.state.source.duration > 0) ? "visible" : "invisible")}>{duration(this.state.source.duration)}</Badge>
+                        <Thumbnail id={this.state.current.id} type={this.state.current.type} count={extract(0, this.props, 'source', 'thumbnails')} />
+                        <Badge variant="dark" className={"duration " + ((this.state.current.duration > 0) ? "visible" : "invisible")}>{duration(this.state.current.duration)}</Badge>
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">
-                        <Card.Title style={{flexShrink: 1, flexGrow: 1}}>
-                            {this.state.source.name}
+                        <Card.Title title={this.state.current.name} style={{flexShrink: 1, flexGrow: 1}}>
+                            <EditableText row={2} value={this.state.current.name} onChange={this.rename.bind(this)} />
                         </Card.Title>
-                        <Card.Text style={{flexShrink: 1, flexGrow: 1}}>
-                            {this.state.source.description}
+                        {/*
+                        <Card.Text title={this.state.current.description} style={{flexShrink: 1, flexGrow: 1}}>
+                            {this.state.current.description}
                         </Card.Text>
+                        */}
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
                         <div className="pl-1" style={{flexGrow: 1}}>
-                            <small>{(this.state.source.size) ? size(this.state.source.size) : <span>&nbsp;</span>}</small>
+                            <small>{(this.state.current.size) ? size(this.state.current.size) : <span>&nbsp;</span>}</small>
                         </div>
                     </div>
                 </Card>

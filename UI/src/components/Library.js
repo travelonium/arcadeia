@@ -7,9 +7,10 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { extract, size, breakpoint, updateBit } from './../utils';
+import { clone, extract, size, breakpoint, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import { toast } from 'react-toastify';
 import cx from 'classnames';
 
 export class Library extends Component {
@@ -125,6 +126,62 @@ export class Library extends Component {
                     items: []
                 });
             });
+        });
+    }
+
+    /**
+     * Update a MediaContainer with new attributes.
+     * @param {*} source The modified MediaContainer to update.
+     * @param {boolean} refresh Forces a state update and a refresh following the modifications.
+     * @param {(source, succeeded) => void} callback The callback function to call with either the updated or unmodified source when the operation is thorough.
+     */
+    update(source, refresh = true, callback = undefined) {
+        let item = clone(source);
+        const index = this.state.items.findIndex(x => x.id === item.id);
+        if (index === -1) {
+            toast.error("Unabled to find the item that was to be updated.");
+            return;
+        }
+        fetch("/library" + item.fullPath, {
+            method: "PUT",
+            headers: {
+                accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(item)
+        })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((error) => {
+                    throw new Error(error.message);
+                });
+            } else {
+                return response.json();
+            }
+        })
+        .then((response) => {
+            // update the state and the virtual copies of the source
+            this.state.items[index] = Object.assign(this.state.items[index], response);
+            if (refresh) {
+                this.setState({
+                    items: this.state.items
+                }, () => {
+                    if (callback !== undefined) {
+                        callback(this.state.items[index], true);
+                    }
+                });
+            } else {
+                if (callback !== undefined) {
+                    callback(this.state.items[index], true);
+                }
+            }
+        })
+        .catch((error) => {
+            console.error(error);
+            toast.error(error.message);
+            if (callback !== undefined) {
+                callback(this.state.items[index], false);
+            }
         });
     }
 
@@ -263,7 +320,7 @@ export class Library extends Component {
         if (source !== undefined) {
             return (
                 <div className="p-1" style={style}>
-                    <MediaContainer source={source} open={this.open.bind(this)} view={this.view.bind(this)} highlight={this.highlight.bind(this)} />
+                    <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
                 </div>
             );
         } else {
@@ -368,7 +425,7 @@ export class Library extends Component {
                                 )}
                             }
                         </AutoSizer>
-                        <MediaViewer ref={this.mediaViewer} />
+                        <MediaViewer ref={this.mediaViewer} onUpdate={this.update.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>
