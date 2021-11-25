@@ -115,36 +115,7 @@
 
 @import "~bootstrap/scss/bootstrap";
 
-.navbar-nav {
-    .toolbar {
-        .flag {
-            -moz-osx-font-smoothing: grayscale;
-            -webkit-font-smoothing: antialiased;
-            text-shadow: none;
-            color: lightgray;
-            font-style: normal;
-            font-variant: normal;
-            font-weight: normal;
-            font-size: x-large;
-            position: relative;
-            line-height: 1;
-
-            &:not(.set) {
-                opacity: 0.3;
-            }
-        }
-    }
-}
-
-.flags {
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    position: absolute;
-    vertical-align: middle;
-}
-
-.flag {
+@mixin flag {
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
     text-shadow: 0 0 1px #000;
@@ -173,10 +144,44 @@
     }
 }
 
+@mixin flags {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    position: absolute;
+    vertical-align: middle;
+}
+
+.navbar-nav {
+    .toolbar {
+        .flag {
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-font-smoothing: antialiased;
+            text-shadow: none;
+            color: lightgray;
+            font-style: normal;
+            font-variant: normal;
+            font-weight: normal;
+            font-size: x-large;
+            position: relative;
+            line-height: 1;
+
+            &:not(.set) {
+                opacity: 0.3;
+            }
+        }
+    }
+}
+
 .media-viewer {
 
-    .flag {
-        font-size: xx-large;
+    .flags {
+        @include flags;
+
+        .flag {
+            @include flag;
+            font-size: xx-large;
+        }
     }
 
     .modal-body:hover {
@@ -205,18 +210,22 @@
         }
 
         .thumbnail-container {
-            .flag {
-                &.set {
-                    display: unset;
-                }
-            }
-        }
-
-        .thumbnail-container {
             width: 100%;
             height: 56.25%; // 9:16
             position: relative;
             overflow: hidden;
+
+            .flag {
+                @include flag;
+
+                &.set {
+                    display: unset;
+                }
+            }
+
+            .flags {
+                @include flags;
+            }
 
             .thumbnail {
                 width: 100%;
