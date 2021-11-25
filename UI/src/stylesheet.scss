@@ -189,12 +189,12 @@
         right: 5px;
         position: absolute;
         vertical-align: middle;
+    }
 
-        .flag {
-            @include flag-styles;
+    .flag {
+        @include flag-styles;
 
-            font-size: xx-large;
-        }
+        font-size: xx-large;
     }
 
     .modal-body:hover {
@@ -233,13 +233,13 @@
                 right: 5px;
                 position: absolute;
                 vertical-align: middle;
+            }
 
-                .flag {
-                    @include flag-styles;
+            .flag {
+                @include flag-styles;
 
-                    &.set {
-                        display: unset;
-                    }
+                &.set {
+                    display: unset;
                 }
             }
 
