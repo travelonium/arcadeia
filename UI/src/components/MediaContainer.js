@@ -100,7 +100,7 @@ export class MediaContainer extends Component {
                     </div>
                     <Card.Body className="d-flex flex-column">
                         <Card.Title title={this.state.current.name} style={{flexShrink: 1, flexGrow: 1}}>
-                            <EditableText value={this.state.current.name} onChange={this.rename.bind(this)} />
+                            <EditableText row={2} value={this.state.current.name} onChange={this.rename.bind(this)} />
                         </Card.Title>
                         {/*
                         <Card.Text title={this.state.current.description} style={{flexShrink: 1, flexGrow: 1}}>
