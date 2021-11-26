@@ -207,6 +207,18 @@
 .media-container {
     height: 100%;
 
+    // unset the bootstrap/theme anchor styles for the card element
+    @at-root a#{&} {
+        color: unset;
+        text-decoration: unset;
+        background-color: unset;
+
+        &:hover {
+            color: unset;
+            text-decoration: unset;
+        }
+    }
+
     .card {
         border: 1px solid rgba(0, 0, 0, 0.125);
         margin-bottom: 15px;

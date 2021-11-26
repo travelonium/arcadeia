@@ -20,6 +20,7 @@ export class Flag extends Component {
     }
 
     onToggle(event) {
+        event.preventDefault();
         event.stopPropagation();
         event.persist();
         if (this.props.onChange) {

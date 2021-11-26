@@ -83,6 +83,8 @@ export class MediaContainer extends Component {
 
     onAuxClick(event) {
         if ((this.state.current.type !== "Folder") && (event.button === 1)) {
+            event.preventDefault();
+            event.stopPropagation();
             this.props.onView(this.state.current, false);
         }
     }
@@ -92,35 +94,36 @@ export class MediaContainer extends Component {
     }
 
     render() {
-        const flags = extract([], this.state.current, "flags");
+        const source = this.state.current;
+        const flags = extract([], source, "flags");
         const favorite = flags.includes('Favorite');
         return (
-            <div className={"media-container" + (this.state.current.type ? (" " + this.state.current.type.toLowerCase()) : "")}>
+            <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
                     <div className="thumbnail-container">
-                        <Thumbnail id={this.state.current.id} type={this.state.current.type} count={extract(0, this.props, 'source', 'thumbnails')} />
-                        <Badge variant="dark" className={"duration " + ((this.state.current.duration > 0) ? "visible" : "invisible")}>{duration(this.state.current.duration)}</Badge>
+                        <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
+                        <Badge variant="dark" className={"duration " + ((source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">
-                        <Card.Title title={this.state.current.name} style={{flexShrink: 1, flexGrow: 1}}>
-                            <EditableText row={2} value={this.state.current.name} onChange={this.rename.bind(this)} />
+                        <Card.Title title={source.name} style={{flexShrink: 1, flexGrow: 1}}>
+                            <EditableText row={2} value={source.name} onChange={this.rename.bind(this)} />
                         </Card.Title>
                         {/*
-                        <Card.Text title={this.state.current.description} style={{flexShrink: 1, flexGrow: 1}}>
-                            {this.state.current.description}
+                        <Card.Text title={source.description} style={{flexShrink: 1, flexGrow: 1}}>
+                            {source.description}
                         </Card.Text>
                         */}
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
                         <div className="pl-1" style={{flexGrow: 1}}>
-                            <small>{(this.state.current.size) ? size(this.state.current.size) : <span>&nbsp;</span>}</small>
+                            <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
                         </div>
                     </div>
                 </Card>
-            </div>
+            </a>
         );
     }
 }
