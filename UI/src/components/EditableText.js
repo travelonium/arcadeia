@@ -40,7 +40,7 @@ export class EditableText extends Component {
             let match = pattern.exec(this.state.current);
             if (match !== null) {
                 const name = extract(null, match, 1);
-                const extension = extract(null, match, 2);
+                // const extension = extract(null, match, 2);
                 if (name) {
                     start = match.index;
                     end = name.length;

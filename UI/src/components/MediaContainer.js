@@ -4,7 +4,6 @@ import Badge from 'react-bootstrap/Badge';
 import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
 import { Thumbnail } from './Thumbnail';
-import { toast } from 'react-toastify';
 import { Flag } from './Flag';
 
 export class MediaContainer extends Component {
@@ -16,7 +15,6 @@ export class MediaContainer extends Component {
         this.animateInterval = null;
         this.state = {
             index: -1,
-            hover: false,
             current: clone(this.props.source),
             previous: clone(this.props.source),
         };
@@ -54,24 +52,6 @@ export class MediaContainer extends Component {
         this.update(source);
     }
 
-    onMouseOver() {
-        if (!this.state.hover) {
-            this.props.onHighlight(this.state.current);
-            this.setState({
-                hover: true
-            });
-        }
-    }
-
-    onMouseOut() {
-        if (this.state.hover) {
-            this.props.onHighlight(null);
-            this.setState({
-                hover: false
-            });
-        }
-    }
-
     onClick(event) {
         if (this.state.current.type === "Folder") {
             this.props.onOpen(this.state.current, false);
@@ -99,7 +79,7 @@ export class MediaContainer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
-                <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} onMouseOver={this.onMouseOver.bind(this)} onMouseOut={this.onMouseOut.bind(this)} className={(this.state.hover ? "highlighted" : "") } >
+                <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                     <div className="thumbnail-container">
                         <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
                         <Badge variant="dark" className={"duration " + ((source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>

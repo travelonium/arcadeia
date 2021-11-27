@@ -15,9 +15,11 @@
     }*/
 
     .media-container {
-        .card.highlighted {
-            box-shadow: 0 .125rem .25rem rgba($black, .075);
-            border: 1px solid rgba($black, 0.125);
+        &:hover {
+            .card {
+                border: 1px solid rgba($black, 0.125);
+                box-shadow: 0 .125rem .25rem rgba($black, .075);
+            }
         }
     }
 
@@ -84,9 +86,11 @@
     }
 
     .media-container {
-        .card.highlighted {
-            box-shadow: 0 .125rem .75rem rgba($white, 0.050);
-            border: 1px solid rgba($white, 0.125);
+        &:hover {
+            .card {
+                border: 1px solid rgba($white, 0.125);
+                box-shadow: 0 .125rem .75rem rgba($white, 0.050);
+            }
         }
     }
 
@@ -225,7 +229,7 @@
         cursor: pointer;
         height: 100%;
 
-        &.highlighted {
+        &:hover {
             .thumbnail-container {
                 .flag {
                     display: unset;
