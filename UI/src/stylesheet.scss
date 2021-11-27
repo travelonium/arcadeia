@@ -229,7 +229,19 @@
         cursor: pointer;
         height: 100%;
 
-        &:hover {
+        // non-touch devices supporting a real hover effect
+        @media all and (hover: hover) {
+            &:hover {
+                .thumbnail-container {
+                    .flag {
+                        display: unset;
+                    }
+                }
+            }
+        }
+
+        // touch devices not supporting a real hover effect
+        @media not all and (hover: hover) {
             .thumbnail-container {
                 .flag {
                     display: unset;
