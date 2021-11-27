@@ -240,15 +240,6 @@
             }
         }
 
-        // touch devices not supporting a real hover effect
-        @media not all and (hover: hover) {
-            .thumbnail-container {
-                .flag {
-                    display: unset;
-                }
-            }
-        }
-
         .thumbnail-container {
             width: 100%;
             height: 56.25%; // 9:16
@@ -265,6 +256,11 @@
 
             .flag {
                 @include flag-styles;
+
+                // touch devices not supporting a real hover effect
+                @media not all and (hover: hover) {
+                    display: unset;
+                }
 
                 &.set {
                     display: unset;
