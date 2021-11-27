@@ -364,7 +364,11 @@ export class Library extends Component {
                                     }
                                 }
                                 return (
-                                    <Breadcrumb.Item key={"library-path-item-" + index} href="#" active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={event => this.list(event.target.getAttribute("link"))} >{component}</Breadcrumb.Item>
+                                    <Breadcrumb.Item key={"library-path-item-" + index} href={link} active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        this.list(event.target.getAttribute("link"));
+                                    }} >{component}</Breadcrumb.Item>
                                 );
                             })
                         }
