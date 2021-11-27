@@ -19,9 +19,8 @@ export class Library extends Component {
 
     constructor(props) {
         super(props);
-        this.rowCount = 1;
-        this.columnCount = 1;
         this.mediaViewer = React.createRef();
+        this.gridWrapper = React.createRef();
         this.controller = new AbortController();
         let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
@@ -315,22 +314,6 @@ export class Library extends Component {
         }
     }
 
-    cell({ columnIndex, rowIndex, style }) {
-        let source = this.state.items[(rowIndex * this.columnCount) + columnIndex];
-        if (source !== undefined) {
-            return (
-                <div className="p-1" style={style}>
-                    <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
-                </div>
-            );
-        } else {
-            return (
-                <div style={style}>
-                </div>
-            );
-        }
-    }
-
     files() {
         return this.state.items.reduce((count, item) =>{
             if ((item.type === "Video") || (item.type === "Audio") || (item.type === "Photo")) return (count + 1);
@@ -364,7 +347,7 @@ export class Library extends Component {
         let components = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
             <>
-                <div className="d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                <div className="library d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                     <Breadcrumb className="mx-3" listProps={{ className: "py-2 px-3" }}>
                         {
                             components.filter((component) => component).map((component, index, array) => {
@@ -386,41 +369,34 @@ export class Library extends Component {
                             })
                         }
                     </Breadcrumb>
-                    <div className="d-flex ml-3 mb-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
+                    <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                         <AutoSizer>
                             {({ height, width }) => {
-                                let offset = 0;
-                                let size = breakpoint();
-                                switch (size) {
-                                    case 'xs':
-                                        offset = 15;
-                                        this.columnCount = 1;
-                                        break;
-                                    case 'sm':
-                                        offset = 8;
-                                        this.columnCount = 2;
-                                        break;
-                                    case 'md':
-                                        offset = 6;
-                                        this.columnCount = 3;
-                                        break;
-                                    case 'lg':
-                                        offset = 5;
-                                        this.columnCount = 4;
-                                        break;
-                                    case 'xl':
-                                        offset = 4;
-                                        this.columnCount = 5;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                let rowHeight = (width / this.columnCount);
-                                let columnWidth = (width / this.columnCount) - offset;
-                                this.rowCount = Math.ceil(this.state.items.length / this.columnCount);
+                                let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
+                                let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
+                                let columnCount = Math.ceil(size / 400);
+                                let rowHeight = width / columnCount;
+                                let columnWidth = width / columnCount;
+                                let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid columnCount={this.columnCount} columnWidth={columnWidth} height={height} rowCount={this.rowCount} rowHeight={rowHeight} width={width}>
-                                        {this.cell.bind(this)}
+                                    <Grid columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
+                                    {
+                                        ({ columnIndex, rowIndex, style }) => {
+                                            let source = this.state.items[(rowIndex * columnCount) + columnIndex];
+                                            if (source !== undefined) {
+                                                return (
+                                                    <div className="p-1" style={style}>
+                                                        <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div style={style}>
+                                                    </div>
+                                                );
+                                            }
+                                        }
+                                    }
                                     </Grid>
                                 )}
                             }
