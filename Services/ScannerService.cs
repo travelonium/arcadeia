@@ -10,6 +10,7 @@ using System.Security.Permissions;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace MediaCurator.Services
 {
@@ -164,6 +165,24 @@ namespace MediaCurator.Services
          }
       }
 
+      /// <summary>
+      /// A list of regex patterns specifying which file names to ignore when scanning.
+      /// </summary>
+      public List<String> IgnoredFileNames
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:IgnoredFileNames").Exists())
+            {
+               return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>();
+            }
+            else
+            {
+               return new List<String>();
+            }
+         }
+      }
+
       public ScannerService(IConfiguration configuration,
                             ILogger<ScannerService> logger,
                             IBackgroundTaskQueue taskQueue,
@@ -313,7 +332,9 @@ namespace MediaCurator.Services
 
       private void Scan(string path, string type)
       {
-         _logger.LogInformation(type + " Scanning Started: " + path);
+         var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
+
+         _logger.LogInformation("{} Scanning Started: {}", type, path);
 
          try
          {
@@ -322,14 +343,15 @@ namespace MediaCurator.Services
          catch (System.IO.DirectoryNotFoundException)
          {
             // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
-            _logger.LogWarning("Path Unavailable: " + path);
+            _logger.LogWarning("Path Unavailable: {}", path);
 
             return;
          }
          catch (System.UnauthorizedAccessException e)
          {
             // We probably do not have access to the folder. Let's ignore this one and move on.
-            _logger.LogWarning(e.Message);
+            _logger.LogWarning("Access Denied: {}", path);
+            _logger.LogDebug(e.Message);
 
             return;
          }
@@ -355,6 +377,8 @@ namespace MediaCurator.Services
          // Loop through the files in the specific MediaLocation.
          foreach (var file in files)
          {
+            var name = Path.GetFileName(file);
+
             if (_cancellationToken.IsCancellationRequested)
             {
                // Let's update the MediaLibrary with the new entries if any so far.
@@ -362,6 +386,17 @@ namespace MediaCurator.Services
 
                // Return gracefully now!
                return;
+            }
+
+            // Should the file name be ignored
+            foreach (Regex pattern in patterns)
+            {
+               if (pattern.IsMatch(name))
+               {
+                  _logger.LogDebug("IGNORED: {}", file);
+
+                  goto Skip;
+               }
             }
 
             // Update the Status message.
@@ -374,10 +409,12 @@ namespace MediaCurator.Services
             }
             catch (Exception e)
             {
-               _logger.LogError("An exception has been thrown while updating the Media Library: ", e.Message);
+               _logger.LogError("An exception has been thrown while adding to the Media Library: {}", e.Message);
 
                break;
             }
+
+         Skip:
 
             // Update the Current Folder Progress.
             _progressFolder.Report(new Tuple<double, double>(fileCounter++, fileCounterMax));
@@ -392,7 +429,7 @@ namespace MediaCurator.Services
          // Now that we're done with this location, let's update the MediaLibrary with the new entries if any.
          _mediaLibrary.UpdateDatabase();
 
-         _logger.LogInformation(type + " Scanning Finished: " + path);
+         _logger.LogInformation("{} Scanning Finished: {}", type, path);
       }
 
       private void Update(ref double totalCounterMax,
@@ -457,7 +494,7 @@ namespace MediaCurator.Services
             }
             catch (Exception e)
             {
-               _logger.LogError("An exception has been thrown while updating the Media Library: ", e.Message);
+               _logger.LogError("An exception has been thrown while updating the Media Library: {}", e.Message);
 
                break;
             }
