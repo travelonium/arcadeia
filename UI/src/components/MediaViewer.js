@@ -25,6 +25,10 @@ export class MediaViewer extends Component {
     onHide() {
         this.setState({
             sources: [],
+        }, () => {
+            if (this.props.onHide !== undefined) {
+                this.props.onHide();
+            }
         });
     }
 
@@ -37,6 +41,10 @@ export class MediaViewer extends Component {
             if (player) {
                 this.setState({
                     sources: [source],
+                }, () => {
+                    if (this.props.onShow !== undefined) {
+                        this.props.onShow();
+                    }
                 });
             } else {
                 window.open("/stream/" + source.id + "/" + source.name, "_blank");

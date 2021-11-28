@@ -7,7 +7,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { clone, extract, size, breakpoint, updateBit } from './../utils';
+import { clone, extract, size, updateBit } from './../utils';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 import { toast } from 'react-toastify';
@@ -19,6 +19,7 @@ export class Library extends Component {
 
     constructor(props) {
         super(props);
+        this.viewing = false;
         this.mediaViewer = React.createRef();
         this.gridWrapper = React.createRef();
         this.controller = new AbortController();
@@ -336,6 +337,14 @@ export class Library extends Component {
         return query;
     }
 
+    onMediaViewerShow() {
+        this.viewing = true;
+    }
+
+    onMediaViewerHide() {
+        this.viewing = false;
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.state.path);
@@ -390,7 +399,7 @@ export class Library extends Component {
                                             if (source !== undefined) {
                                                 return (
                                                     <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
+                                                        <MediaContainer library={this.props.forwardedRef} source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
                                                     </div>
                                                 );
                                             } else {
@@ -405,7 +414,7 @@ export class Library extends Component {
                                 )}
                             }
                         </AutoSizer>
-                        <MediaViewer ref={this.mediaViewer} onUpdate={this.update.bind(this)} />
+                        <MediaViewer ref={this.mediaViewer} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>

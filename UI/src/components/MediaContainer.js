@@ -81,7 +81,7 @@ export class MediaContainer extends Component {
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                     <div className="thumbnail-container">
-                        <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} />
+                        <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
                         <Badge variant="dark" className={"duration " + ((source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />

@@ -45,7 +45,7 @@ export default class App extends Component {
     render() {
         return (
             <Layout library={this.library} navigation={this.navigation} darkMode={this.state.darkMode}>
-                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} navigation={this.navigation} darkMode={this.state.darkMode} /> } />
+                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} forwardedRef={this.library} navigation={this.navigation} darkMode={this.state.darkMode} /> } />
                 <Route path='/counter' component={Counter} />
                 <Route path='/fetch-data' component={FetchData} />
             </Layout>
