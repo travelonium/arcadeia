@@ -389,7 +389,7 @@ export class Library extends Component {
                                             let source = this.state.items[(rowIndex * columnCount) + columnIndex];
                                             if (source !== undefined) {
                                                 return (
-                                                    <div className="grid-item animate__animated" style={style}>
+                                                    <div className="grid-item animate__animated animate__fadeIn" style={style}>
                                                         <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
                                                     </div>
                                                 );

@@ -214,6 +214,7 @@
     .grid-item {
         padding: 0.4rem;
         transition: 0.1s all ease;
+        --animate-duration: 0.5s;
 
         @media all and (hover: hover) {
             &:hover {
