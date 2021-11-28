@@ -379,7 +379,7 @@ export class Library extends Component {
                                 let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
                                 let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
                                 let columnCount = Math.ceil(size / 400);
-                                let rowHeight = width / columnCount;
+                                let rowHeight = (width / columnCount);
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
@@ -389,7 +389,7 @@ export class Library extends Component {
                                             let source = this.state.items[(rowIndex * columnCount) + columnIndex];
                                             if (source !== undefined) {
                                                 return (
-                                                    <div className="p-1" style={style}>
+                                                    <div className="grid-item" style={style}>
                                                         <MediaContainer source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
                                                     </div>
                                                 );
