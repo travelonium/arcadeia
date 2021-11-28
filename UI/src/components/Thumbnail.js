@@ -18,9 +18,8 @@ export class Thumbnail extends Component {
 
     componentDidMount() {
         if ((this.animateInterval == null) && (this.props.id != null) && (this.props.count > 0)) {
-            if (this.props.count === 1) {
-                this.animate();
-            } else {
+            this.animate();
+            if (this.props.count > 1) {
                 this.animateInterval = setInterval(() => this.animate(), 500);
             }
         }
