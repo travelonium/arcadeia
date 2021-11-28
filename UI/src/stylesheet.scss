@@ -1,6 +1,7 @@
 @import '~react-toastify/dist/ReactToastify.css';
 @import "~bootstrap-icons/font/bootstrap-icons";
 @import "~video.js/dist/video-js.css";
+@import '~animate.css/animate.css';
 
 .light {
     @import "~bootswatch/dist/flatly/variables";
@@ -211,7 +212,14 @@
 // the padding between the grid items and when hovered
 .grid-wrapper {
     .grid-item {
-        padding: 0.25rem;
+        padding: 0.4rem;
+        transition: 0.1s all ease;
+
+        @media all and (hover: hover) {
+            &:hover {
+                padding: 0.1rem;
+            }
+        }
     }
 }
 
