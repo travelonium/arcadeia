@@ -382,7 +382,7 @@ namespace MediaCurator.Solr
          {
 				_logger.LogError("Solr Connection Error: {}" + e.Message);
 
-				throw e;
+				throw;
 			}
 		}
    }

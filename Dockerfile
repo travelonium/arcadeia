@@ -1,4 +1,4 @@
-ARG VERSION=6.0
+ARG VERSION=5.0
 ARG DISTRO=bullseye-slim
 
 FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND noninteractive
-
+ARG VERSION
 RUN set -eux; \
     apt-get update; \
     apt-get install -y iputils-ping net-tools ffmpeg cifs-utils nfs-common; \
@@ -25,7 +25,7 @@ RUN set -eux; \
     dpkg -l; \
     ffmpeg -version;
 
-COPY --from=builder /root/bin/Release/netcoreapp3.1/publish/ /var/lib/app/
+COPY --from=builder /root/bin/Release/net${VERSION}/publish /var/lib/app/
 COPY entrypoint.sh /
 
 EXPOSE 80 443
