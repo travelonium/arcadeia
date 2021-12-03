@@ -1,4 +1,7 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+ARG VERSION=6.0
+ARG DISTRO=focal
+
+FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
 WORKDIR /root/
 COPY ./ ./
 RUN set -eux; \
@@ -11,7 +14,7 @@ RUN set -eux; \
     dotnet restore; \
     dotnet publish --configuration Release;
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
+FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN set -eux; \
