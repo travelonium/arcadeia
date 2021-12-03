@@ -1,9 +1,12 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+ARG VERSION=5.0
+ARG DISTRO=bullseye-slim
+
+FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
 WORKDIR /root/
 COPY ./ ./
 RUN set -eux; \
     apt-get update; \
-    apt-get -y install curl gnupg build-essential; \
+    apt-get -y install curl gnupg build-essential python; \
     curl -fsSL https://deb.nodesource.com/setup_14.x | bash -; \
     apt-get -y install nodejs; \
     node --version; \
@@ -11,9 +14,9 @@ RUN set -eux; \
     dotnet restore; \
     dotnet publish --configuration Release;
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
+FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND noninteractive
-
+ARG VERSION
 RUN set -eux; \
     apt-get update; \
     apt-get install -y iputils-ping net-tools ffmpeg cifs-utils nfs-common; \
@@ -22,7 +25,7 @@ RUN set -eux; \
     dpkg -l; \
     ffmpeg -version;
 
-COPY --from=builder /root/bin/Release/netcoreapp3.1/publish/ /var/lib/app/
+COPY --from=builder /root/bin/Release/net${VERSION}/publish /var/lib/app/
 COPY entrypoint.sh /
 
 EXPOSE 80 443
