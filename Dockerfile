@@ -1,12 +1,12 @@
 ARG VERSION=6.0
-ARG DISTRO=focal
+ARG DISTRO=bullseye-slim
 
 FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
 WORKDIR /root/
 COPY ./ ./
 RUN set -eux; \
     apt-get update; \
-    apt-get -y install curl gnupg build-essential; \
+    apt-get -y install curl gnupg build-essential python; \
     curl -fsSL https://deb.nodesource.com/setup_14.x | bash -; \
     apt-get -y install nodejs; \
     node --version; \
