@@ -113,10 +113,10 @@ export class NavMenu extends Component {
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
                     <Navbar.Brand className="py-0" href="/">
-                        <svg width="35" height="35" className="mr-2">
+                        <svg width="35" height="35" className="animate__animated animate__rotateIn">
                             <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
                         </svg>
-                        <svg width="225" height="40">
+                        <svg width="225" height="40" className="ml-2 animate__animated animate__fast animate__slideInLeft">
                             <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-text"></use>
                         </svg>
                     </Navbar.Brand>
