@@ -392,7 +392,7 @@ export class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
+                                    <Grid className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
                                     {
                                         ({ columnIndex, rowIndex, style }) => {
                                             let source = this.state.items[(rowIndex * columnCount) + columnIndex];
