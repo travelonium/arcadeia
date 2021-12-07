@@ -113,7 +113,7 @@ export class NavMenu extends Component {
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
                     <Navbar.Brand className="py-0" href="/">
-                        <svg width="40" height="40" className="mr-2">
+                        <svg width="35" height="35" className="mr-2">
                             <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
                         </svg>
                         <svg width="225" height="40">
