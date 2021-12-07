@@ -112,7 +112,14 @@ export class NavMenu extends Component {
         return (
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
-                    <Navbar.Brand href="/">Media Curator</Navbar.Brand>
+                    <Navbar.Brand className="py-0" href="/">
+                        <svg width="40" height="40" className="mr-2">
+                            <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
+                        </svg>
+                        <svg width="225" height="40">
+                            <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-text"></use>
+                        </svg>
+                    </Navbar.Brand>
                     <Navbar.Toggle onClick={this.toggleNavbar} className="mr-2" label="responsive-navbar-nav" />
                     <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
                         <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
