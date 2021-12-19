@@ -20,8 +20,9 @@ export class Library extends Component {
     constructor(props) {
         super(props);
         this.viewing = false;
-        this.mediaViewer = React.createRef();
+        this.grid = React.createRef();
         this.gridWrapper = React.createRef();
+        this.mediaViewer = React.createRef();
         this.controller = new AbortController();
         let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
@@ -33,6 +34,8 @@ export class Library extends Component {
     }
 
     componentDidMount() {
+        // install the event handler for keydown keyboard events
+        document.addEventListener('keydown', this.onKeyDown.bind(this));
         // handle the startup query parsing
         this.props.navigation.current.resetSearchParams(() => {
             if (this.props.navigation.current.state.query) {
@@ -345,6 +348,25 @@ export class Library extends Component {
         this.viewing = false;
     }
 
+    onKeyDown(event) {
+        if (!this.grid.current) return;
+        let grid = this.grid.current;
+        let height = grid.props.height;
+        let rowCount = grid.props.rowCount;
+        let rowHeight = grid.props.rowHeight;
+        let pageRows = Math.floor(height / rowHeight);
+        let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
+        if (event.key === 'Home') {
+            grid.scrollToItem({ align: "start", rowIndex: 0 });
+        } else if (event.key === 'End') {
+            grid.scrollToItem({ align: "end", rowIndex: rowCount });
+        } else if (event.key === 'PageUp') {
+            grid.scrollToItem({ align: "start", rowIndex: (currentRow - pageRows) });
+        } else if (event.key === 'PageDown') {
+            grid.scrollToItem({ align: "start", rowIndex: (currentRow + pageRows) });
+        }
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.state.path);
@@ -392,7 +414,7 @@ export class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
+                                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
                                     {
                                         ({ columnIndex, rowIndex, style }) => {
                                             let source = this.state.items[(rowIndex * columnCount) + columnIndex];
