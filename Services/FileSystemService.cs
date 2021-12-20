@@ -112,7 +112,7 @@ namespace MediaCurator.Services
             }
          }
 
-         _logger.LogInformation("Mounted: {} @ {}", device, directory);
+         _logger.LogInformation("Mounted: {} @ {}", device, directory);
 
          return true;
       }
@@ -146,7 +146,7 @@ namespace MediaCurator.Services
             }
          }
 
-         _logger.LogInformation("Unmounted: {} @ {}", device, directory);
+         _logger.LogInformation("Unmounted: {} @ {}", device, directory);
 
          return true;
       }

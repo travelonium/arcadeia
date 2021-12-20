@@ -11,6 +11,7 @@ export class MediaViewer extends Component {
 
     constructor(props) {
         super(props);
+        this.videoPlayer = React.createRef();
         this.state = {
             sources: [],
             videoJsOptions: {
@@ -96,7 +97,7 @@ export class MediaViewer extends Component {
                         </Modal.Title>
                     </Modal.Header>
                     <Modal.Body className="">
-                        <VideoPlayer options={this.state.videoJsOptions} sources={this.state.sources.map((item) => ("/stream/" + item.id + "/" + item.name))} />
+                        <VideoPlayer ref={this.videoPlayer} options={this.state.videoJsOptions} sources={this.state.sources.map((item) => ("/stream/" + item.id + "/" + item.name))} />
                         <div className="flags px-1 ml-4 mt-4">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>

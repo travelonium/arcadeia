@@ -20,8 +20,9 @@ export class Library extends Component {
     constructor(props) {
         super(props);
         this.viewing = false;
-        this.mediaViewer = React.createRef();
+        this.grid = React.createRef();
         this.gridWrapper = React.createRef();
+        this.mediaViewer = React.createRef();
         this.controller = new AbortController();
         let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
@@ -29,10 +30,22 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
+            options: {
+                videoPlayer: {
+                    seekStep: {
+                        small: 15,
+                        medium: 30,
+                        big: 60
+                    },
+                    volumeStep: 0.1
+                }
+            }
         };
     }
 
     componentDidMount() {
+        // install the event handler for keydown keyboard events
+        document.addEventListener('keydown', this.onKeyDown.bind(this));
         // handle the startup query parsing
         this.props.navigation.current.resetSearchParams(() => {
             if (this.props.navigation.current.state.query) {
@@ -325,7 +338,7 @@ export class Library extends Component {
     querify(dictionary, query = new URLSearchParams()) {
         for (const key in dictionary) {
             const value = dictionary[key];
-            if ((value === null) || (value === undefined)) continue;
+            if ((value === null) || (value === undefined)) continue;
             if (Array.isArray(value)) {
                 for (const item of value) {
                     query.append(key, item);
@@ -343,6 +356,88 @@ export class Library extends Component {
 
     onMediaViewerHide() {
         this.viewing = false;
+    }
+
+    onKeyDown(event) {
+        if (!this.grid.current) return;
+        let grid = this.grid.current;
+        let height = grid.props.height;
+        let rowCount = grid.props.rowCount;
+        let rowHeight = grid.props.rowHeight;
+        let pageRows = Math.ceil(height / rowHeight);
+        let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
+        let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
+        if (this.viewing) {
+            switch (event.code) {
+                case 'KeyF':
+                    if (videoPlayer.isFullscreen()) {
+                        videoPlayer.exitFullscreen();
+                    } else {
+                        videoPlayer.requestFullscreen();
+                    }
+                    break;
+                case 'KeyM':
+                    videoPlayer.muted(videoPlayer.muted() ? false : true);
+                    break;
+                case 'KeyK':
+                case 'Space':
+                    if (videoPlayer) {
+                        if (videoPlayer.paused()) videoPlayer.play(); else videoPlayer.pause();
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (videoPlayer) {
+                        let step = this.state.options.videoPlayer.seekStep.small;
+                        if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
+                        if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
+                       videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (videoPlayer) {
+                        let step = this.state.options.videoPlayer.seekStep.small;
+                        if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
+                        if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
+                        videoPlayer.currentTime(videoPlayer.currentTime() + step);
+                    }
+                    break;
+                case 'ArrowUp':
+                    if (videoPlayer) {
+                        videoPlayer.volume(Math.min(videoPlayer.volume() + this.state.options.videoPlayer.volumeStep, 1.0));
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (videoPlayer) {
+                        videoPlayer.volume(Math.max(videoPlayer.volume() - this.state.options.videoPlayer.volumeStep, 0.0));
+                    }
+                    break;
+                default:
+                    return;
+            }
+        } else {
+            switch (event.code) {
+                case 'Home':
+                    grid.scrollToItem({ align: "start", rowIndex: 0 });
+                    break;
+                case 'End':
+                    grid.scrollToItem({ align: "end", rowIndex: rowCount });
+                    break;
+                case 'PageUp':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow - pageRows) });
+                    break;
+                case 'PageDown':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow + pageRows) });
+                    break;
+                case 'ArrowUp':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow - 1) });
+                    break;
+                case 'ArrowDown':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow + 1) });
+                    break;
+                default:
+                    return;
+            }
+        }
     }
 
     render() {
@@ -392,7 +487,7 @@ export class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
+                                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
                                     {
                                         ({ columnIndex, rowIndex, style }) => {
                                             let source = this.state.items[(rowIndex * columnCount) + columnIndex];
@@ -404,8 +499,7 @@ export class Library extends Component {
                                                 );
                                             } else {
                                                 return (
-                                                    <div style={style}>
-                                                    </div>
+                                                    <div style={style}></div>
                                                 );
                                             }
                                         }
