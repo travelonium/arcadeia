@@ -11,6 +11,7 @@ export class MediaViewer extends Component {
 
     constructor(props) {
         super(props);
+        this.videoPlayer = React.createRef();
         this.state = {
             sources: [],
             videoJsOptions: {
@@ -18,27 +19,6 @@ export class MediaViewer extends Component {
                 responsive: true,
                 autoplay: true,
                 controls: true,
-                userActions: {
-                    hotkeys: function(event) {
-
-                        if (event.key === ' ') {
-                            if (this.paused()) this.play();
-                            else this.pause();
-                        }
-
-                        if (event.key === 'ArrowLeft') {
-                            let time = this.currentTime() - 10;
-                            if (time < 0) time = 0;
-                            this.currentTime(time);
-                        }
-
-                        if (event.key === 'ArrowRight') {
-                            let time = this.currentTime() + 10;
-                            if (time < 0) time = 0;
-                            this.currentTime(time);
-                        }
-                    }
-                }
             },
         };
     }
@@ -117,7 +97,7 @@ export class MediaViewer extends Component {
                         </Modal.Title>
                     </Modal.Header>
                     <Modal.Body className="">
-                        <VideoPlayer options={this.state.videoJsOptions} sources={this.state.sources.map((item) => ("/stream/" + item.id + "/" + item.name))} />
+                        <VideoPlayer ref={this.videoPlayer} options={this.state.videoJsOptions} sources={this.state.sources.map((item) => ("/stream/" + item.id + "/" + item.name))} />
                         <div className="flags px-1 ml-4 mt-4">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>

@@ -356,14 +356,55 @@ export class Library extends Component {
         let rowHeight = grid.props.rowHeight;
         let pageRows = Math.floor(height / rowHeight);
         let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
-        if (event.key === 'Home') {
-            grid.scrollToItem({ align: "start", rowIndex: 0 });
-        } else if (event.key === 'End') {
-            grid.scrollToItem({ align: "end", rowIndex: rowCount });
-        } else if (event.key === 'PageUp') {
-            grid.scrollToItem({ align: "start", rowIndex: (currentRow - pageRows) });
-        } else if (event.key === 'PageDown') {
-            grid.scrollToItem({ align: "start", rowIndex: (currentRow + pageRows) });
+        let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
+        if (this.viewing) {
+            switch (event.code) {
+                case 'KeyF':
+                    if (videoPlayer.isFullscreen()) {
+                        videoPlayer.exitFullscreen();
+                    } else {
+                        videoPlayer.requestFullscreen();
+                    }
+                    break;
+                case 'KeyM':
+                    videoPlayer.muted(videoPlayer.muted() ? false : true);
+                    break;
+                case 'KeyK':
+                case 'Space':
+                    if (videoPlayer) {
+                        if (videoPlayer.paused()) videoPlayer.play(); else videoPlayer.pause();
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (videoPlayer) {
+                       videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - 10));
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (videoPlayer) {
+                        videoPlayer.currentTime(videoPlayer.currentTime() + 10);
+                    }
+                    break;
+                default:
+                    return;
+            }
+        } else {
+            switch (event.code) {
+                case 'Home':
+                    grid.scrollToItem({ align: "start", rowIndex: 0 });
+                    break;
+                case 'End':
+                    grid.scrollToItem({ align: "end", rowIndex: rowCount });
+                    break;
+                case 'PageUp':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow - pageRows) });
+                    break;
+                case 'PageDown':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow + pageRows) });
+                    break;
+                default:
+                    return;
+            }
         }
     }
 
@@ -426,8 +467,7 @@ export class Library extends Component {
                                                 );
                                             } else {
                                                 return (
-                                                    <div style={style}>
-                                                    </div>
+                                                    <div style={style}></div>
                                                 );
                                             }
                                         }

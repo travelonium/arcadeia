@@ -8,7 +8,7 @@ export class VideoPlayer extends React.Component {
         let sources = this.props.sources;
         let options = this.props.options;
         options.sources = sources;
-        this.player = videojs(this.videoNode, options, this.onPlayerReady.bind(this));
+        this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
     }
 
     // destroy player on unmount
@@ -28,7 +28,7 @@ export class VideoPlayer extends React.Component {
         return (
             <div>
                 <div data-vjs-player>
-                    <video ref={node => this.videoNode = node} className="video-js vjs-big-play-centered"></video>
+                    <video ref={element => this.videoElement = element} className="video-js vjs-big-play-centered"></video>
                 </div>
             </div>
         )
