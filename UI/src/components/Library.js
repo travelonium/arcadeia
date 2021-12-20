@@ -338,7 +338,7 @@ export class Library extends Component {
     querify(dictionary, query = new URLSearchParams()) {
         for (const key in dictionary) {
             const value = dictionary[key];
-            if ((value === null) || (value === undefined)) continue;
+            if ((value === null) || (value === undefined)) continue;
             if (Array.isArray(value)) {
                 for (const item of value) {
                     query.append(key, item);
