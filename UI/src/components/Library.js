@@ -30,6 +30,16 @@ export class Library extends Component {
             status: "",
             path: path,
             items: [],
+            options: {
+                videoPlayer: {
+                    seekStep: {
+                        small: 15,
+                        medium: 30,
+                        big: 60
+                    },
+                    volumeStep: 0.1
+                }
+            }
         };
     }
 
@@ -377,12 +387,24 @@ export class Library extends Component {
                     break;
                 case 'ArrowLeft':
                     if (videoPlayer) {
-                       videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - 10));
+                        let step = this.state.options.videoPlayer.seekStep.small;
+                       videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
                     }
                     break;
                 case 'ArrowRight':
                     if (videoPlayer) {
-                        videoPlayer.currentTime(videoPlayer.currentTime() + 10);
+                        let step = this.state.options.videoPlayer.seekStep.small;
+                        videoPlayer.currentTime(videoPlayer.currentTime() + step);
+                    }
+                    break;
+                case 'ArrowUp':
+                    if (videoPlayer) {
+                        videoPlayer.volume(Math.min(videoPlayer.volume() + this.state.options.videoPlayer.volumeStep, 1.0));
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (videoPlayer) {
+                        videoPlayer.volume(Math.max(videoPlayer.volume() - this.state.options.videoPlayer.volumeStep, 0.0));
                     }
                     break;
                 default:
