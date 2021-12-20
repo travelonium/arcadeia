@@ -364,7 +364,7 @@ export class Library extends Component {
         let height = grid.props.height;
         let rowCount = grid.props.rowCount;
         let rowHeight = grid.props.rowHeight;
-        let pageRows = Math.floor(height / rowHeight);
+        let pageRows = Math.ceil(height / rowHeight);
         let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
@@ -423,6 +423,12 @@ export class Library extends Component {
                     break;
                 case 'PageDown':
                     grid.scrollToItem({ align: "start", rowIndex: (currentRow + pageRows) });
+                    break;
+                case 'ArrowUp':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow - 1) });
+                    break;
+                case 'ArrowDown':
+                    grid.scrollToItem({ align: "start", rowIndex: (currentRow + 1) });
                     break;
                 default:
                     return;
