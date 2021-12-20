@@ -388,12 +388,16 @@ export class Library extends Component {
                 case 'ArrowLeft':
                     if (videoPlayer) {
                         let step = this.state.options.videoPlayer.seekStep.small;
+                        if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
+                        if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
                        videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
                     }
                     break;
                 case 'ArrowRight':
                     if (videoPlayer) {
                         let step = this.state.options.videoPlayer.seekStep.small;
+                        if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
+                        if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
                         videoPlayer.currentTime(videoPlayer.currentTime() + step);
                     }
                     break;
