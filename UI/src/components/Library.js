@@ -329,10 +329,11 @@ export class Library extends Component {
     }
 
     files() {
-        return this.state.items.reduce((count, item) =>{
+        let count = this.state.items.reduce((count, item) =>{
             if ((item.type === "Video") || (item.type === "Audio") || (item.type === "Photo")) return (count + 1);
             return count;
-        }, 0) + " Files";
+        }, 0);
+        return (count === 0) ? '' : (count + ((count == 1) ? " File" : " Files"));
     }
 
     querify(dictionary, query = new URLSearchParams()) {
@@ -476,6 +477,10 @@ export class Library extends Component {
                                 );
                             })
                         }
+                        <div className="statistics ml-auto">
+                            <span className="statistics-files">{this.files()}</span>
+                            <span className="statistics-size ml-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
+                        </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                         <AutoSizer>
@@ -523,10 +528,12 @@ export class Library extends Component {
                         </Container>
                     </div>
                 </div>
+                {/*
                 <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "light"} variant="dark" className="p-3">
                     <div style={{flexGrow: 1}}>{this.files()}</div>
                     <div>{size(this.state.items.reduce((sum, item) => sum + item.size, 0))}</div>
                 </Navbar>
+                */}
             </>
         );
     }
