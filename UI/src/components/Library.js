@@ -369,6 +369,7 @@ export class Library extends Component {
         let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
+            videoPlayer.userActive(true);
             switch (event.code) {
                 case 'KeyF':
                     if (videoPlayer.isFullscreen()) {
@@ -439,6 +440,9 @@ export class Library extends Component {
                     return;
             }
         }
+        // it appears that the key has been handled, let's ensure no one else gets it
+        event.preventDefault();
+        event.stopPropagation();
     }
 
     render() {

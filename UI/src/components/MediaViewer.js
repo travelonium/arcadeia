@@ -15,6 +15,7 @@ export class MediaViewer extends Component {
         this.state = {
             sources: [],
             videoJsOptions: {
+                inactivityTimeout: 5000,
                 aspectRatio: "16:9",
                 responsive: true,
                 autoplay: true,
