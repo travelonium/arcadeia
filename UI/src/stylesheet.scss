@@ -216,12 +216,14 @@
     }
     .grid-item {
         padding: 0.25rem;
-        transition: 0.1s all ease;
+        -webkit-transition: all .15s ease-out;
+        -moz-transition: all .15s ease-out;
+        transition: all .15s ease-out;
         --animate-duration: 0.5s;
 
         @media all and (hover: hover) {
             &:hover {
-                padding: 0%;
+                transform: translateY(-5px);
             }
         }
     }
