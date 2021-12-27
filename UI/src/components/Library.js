@@ -242,7 +242,7 @@ export class Library extends Component {
             rows: 10000,
             "q.op": "AND",
             defType: "edismax",
-            qf: "name^10 path^5",
+            qf: "name^20 description^10 path^5",
             wt: "json",
         };
         if (favorite) {

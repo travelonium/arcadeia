@@ -216,12 +216,14 @@
     }
     .grid-item {
         padding: 0.25rem;
-        transition: 0.1s all ease;
+        -webkit-transition: all .15s ease-out;
+        -moz-transition: all .15s ease-out;
+        transition: all .15s ease-out;
         --animate-duration: 0.5s;
 
         @media all and (hover: hover) {
             &:hover {
-                padding: 0%;
+                transform: translateY(-5px);
             }
         }
     }
@@ -311,23 +313,39 @@
             border-bottom-right-radius: 0%;
         }
 
-        .card-title {
-            overflow: hidden;
-            max-height: 2.8em;
-            text-overflow: ellipsis;
-            white-space: normal;
-        }
-
         .card-body {
-            padding: 0.5rem;
             height: 5rem;
+            padding: 0.5rem;
 
-            p {
-                font-size: 1.1rem;
-                max-height: 3.5rem;
+            .card-title {
+                flex-grow: 1;
+                flex-shrink: 2;
+                overflow: hidden;
+                max-height: 1.7em;
                 text-overflow: ellipsis;
                 white-space: normal;
+                -webkit-transition: all .15s ease-out;
+                -moz-transition: all .15s ease-out;
+                transition: all .15s ease-out;
+                margin-bottom: 0.5rem;
+
+                &.editing {
+                    flex-shrink: 0.5;
+                    max-height: 2.8em;
+                }
+            }
+
+            .card-text {
+                opacity: 0.8;
+                flex-grow: 1;
+                flex-shrink: 1;
                 overflow: hidden;
+                max-height: 2.9em;
+                text-overflow: ellipsis;
+                white-space: normal;
+                -webkit-transition: all .15s ease-out;
+                -moz-transition: all .15s ease-out;
+                transition: all .15s ease-out;
             }
         }
 
@@ -343,7 +361,7 @@
 
     &.folder {
         .card {
-            .card-title {
+            .card-title, .card-text {
                 text-align: center;
             }
         }
@@ -359,6 +377,30 @@
     border: 0.15em solid currentColor;
     border-right-color: transparent;
     animation: spinner-border .75s linear infinite;
+}
+
+.editable-text {
+
+    .label {
+        height: 100%;
+        overflow: hidden;
+        white-space: pre-wrap;
+        -webkit-transition: all .15s ease-out;
+        -moz-transition: all .15s ease-out;
+        transition: all .15s ease-out;
+
+        &.empty {
+            opacity: 0;
+        }
+    }
+
+    &:hover {
+        border-bottom: 3px solid rgba($white, 0.1);
+
+        & .label.empty {
+            opacity: 0.2;
+        }
+    }
 }
 
 .media-viewer {

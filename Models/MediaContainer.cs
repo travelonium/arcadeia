@@ -13,6 +13,9 @@ namespace MediaCurator.Models
       [SolrField("name")]
       public string Name { get; set; }
 
+      [SolrField("description")]
+      public string Description { get; set; }
+
       [SolrField("type")]
       public string Type { get; set; }
 

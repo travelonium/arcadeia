@@ -52,6 +52,12 @@ export class MediaContainer extends Component {
         this.update(source);
     }
 
+    redescribe(description) {
+        let source = Object.assign({}, this.state.current);
+        source.description = description;
+        this.update(source);
+    }
+
     onClick(event) {
         if (this.state.current.type === "Folder") {
             this.props.onOpen(this.state.current, false);
@@ -88,14 +94,8 @@ export class MediaContainer extends Component {
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">
-                        <Card.Title title={source.name} style={{flexShrink: 1, flexGrow: 1}}>
-                            <EditableText row={2} value={source.name} onChange={this.rename.bind(this)} />
-                        </Card.Title>
-                        {/*
-                        <Card.Text title={source.description} style={{flexShrink: 1, flexGrow: 1}}>
-                            {source.description}
-                        </Card.Text>
-                        */}
+                        <EditableText name="Name" className="card-title h5 name" row={1} value={source.name} onChange={this.rename.bind(this)} />
+                        <EditableText name="Description" className="card-text h6 description" row={1} value={source.description} onChange={this.redescribe.bind(this)} />
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
                         <div className="pl-1" style={{flexGrow: 1}}>
