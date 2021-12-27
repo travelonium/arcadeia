@@ -110,6 +110,15 @@ namespace MediaCurator.Solr
 					{ "stored", true },
 				}
 			},
+         {  "description", new Dictionary<string, object>
+				{
+					{ "name", "description" },
+					{ "type", "text_ngram" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
 			{  "type", new Dictionary<string, object>
 				{
 					{ "name", "type" },

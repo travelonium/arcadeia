@@ -102,6 +102,26 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets or sets the Description attribute of the container element. This is directly read or
+      /// written from and to the MediaLibrary.
+      /// </summary>
+      /// <value>
+      /// The Description attribute of the container element.
+      /// </value>
+      public string Description
+      {
+         get
+         {
+            return Tools.GetAttributeValue(Self, "Description");
+         }
+
+         set
+         {
+            Tools.SetAttributeValue(Self, "Description", value);
+         }
+      }
+
+      /// <summary>
       /// Gets the type of the MediaContainer. This is directly extracted from the XML tag Name
       /// associated with this container.
       /// </summary>
@@ -213,6 +233,7 @@ namespace MediaCurator
             {
                Id = Id,
                Name = Name,
+               Description = Description,
                Type = Type,
                Path = Path,
                FullPath = FullPath,
@@ -239,6 +260,9 @@ namespace MediaCurator
 
                Name = value.Name;
             }
+
+            // Handle the description update
+            Description = value.Description;
 
             // Handle flags updates
             if (value.Flags != null)
