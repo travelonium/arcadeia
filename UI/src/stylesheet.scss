@@ -292,6 +292,15 @@
                     right: 5px;
                 }
             }
+
+            .extension {
+                &.badge {
+                    text-transform: uppercase;
+                    position: absolute;
+                    bottom: 7px;
+                    left: 5px;
+                }
+            }
         }
 
         .card-img {
