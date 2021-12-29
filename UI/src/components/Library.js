@@ -98,9 +98,12 @@ export class Library extends Component {
         this.controller = new AbortController();
         this.setState({
             items: [],
+            path: path,
             loading: true,
             status: "Requesting",
         }, () => {
+            // change the url and the history before going any further
+            if (!history) window.history.pushState({path: path}, "", path);
             fetch("/library" + path, {
                 signal: this.controller.signal,
             })
@@ -119,10 +122,6 @@ export class Library extends Component {
                     path: path,
                     items: items
                 });
-                // now change the history if we have to!
-                if (!history) {
-                    window.history.pushState({path: path}, "", path);
-                }
                 // pass on the source to the viewer if this is a file
                 return Array.isArray(json) ? null : json;
             })
@@ -263,9 +262,12 @@ export class Library extends Component {
         this.controller = new AbortController();
         this.setState({
             items: [],
+            path: path,
             loading: true,
             status: "Requesting",
         }, () => {
+            // change the url and the history before going any further
+            window.history.pushState({path: path}, "", path);
             fetch(solr + "?" + this.querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
@@ -297,11 +299,8 @@ export class Library extends Component {
                 this.setState({
                     loading: false,
                     status: docs.length ? "" : "No Results",
-                    path: path,
                     items: docs
                 });
-                // now change the history if we have to!
-                window.history.pushState({path: path}, "", path);
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
