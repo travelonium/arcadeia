@@ -42,12 +42,6 @@
             border-bottom: 3px solid rgba($info, 1.0);
         }
 
-        .label {
-            height: 100%;
-            overflow: hidden;
-            white-space: pre-wrap;
-        }
-
         textarea {
             width: 100%;
             height: 100%;
@@ -111,12 +105,6 @@
 
         &.editing {
             border-bottom: 3px solid rgba($info, 1.0);
-        }
-
-        .label {
-            height: 100%;
-            overflow: hidden;
-            white-space: pre-wrap;
         }
 
         textarea {
@@ -391,6 +379,14 @@
 
         &.empty {
             opacity: 0;
+        }
+    }
+
+    &.text-overflow-ellipsis {
+
+        .label {
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
     }
 

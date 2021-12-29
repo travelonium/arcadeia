@@ -94,8 +94,8 @@ export class MediaContainer extends Component {
                         </div>
                     </div>
                     <Card.Body className="d-flex flex-column">
-                        <EditableText name="Name" className="card-title h5 name" row={1} value={source.name} onChange={this.rename.bind(this)} />
-                        <EditableText name="Description" className="card-text h6 description" row={1} value={source.description} onChange={this.redescribe.bind(this)} />
+                        <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onChange={this.rename.bind(this)} />
+                        <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onChange={this.redescribe.bind(this)} />
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
                         <div className="pl-1" style={{flexGrow: 1}}>
