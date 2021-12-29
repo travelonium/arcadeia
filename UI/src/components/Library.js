@@ -74,9 +74,7 @@ export class Library extends Component {
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
         let favorite = this.props.navigation.current.state.favorite;
-        if (!search) {
-            this.props.navigation.current.clearSearch();
-        }
+        if (!search) this.props.navigation.current.clearSearch();
         // update the favorite flags parameters
         flags = updateBit(flags, 1, favorite);
         values = updateBit(values, 1, favorite);
@@ -98,9 +96,12 @@ export class Library extends Component {
         this.controller = new AbortController();
         this.setState({
             items: [],
+            path: path,
             loading: true,
             status: "Requesting",
         }, () => {
+            // change the url and the history before going any further
+            if (!history) window.history.pushState({path: path}, "", path);
             fetch("/library" + path, {
                 signal: this.controller.signal,
             })
@@ -119,10 +120,6 @@ export class Library extends Component {
                     path: path,
                     items: items
                 });
-                // now change the history if we have to!
-                if (!history) {
-                    window.history.pushState({path: path}, "", path);
-                }
                 // pass on the source to the viewer if this is a file
                 return Array.isArray(json) ? null : json;
             })
@@ -206,7 +203,8 @@ export class Library extends Component {
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
         if (!query) {
-            this.props.navigation.current.clearSearch();
+            // looks like the search field has been cleared, let's call off the search
+            this.list(path.split('?')[0], true);
             return;
         }
         let deleted = false;
@@ -263,9 +261,12 @@ export class Library extends Component {
         this.controller = new AbortController();
         this.setState({
             items: [],
+            path: path,
             loading: true,
             status: "Requesting",
         }, () => {
+            // change the url and the history before going any further
+            window.history.pushState({path: path}, "", path);
             fetch(solr + "?" + this.querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
@@ -297,11 +298,8 @@ export class Library extends Component {
                 this.setState({
                     loading: false,
                     status: docs.length ? "" : "No Results",
-                    path: path,
                     items: docs
                 });
-                // now change the history if we have to!
-                window.history.pushState({path: path}, "", path);
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
@@ -481,7 +479,7 @@ export class Library extends Component {
                                 );
                             })
                         }
-                        <div className="statistics ml-auto">
+                        <div className="statistics d-none d-md-block ml-auto">
                             <span className="statistics-files">{this.files()}</span>
                             <span className="statistics-size ml-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
                         </div>

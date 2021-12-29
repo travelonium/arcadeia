@@ -62,7 +62,6 @@ export class NavMenu extends Component {
     }
 
     onTimeout() {
-        if (!this.state.query) return;
         clearTimeout(this.searchTimeout);
         let library = this.props.library.current;
         library.search();
