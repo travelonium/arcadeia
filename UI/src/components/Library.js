@@ -74,9 +74,7 @@ export class Library extends Component {
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
         let favorite = this.props.navigation.current.state.favorite;
-        if (!search) {
-            this.props.navigation.current.clearSearch();
-        }
+        if (!search) this.props.navigation.current.clearSearch();
         // update the favorite flags parameters
         flags = updateBit(flags, 1, favorite);
         values = updateBit(values, 1, favorite);
@@ -205,7 +203,8 @@ export class Library extends Component {
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
         if (!query) {
-            this.props.navigation.current.clearSearch();
+            // looks like the search field has been cleared, let's call off the search
+            this.list(path.split('?')[0], true);
             return;
         }
         let deleted = false;
