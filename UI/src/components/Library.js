@@ -479,7 +479,7 @@ export class Library extends Component {
                                 );
                             })
                         }
-                        <div className="statistics ml-auto">
+                        <div className="statistics d-none d-md-block ml-auto">
                             <span className="statistics-files">{this.files()}</span>
                             <span className="statistics-size ml-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
                         </div>
