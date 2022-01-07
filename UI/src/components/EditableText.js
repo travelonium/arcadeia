@@ -97,12 +97,13 @@ export class EditableText extends Component {
         const row = this.props.row ?? 1;
         const current = extract("", this.state, 'current') ?? "";
         return (
-            <div className={cx("editable-text", this.props.className, this.state.editing ? "editing" : null)} onBlur={this.onBlur.bind(this)} onClick={this.onClick.bind(this)}>
+            <div className={cx("editable-text d-flex flex-column", this.props.className, this.state.editing ? "editing" : null)} onBlur={this.onBlur.bind(this)} onClick={this.onClick.bind(this)}>
             {
                 this.state.editing ?
                 <textarea className="textbox" ref={this.textArea} rows={row} defaultValue={current} onBlur={this.onBlur.bind(this)} onFocus={this.onFocus.bind(this)} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} /> :
                 <div className={cx("label", (current.length === 0) ? "empty" : null)}>{(current.length > 0) ? current : this.props.name}</div>
             }
+                <div className="underline"></div>
             </div>
         );
     }
