@@ -14,6 +14,7 @@
     <PackageReference Include="System.Data.SQLite" Version="1.0.113.1" />
     <PackageReference Include="SolrNet" Version="1.0.19" />
     <PackageReference Include="SolrNet.Microsoft.DependencyInjection" Version="1.0.19" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="8.5.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +27,7 @@
     <None Remove="SolrNet" />
     <None Remove="SolrNet.Microsoft.DependencyInjection" />
     <None Remove="Solr\" />
+    <None Remove="Magick.NET-Q8-AnyCPU" />
   </ItemGroup>
   <ItemGroup>
     <!-- Don't publish the SPA source files, but do show them in the project files list -->

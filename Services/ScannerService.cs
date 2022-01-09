@@ -198,7 +198,6 @@ namespace MediaCurator.Services
          _cancellationToken = applicationLifetime.ApplicationStopping;
       }
 
-      [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
       public Task StartAsync(CancellationToken cancellationToken)
       {
          foreach (string folder in WatchedFolders)

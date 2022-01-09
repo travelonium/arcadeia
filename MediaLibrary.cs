@@ -276,7 +276,7 @@ namespace MediaCurator
                      break;
 
                   case "Photo":
-                     // TODO: mediaContainers.Add( new PhotoFile( item ) );
+                     mediaContainers.Add(new PhotoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, item));
                      break;
                }
             }
@@ -309,7 +309,7 @@ namespace MediaCurator
 
             case MediaContainerType.Audio:
 
-               InsertAudioFile(path, progress, preview);
+               /*mediaFile = */ InsertAudioFile(path, progress, preview);
 
                break;
 
@@ -329,7 +329,7 @@ namespace MediaCurator
 
             case MediaContainerType.Photo:
 
-               InsertPhotoFile(path, progress, preview);
+               mediaFile = InsertPhotoFile(path, progress, preview);
 
                break;
          }
@@ -410,7 +410,9 @@ namespace MediaCurator
 
                case MediaContainerType.Photo:
 
-                  throw new NotImplementedException("Photo files cannot yet be handled!");
+                  mediaFile = UpdatePhotoFile(element, progress, preview);
+
+                  break;
             }
 
             // Update or Delete the new media in the Solr index if indexing is enabled.
@@ -487,7 +489,14 @@ namespace MediaCurator
 
             case MediaContainerType.Photo:
 
-               throw new NotImplementedException("Photo files cannot yet be handled!");
+               mediaFile = new PhotoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
+
+               if (mediaFile.Self != null)
+               {
+                  UpdatePhotoFile(mediaFile.Self, progress, preview);
+               }
+
+               break;
          }
 
          // Update or Delete the new media in the Solr index if indexing is enabled.
@@ -517,22 +526,32 @@ namespace MediaCurator
 
       private VideoFile InsertVideoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
-         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
+         VideoFile videoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
          return videoFile;
       }
 
       private VideoFile UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
-         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
+         VideoFile videoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
 
          return videoFile;
       }
 
-      private void InsertPhotoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private PhotoFile InsertPhotoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
       {
+         PhotoFile photoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
+         return photoFile;
       }
+
+      private PhotoFile UpdatePhotoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      {
+         PhotoFile photoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
+
+         return photoFile;
+      }
+
 
       public void UpdateDatabase()
       {
