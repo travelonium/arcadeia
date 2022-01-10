@@ -93,23 +93,73 @@ namespace MediaCurator
 
       #region Photo File Operations
 
-      public override void GetFileInfo(string path)
+      public MagickImageInfo GetImageInfo(string path = null)
       {
+         if (path == null)
+         {
+            path = FullPath;
+         }
+
          try
          {
-            var info = new MagickImageInfo(path);
-
-            /*--------------------------------------------------------------------------------
-                                              RESOLUTION
-            --------------------------------------------------------------------------------*/
-
-            Resolution = new ResolutionType(String.Format("{0}x{1}", info.Width, info.Height));
+            return new MagickImageInfo(path);
          }
          catch (Exception e)
          {
             Debug.WriteLine(FullPath + " : ");
             Debug.WriteLine(e.Message);
          }
+
+         return null;
+      }
+
+      public override void GetFileInfo(string path)
+      {
+         var info = GetImageInfo(path);
+
+         if (info != null)
+         {
+            /*--------------------------------------------------------------------------------
+                                                RESOLUTION
+            --------------------------------------------------------------------------------*/
+
+            Resolution = new ResolutionType(String.Format("{0}x{1}", info.Width, info.Height));
+         }
+      }
+
+      public byte[] Preview(int width = 0, int height = 0)
+      {
+         byte[] output = null;
+
+         using (var image = new MagickImage(FullPath))
+         {
+            try
+            {
+               image.AutoOrient();
+
+               if ((width > 0) || (height > 0))
+               {
+                  var size = new MagickGeometry(width, height)
+                  {
+                     IgnoreAspectRatio = false,
+                     Greater = true,
+                     Less = false,
+                  };
+
+                  image.Resize(size);
+               }
+
+               image.Format = MagickFormat.Jpeg;
+               output = image.ToByteArray();
+            }
+            catch (Exception e)
+            {
+               Debug.WriteLine("Failed To Resize: " + FullPath);
+               Debug.WriteLine(e.Message);
+            }
+         }
+
+         return output;
       }
 
       private byte[] GenerateThumbnail(string path)
