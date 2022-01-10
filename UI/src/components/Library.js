@@ -367,52 +367,44 @@ export class Library extends Component {
         let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
-            videoPlayer.userActive(true);
-            switch (event.code) {
-                case 'KeyF':
-                    if (videoPlayer.isFullscreen()) {
-                        videoPlayer.exitFullscreen();
-                    } else {
-                        videoPlayer.requestFullscreen();
-                    }
-                    break;
-                case 'KeyM':
-                    videoPlayer.muted(videoPlayer.muted() ? false : true);
-                    break;
-                case 'KeyK':
-                case 'Space':
-                    if (videoPlayer) {
+            if (videoPlayer)
+            {
+                videoPlayer.userActive(true);
+                let step = this.state.options.videoPlayer.seekStep.small;
+                switch (event.code) {
+                    case 'KeyF':
+                        if (videoPlayer.isFullscreen()) {
+                            videoPlayer.exitFullscreen();
+                        } else {
+                            videoPlayer.requestFullscreen();
+                        }
+                        break;
+                    case 'KeyM':
+                        videoPlayer.muted(videoPlayer.muted() ? false : true);
+                        break;
+                    case 'KeyK':
+                    case 'Space':
                         if (videoPlayer.paused()) videoPlayer.play(); else videoPlayer.pause();
-                    }
-                    break;
-                case 'ArrowLeft':
-                    if (videoPlayer) {
-                        let step = this.state.options.videoPlayer.seekStep.small;
+                        break;
+                    case 'ArrowLeft':
                         if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
                         if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
-                       videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
-                    }
-                    break;
-                case 'ArrowRight':
-                    if (videoPlayer) {
-                        let step = this.state.options.videoPlayer.seekStep.small;
+                        videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
+                        break;
+                    case 'ArrowRight':
                         if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
                         if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
                         videoPlayer.currentTime(videoPlayer.currentTime() + step);
-                    }
-                    break;
-                case 'ArrowUp':
-                    if (videoPlayer) {
+                        break;
+                    case 'ArrowUp':
                         videoPlayer.volume(Math.min(videoPlayer.volume() + this.state.options.videoPlayer.volumeStep, 1.0));
-                    }
-                    break;
-                case 'ArrowDown':
-                    if (videoPlayer) {
+                        break;
+                    case 'ArrowDown':
                         videoPlayer.volume(Math.max(videoPlayer.volume() - this.state.options.videoPlayer.volumeStep, 0.0));
-                    }
-                    break;
-                default:
-                    return;
+                        break;
+                    default:
+                        return;
+                }
             }
         } else {
             switch (event.code) {
