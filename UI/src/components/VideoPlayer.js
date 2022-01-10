@@ -1,5 +1,6 @@
 import React from 'react';
 import videojs from 'video.js';
+import cx from 'classnames';
 
 export class VideoPlayer extends React.Component {
 
@@ -26,7 +27,7 @@ export class VideoPlayer extends React.Component {
     // see https://github.com/videojs/video.js/pull/3856
     render() {
         return (
-            <div>
+            <div className={cx(this.props.className, "video-player")}>
                 <div data-vjs-player>
                     <video ref={element => this.videoElement = element} className="video-js vjs-big-play-centered"></video>
                 </div>
