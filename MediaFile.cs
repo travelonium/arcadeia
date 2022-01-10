@@ -171,9 +171,6 @@ namespace MediaCurator
             return;
          }
 
-         // Retrieve the file's content type
-         new FileExtensionContentTypeProvider().TryGetContentType(path, out string contentType);
-
          if (Parent != null)
          {
             // Generate a unique Id which can be used to create a unique link to each element and 
@@ -200,8 +197,7 @@ namespace MediaCurator
                         new XAttribute("Name", name),
                         new XAttribute("Size", fileInfo.Length),
                         new XAttribute("DateCreated", fileInfo.CreationTime.ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute("ContentType", contentType)
+                        new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture))
                      )
                   );
 
@@ -233,6 +229,18 @@ namespace MediaCurator
 
             // Initialize the thumbnails.
             Thumbnails = new MediaFileThumbnails(_thumbnailsDatabase, Id);
+
+            // Retrieve and initialize the file's content type if needed, either when a new element
+            // has been created or if this is a Startup Scan and the element lacks the attribute.
+            if (ContentType == "")
+            {
+               string contentType = GetContentType();
+
+               if (contentType != null)
+               {
+                  ContentType = contentType;
+               }
+            }
 
             if (Created)
             {
@@ -290,9 +298,12 @@ namespace MediaCurator
                      DateCreated = fileInfo.CreationTime;
                      DateModified = fileInfo.LastWriteTime;
 
-                     // Retrieve and update the file's content type
-                     new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string contentType);
-                     ContentType = contentType;
+                     // Retrieve and initialize the file's content type if needed
+                     string contentType = GetContentType();
+                     if (contentType != null)
+                     {
+                        ContentType = contentType;
+                     }
 
                      // Remove the previously generated thumbnails as they are most likely out of date.
                      Thumbnails.DeleteAll();
@@ -338,6 +349,17 @@ namespace MediaCurator
       #endregion // Constructors
 
       #region Common Functionality
+
+      /// <summary>
+      /// Retrieves the file's content (MIME) type.
+      /// </summary>
+      /// <returns>The MIME type as a string or null in case it couldn't be determined.</returns>
+      public string GetContentType()
+      {
+         new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string contentType);
+
+         return contentType;
+      }
 
       /// <summary>
       /// Removes the associated element from the MediaLibrary. This is if for example at a later
