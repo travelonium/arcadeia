@@ -405,6 +405,8 @@ export class Library extends Component {
                     default:
                         return;
                 }
+            } else {
+                return;
             }
         } else {
             switch (event.code) {
