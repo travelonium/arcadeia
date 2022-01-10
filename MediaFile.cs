@@ -7,6 +7,7 @@ using Microsoft.VisualBasic.FileIO;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace MediaCurator
 {
@@ -101,6 +102,23 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets or sets the content type (MIME type) of the file. This is directly read and written 
+      /// from and to the MediaLibrary.
+      /// </summary>
+      public string ContentType
+      {
+         get
+         {
+            return Tools.GetAttributeValue(Self, "ContentType");
+         }
+
+         set
+         {
+            Tools.SetAttributeValue(Self, "ContentType", value);
+         }
+      }
+
+      /// <summary>
       /// Gets a tailored MediaContainer model describing a media file.
       /// </summary>
       public override Models.MediaContainer Model
@@ -113,6 +131,7 @@ namespace MediaCurator
             model.Thumbnails = Thumbnails.Count;
             model.DateCreated = DateCreated;
             model.DateModified = DateModified;
+            model.ContentType = ContentType;
 
             return model;
          }
@@ -152,6 +171,9 @@ namespace MediaCurator
             return;
          }
 
+         // Retrieve the file's content type
+         new FileExtensionContentTypeProvider().TryGetContentType(path, out string contentType);
+
          if (Parent != null)
          {
             // Generate a unique Id which can be used to create a unique link to each element and 
@@ -178,7 +200,10 @@ namespace MediaCurator
                         new XAttribute("Name", name),
                         new XAttribute("Size", fileInfo.Length),
                         new XAttribute("DateCreated", fileInfo.CreationTime.ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture))));
+                        new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture)),
+                        new XAttribute("ContentType", contentType)
+                     )
+                  );
 
                   // Mark this MediaFile based object as one that has just been created. The child 
                   // class will take care of filling in the required missing fields.
@@ -264,6 +289,10 @@ namespace MediaCurator
                      Size = fileInfo.Length;
                      DateCreated = fileInfo.CreationTime;
                      DateModified = fileInfo.LastWriteTime;
+
+                     // Retrieve and update the file's content type
+                     new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string contentType);
+                     ContentType = contentType;
 
                      // Remove the previously generated thumbnails as they are most likely out of date.
                      Thumbnails.DeleteAll();

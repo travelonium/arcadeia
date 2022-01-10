@@ -41,6 +41,9 @@ namespace MediaCurator.Models
       [SolrField("dateModified")]
       public DateTime DateModified { get; set; }
 
+      [SolrField("contentType")]
+      public string ContentType { get; set; }
+
       [SolrField("thumbnails")]
       public int Thumbnails { get; set; }
 
