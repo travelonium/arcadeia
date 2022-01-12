@@ -149,7 +149,7 @@ namespace MediaCurator
                   image.Resize(size);
                }
 
-               image.Format = MagickFormat.Jpeg;
+               image.Format = MagickFormat.Png;
                output = image.ToByteArray();
             }
             catch (Exception e)

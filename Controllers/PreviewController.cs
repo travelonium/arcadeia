@@ -74,7 +74,7 @@ namespace MediaCurator.Controllers
 
          if ((width > 0) || (height > 0))
          {
-            return File(photoFile.Preview(width, height), "image/jpeg");
+            return File(photoFile.Preview(width, height), "image/png");
          }
 
          return PhysicalFile(photoFile.FullPath, contentType, true);

@@ -1,6 +1,7 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
 import { Thumbnail } from './Thumbnail';
@@ -80,6 +81,19 @@ export class MediaContainer extends Component {
         this.toggle("Favorite");
     }
 
+    preview(props) {
+        let width = extract(0, this.state.current, 'width');
+        let height = extract(0, this.state.current, 'height');
+        if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
+        let params = "width=500&height=500";
+        let src = "/preview/photo/" + this.props.source.id + "/" + this.props.source.name + "?" + params;
+        return (
+            <div className="photo-preview-overlay" {...props} >
+                <img className="preview" src={src} />
+            </div>
+        );
+    }
+
     render() {
         let name = null;
         let extension = null;
@@ -95,14 +109,16 @@ export class MediaContainer extends Component {
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
-                    <div className="thumbnail-container">
-                        <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
-                        <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
-                        <Badge variant="dark" className={cx("extension", extension ? "visible" : "invisible")}>{extension}</Badge>
-                        <div className="flags px-1">
-                            <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                    <OverlayTrigger placement="auto" delay={{ show: 500, hide: 0 }} overlay={this.preview.bind(this)}>
+                        <div className="thumbnail-container">
+                            <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
+                            <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
+                            <Badge variant="dark" className={cx("extension", extension ? "visible" : "invisible")}>{extension}</Badge>
+                            <div className="flags px-1">
+                                <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                            </div>
                         </div>
-                    </div>
+                    </OverlayTrigger>
                     <Card.Body className="d-flex flex-column">
                         <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onChange={this.rename.bind(this)} />
                         <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onChange={this.redescribe.bind(this)} />
