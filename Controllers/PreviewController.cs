@@ -70,14 +70,13 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         string contentType = (photoFile.ContentType != "") ? photoFile.ContentType : "application/octet-stream";
-
-         if ((width > 0) || (height > 0))
+         return photoFile.Extension switch
          {
-            return File(photoFile.Preview(width, height), "image/png");
-         }
-
-         return PhysicalFile(photoFile.FullPath, contentType, true);
+            ".gif" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Gif), "image/gif"),
+            ".webp" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.WebP), "image/webp"),
+            ".png" or ".bmp" or ".tiff" or ".tga" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Png), "image/png"),
+            _ => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Jpeg), "image/jpeg"),
+         };
       }
    }
 }

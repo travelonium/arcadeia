@@ -119,6 +119,22 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets the file extension from its name.
+      /// </summary>
+      /// <value>
+      /// The extension of the file including the dot.
+      /// </value>
+      public string Extension
+      {
+         get
+         {
+            var extension = System.IO.Path.GetExtension(Name);
+
+            return (extension != null && extension != string.Empty) ? extension.ToLower() : null;
+         }
+      }
+
+      /// <summary>
       /// Gets a tailored MediaContainer model describing a media file.
       /// </summary>
       public override Models.MediaContainer Model
@@ -132,6 +148,7 @@ namespace MediaCurator
             model.DateCreated = DateCreated;
             model.DateModified = DateModified;
             model.ContentType = ContentType;
+            model.Extension = Extension;
 
             return model;
          }

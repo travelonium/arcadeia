@@ -127,7 +127,7 @@ namespace MediaCurator
          }
       }
 
-      public byte[] Preview(int width = 0, int height = 0)
+      public byte[] Preview(int width = 0, int height = 0, MagickFormat format = MagickFormat.Jpeg)
       {
          byte[] output = null;
 
@@ -135,6 +135,9 @@ namespace MediaCurator
          {
             try
             {
+               // Convert the photo's format in case the encoder is missing as it is in case of HEIC files
+               image.Format = format;
+
                image.AutoOrient();
 
                if ((width > 0) || (height > 0))
@@ -149,7 +152,6 @@ namespace MediaCurator
                   image.Resize(size);
                }
 
-               image.Format = MagickFormat.Png;
                output = image.ToByteArray();
             }
             catch (Exception e)
@@ -178,6 +180,9 @@ namespace MediaCurator
 
             try
             {
+               // Convert the photo's format in case the encoder is missing as it is in case of HEIC files
+               image.Format = MagickFormat.Jpeg;
+
                image.AutoOrient();
                image.Thumbnail(size);
                image.Extent(size, Gravity.Center);
