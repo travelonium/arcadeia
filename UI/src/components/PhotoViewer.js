@@ -20,6 +20,13 @@ export class PhotoViewer extends React.Component {
         }
     }
 
+    componentDidUpdate(prevProps) {
+        let sources = this.props.sources;
+        if (sources !== prevProps.sources) {
+            this.viewer.update();
+        }
+    }
+
     onViewed() {
         // console.log(this);
     }

@@ -19,6 +19,13 @@ export class VideoPlayer extends React.Component {
         }
     }
 
+    componentDidUpdate(prevProps) {
+        let sources = this.props.sources;
+        if (sources !== prevProps.sources) {
+            this.player.src(sources);
+        }
+    }
+
     onPlayerReady() {
         // console.log(this);
     }

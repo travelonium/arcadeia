@@ -60,10 +60,6 @@ export class MediaViewer extends Component {
                 index: index,
                 sources: sources,
             }, () => {
-                let photoViewer = extract(null, this.photoViewer, 'current', 'viewer');
-                if (photoViewer) {
-                    photoViewer.update();
-                }
                 if (this.props.onShow !== undefined) {
                     this.props.onShow();
                 }
