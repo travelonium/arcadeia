@@ -19,6 +19,7 @@ export class Library extends Component {
 
     constructor(props) {
         super(props);
+        this.current = -1;      // the current item index being viewed in the MediaViewer
         this.viewing = false;   // indicates that a media is being viewed in the MediaViewer
         this.editing = false;   // indicates that text editing is in progress and should inhibit low level keyboard input capturing
         this.grid = React.createRef();
@@ -317,13 +318,28 @@ export class Library extends Component {
         this.list(source.fullPath);
     }
 
-    view(source, player = true) {
-        this.mediaViewer.current.view(source, player);
+    view(source, index = 0, player = true) {
+        this.current = index;
+        this.mediaViewer.current.view([source], 0, player);
     }
 
-    highlight(source) {
-        if (source !== null) {
-        } else {
+    previous() {
+        if (!this.viewing || (this.current === -1)) return;
+        let index = this.current - 1;
+        if ((index >= 0) && (index < this.state.items.length)) {
+            this.current = index;
+            let source = this.state.items[index];
+            this.mediaViewer.current.view([source], 0, true);
+        }
+    }
+
+    next() {
+        if (!this.viewing || (this.current === -1)) return;
+        let index = this.current + 1;
+        if ((index >= 0) && (index < this.state.items.length)) {
+            this.current = index;
+            let source = this.state.items[index];
+            this.mediaViewer.current.view([source], 0, true);
         }
     }
 
@@ -362,6 +378,18 @@ export class Library extends Component {
         if (this.editing) return;
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
+            // handle the arrow up and down first
+            switch (event.code) {
+                case 'ArrowUp':
+                    this.previous();
+                    return;
+                case 'ArrowDown':
+                    this.next();
+                    return;
+                default:
+                    break;
+            }
+            // doesn't seem to be a next/prev, what else could it be...
             if (videoPlayer)
             {
                 videoPlayer.userActive(true);
@@ -493,11 +521,12 @@ export class Library extends Component {
                                     <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
                                     {
                                         ({ columnIndex, rowIndex, style }) => {
-                                            let source = this.state.items[(rowIndex * columnCount) + columnIndex];
+                                            let index = (rowIndex * columnCount) + columnIndex;
+                                            let source = this.state.items[index];
                                             if (source !== undefined) {
                                                 return (
                                                     <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer library={this.props.forwardedRef} source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
+                                                        <MediaContainer library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                                     </div>
                                                 );
                                             } else {

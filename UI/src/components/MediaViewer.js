@@ -15,6 +15,7 @@ export class MediaViewer extends Component {
         this.videoPlayer = React.createRef();
         this.photoViewer = React.createRef();
         this.state = {
+            index: -1,
             sources: [],
             videoJsOptions: {
                 inactivityTimeout: 5000,
@@ -27,6 +28,8 @@ export class MediaViewer extends Component {
                 inline: true,
                 title: false,
                 navbar: false,
+                loading: true,
+                keyboard: false,
             }
         };
     }
@@ -49,12 +52,18 @@ export class MediaViewer extends Component {
         this.props.library.current.editing = editing;
     }
 
-    view(source, player = true) {
+    view(sources, index, player = true) {
+        let source = sources[index];
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
         if (player) {
             this.setState({
-                sources: [source],
+                index: index,
+                sources: sources,
             }, () => {
+                let photoViewer = extract(null, this.photoViewer, 'current', 'viewer');
+                if (photoViewer) {
+                    photoViewer.update();
+                }
                 if (this.props.onShow !== undefined) {
                     this.props.onShow();
                 }
@@ -86,19 +95,22 @@ export class MediaViewer extends Component {
     }
 
     update(source) {
+        let sources = this.state.sources;
+        sources[this.state.index] = source;
         this.setState({
-            sources: [source]
+            sources: sources
         }, () => {
             this.props.onUpdate(source, true, (source) => {
+                sources[this.state.index] = source;
                 this.setState({
-                    sources: [source]
+                    sources: sources
                 });
             });
         });
     }
 
     toggle(flag) {
-        let source = Object.assign({}, extract({}, this.state.sources, 0));
+        let source = Object.assign({}, extract({}, this.state.sources, this.state.index));
         let flags = extract([], source, 'flags');
         let index = flags.indexOf(flag);
         if (index !== -1) {
@@ -111,15 +123,15 @@ export class MediaViewer extends Component {
     }
 
     rename(name) {
-        let source = Object.assign({}, extract({}, this.state.sources, 0));
+        let source = Object.assign({}, extract({}, this.state.sources, this.state.index));
         source.name = name;
         this.update(source);
     }
 
     render() {
-        const source = extract(null, this.state.sources, 0);
-        const flags = extract([], this.state.sources, 0, 'flags');
-        const name = extract(null, this.state.sources, 0, 'name');
+        const source = extract(null, this.state.sources, this.state.index);
+        const flags = extract([], this.state.sources, this.state.index, 'flags');
+        const name = extract(null, this.state.sources, this.state.index, 'name');
         const favorite = flags.includes('Favorite');
         return (
             <>

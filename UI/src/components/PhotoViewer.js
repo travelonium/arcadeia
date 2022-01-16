@@ -8,7 +8,7 @@ export class PhotoViewer extends React.Component {
 
     componentDidMount() {
         // instantiate Viewer.js
-        this.viewer = new Viewer(this.imageElement, Object.assign({}, this.props.options, {
+        this.viewer = new Viewer(this.imagesElement, Object.assign({}, this.props.options, {
             viewed: this.onViewed.bind(this)
         }))
     }
@@ -25,10 +25,16 @@ export class PhotoViewer extends React.Component {
     }
 
     render() {
-        const source = extract("", this.props.sources, 0);
+        const sources = extract([], this.props, 'sources');
         return (
-            <div className={cx(this.props.className, "photo-viewer")}>
-                <img id="image" ref={element => this.imageElement = element} src={source} />
+            <div ref={element => this.imagesElement = element} className={cx(this.props.className, "photo-viewer")}>
+            {
+                sources.map(source => {
+                    return (
+                        <img id="image" src={source} />
+                    );
+                })
+            }
             </div>
         )
     }

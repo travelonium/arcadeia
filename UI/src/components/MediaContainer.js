@@ -16,7 +16,6 @@ export class MediaContainer extends Component {
         super(props);
         this.animateInterval = null;
         this.state = {
-            index: -1,
             current: clone(this.props.source),
             previous: clone(this.props.source),
         };
@@ -65,7 +64,7 @@ export class MediaContainer extends Component {
             this.props.onOpen(this.state.current, false);
         } else {
             let player = !(event.shiftKey || event.metaKey || (event.button === 1));
-            this.props.onView(this.state.current, player);
+            this.props.onView(this.state.current, this.props.index, player);
         }
     }
 
@@ -73,7 +72,7 @@ export class MediaContainer extends Component {
         if ((this.state.current.type !== "Folder") && (event.button === 1)) {
             event.preventDefault();
             event.stopPropagation();
-            this.props.onView(this.state.current, false);
+            this.props.onView(this.state.current, this.props.index, false);
         }
     }
 
