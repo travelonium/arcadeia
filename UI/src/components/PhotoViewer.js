@@ -29,9 +29,9 @@ export class PhotoViewer extends React.Component {
         return (
             <div ref={element => this.imagesElement = element} className={cx(this.props.className, "photo-viewer")}>
             {
-                sources.map(source => {
+                sources.map((source, index) => {
                     return (
-                        <img id="image" src={source} />
+                        <img key={index} id="image" src={source} />
                     );
                 })
             }

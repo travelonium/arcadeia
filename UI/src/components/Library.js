@@ -40,6 +40,12 @@ export class Library extends Component {
                         big: 60
                     },
                     volumeStep: 0.1
+                },
+                photoViewer: {
+                    zoom: {
+                        ratio: 0.1,
+                        hasTooltip: true,
+                    },
                 }
             }
         };
@@ -376,6 +382,7 @@ export class Library extends Component {
 
     onKeyDown(event) {
         if (this.editing) return;
+        let photoViewer = extract(null, this.mediaViewer, 'current', 'photoViewer', 'current', 'viewer');
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
             // handle the arrow up and down first
@@ -424,6 +431,25 @@ export class Library extends Component {
                         break;
                     case 'ArrowDown':
                         videoPlayer.volume(Math.max(videoPlayer.volume() - this.state.options.videoPlayer.volumeStep, 0.0));
+                        break;
+                    default:
+                        return;
+                }
+            } else if (photoViewer) {
+                console.log(photoViewer);
+                switch (event.code) {
+                    case 'KeyF':
+                        if (photoViewer.fulled) {
+                            photoViewer.exit();
+                        } else {
+                            photoViewer.full();
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        photoViewer.zoom(-this.state.options.photoViewer.zoom.ratio, this.state.options.photoViewer.zoom.hasTooltip);
+                        break;
+                    case 'ArrowRight':
+                        photoViewer.zoom(this.state.options.photoViewer.zoom.ratio, this.state.options.photoViewer.zoom.hasTooltip);
                         break;
                     default:
                         return;
