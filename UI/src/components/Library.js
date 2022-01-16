@@ -157,7 +157,7 @@ export class Library extends Component {
         let item = clone(source);
         const index = this.state.items.findIndex(x => x.id === item.id);
         if (index === -1) {
-            toast.error("Unabled to find the item that was to be updated.");
+            toast.error("Unable to find the item that was to be updated.");
             return;
         }
         fetch("/library" + item.fullPath, {
