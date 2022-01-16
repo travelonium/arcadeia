@@ -19,7 +19,8 @@ export class Library extends Component {
 
     constructor(props) {
         super(props);
-        this.viewing = false;
+        this.viewing = false;   // indicates that a media is being viewed in the MediaViewer
+        this.editing = false;   // indicates that text editing is in progress and should inhibit low level keyboard input capturing
         this.grid = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
@@ -358,13 +359,7 @@ export class Library extends Component {
     }
 
     onKeyDown(event) {
-        if (!this.grid.current) return;
-        let grid = this.grid.current;
-        let height = grid.props.height;
-        let rowCount = grid.props.rowCount;
-        let rowHeight = grid.props.rowHeight;
-        let pageRows = Math.ceil(height / rowHeight);
-        let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
+        if (this.editing) return;
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
             if (videoPlayer)
@@ -409,6 +404,13 @@ export class Library extends Component {
                 return;
             }
         } else {
+            if (!this.grid.current) return;
+            let grid = this.grid.current;
+            let height = grid.props.height;
+            let rowCount = grid.props.rowCount;
+            let rowHeight = grid.props.rowHeight;
+            let pageRows = Math.ceil(height / rowHeight);
+            let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
             switch (event.code) {
                 case 'Home':
                     grid.scrollToItem({ align: "start", rowIndex: 0 });
@@ -509,7 +511,7 @@ export class Library extends Component {
                                 )}
                             }
                         </AutoSizer>
-                        <MediaViewer ref={this.mediaViewer} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>

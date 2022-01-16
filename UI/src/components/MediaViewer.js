@@ -45,6 +45,10 @@ export class MediaViewer extends Component {
         this.toggle("Favorite");
     }
 
+    onEditing(editing) {
+        this.props.library.current.editing = editing;
+    }
+
     view(source, player = true) {
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
         if (player) {
@@ -122,7 +126,7 @@ export class MediaViewer extends Component {
                 <Modal className="media-viewer" show={this.state.sources.length > 0} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
                     <Modal.Header className="flex-row align-items-center mr-3" closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                            <EditableText row={1} value={name} onChange={this.rename.bind(this)} />
+                            <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
                         </Modal.Title>
                     </Modal.Header>
                     <Modal.Body className="">
