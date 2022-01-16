@@ -624,7 +624,7 @@ namespace MediaCurator
                if (supportedExtensions[MediaContainerType.Photo].Contains(extension))
                {
                   // Looks like the file is a recognized photo format.
-                  throw new NotImplementedException("Photo files cannot yet be handled!");
+                  return typeof(PhotoFile);
                }
 
                // Check if it's a recognized audio format.
@@ -685,7 +685,7 @@ namespace MediaCurator
             if (container.Name.ToString().Equals("Photo"))
             {
                // It's a photo file.
-               throw new NotImplementedException("Photo files cannot yet be handled!");
+               return typeof(PhotoFile);
             }
 
             if (container.Name.ToString().Equals("Library"))
