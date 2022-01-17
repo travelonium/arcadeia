@@ -417,6 +417,19 @@
 }
 
 .media-viewer {
+
+    .photo-viewer {
+
+        height: 0;
+        width: 100%;
+        padding-top: 56.25%;
+
+        & > img {
+            display: none;
+            object-fit: contain;
+        }
+    }
+
     .editable-text {
         min-height: 2em;
     }

@@ -7,6 +7,7 @@ using Microsoft.VisualBasic.FileIO;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace MediaCurator
 {
@@ -101,6 +102,39 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Gets or sets the content type (MIME type) of the file. This is directly read and written 
+      /// from and to the MediaLibrary.
+      /// </summary>
+      public string ContentType
+      {
+         get
+         {
+            return Tools.GetAttributeValue(Self, "ContentType");
+         }
+
+         set
+         {
+            Tools.SetAttributeValue(Self, "ContentType", value);
+         }
+      }
+
+      /// <summary>
+      /// Gets the file extension from its name.
+      /// </summary>
+      /// <value>
+      /// The extension of the file including the dot.
+      /// </value>
+      public string Extension
+      {
+         get
+         {
+            var extension = System.IO.Path.GetExtension(Name);
+
+            return (extension != null && extension != string.Empty) ? extension.ToLower() : null;
+         }
+      }
+
+      /// <summary>
       /// Gets a tailored MediaContainer model describing a media file.
       /// </summary>
       public override Models.MediaContainer Model
@@ -113,6 +147,8 @@ namespace MediaCurator
             model.Thumbnails = Thumbnails.Count;
             model.DateCreated = DateCreated;
             model.DateModified = DateModified;
+            model.ContentType = ContentType;
+            model.Extension = Extension;
 
             return model;
          }
@@ -178,7 +214,9 @@ namespace MediaCurator
                         new XAttribute("Name", name),
                         new XAttribute("Size", fileInfo.Length),
                         new XAttribute("DateCreated", fileInfo.CreationTime.ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture))));
+                        new XAttribute("DateModified", fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture))
+                     )
+                  );
 
                   // Mark this MediaFile based object as one that has just been created. The child 
                   // class will take care of filling in the required missing fields.
@@ -208,6 +246,18 @@ namespace MediaCurator
 
             // Initialize the thumbnails.
             Thumbnails = new MediaFileThumbnails(_thumbnailsDatabase, Id);
+
+            // Retrieve and initialize the file's content type if needed, either when a new element
+            // has been created or if this is a Startup Scan and the element lacks the attribute.
+            if (ContentType == "")
+            {
+               string contentType = GetContentType();
+
+               if (contentType != null)
+               {
+                  ContentType = contentType;
+               }
+            }
 
             if (Created)
             {
@@ -265,6 +315,13 @@ namespace MediaCurator
                      DateCreated = fileInfo.CreationTime;
                      DateModified = fileInfo.LastWriteTime;
 
+                     // Retrieve and initialize the file's content type if needed
+                     string contentType = GetContentType();
+                     if (contentType != null)
+                     {
+                        ContentType = contentType;
+                     }
+
                      // Remove the previously generated thumbnails as they are most likely out of date.
                      Thumbnails.DeleteAll();
 
@@ -309,6 +366,17 @@ namespace MediaCurator
       #endregion // Constructors
 
       #region Common Functionality
+
+      /// <summary>
+      /// Retrieves the file's content (MIME) type.
+      /// </summary>
+      /// <returns>The MIME type as a string or null in case it couldn't be determined.</returns>
+      public string GetContentType()
+      {
+         new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string contentType);
+
+         return contentType;
+      }
 
       /// <summary>
       /// Removes the associated element from the MediaLibrary. This is if for example at a later

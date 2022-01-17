@@ -47,7 +47,6 @@ namespace MediaCurator.Services
 
       #endregion // Constructors
 
-      [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
       public Task StartAsync(CancellationToken cancellationToken)
       {
          _logger.LogInformation("Starting FileSystem Service...");

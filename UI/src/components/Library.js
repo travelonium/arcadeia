@@ -19,7 +19,9 @@ export class Library extends Component {
 
     constructor(props) {
         super(props);
-        this.viewing = false;
+        this.current = -1;      // the current item index being viewed in the MediaViewer
+        this.viewing = false;   // indicates that a media is being viewed in the MediaViewer
+        this.editing = false;   // indicates that text editing is in progress and should inhibit low level keyboard input capturing
         this.grid = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
@@ -38,6 +40,12 @@ export class Library extends Component {
                         big: 60
                     },
                     volumeStep: 0.1
+                },
+                photoViewer: {
+                    zoom: {
+                        ratio: 0.1,
+                        hasTooltip: true,
+                    },
                 }
             }
         };
@@ -149,7 +157,7 @@ export class Library extends Component {
         let item = clone(source);
         const index = this.state.items.findIndex(x => x.id === item.id);
         if (index === -1) {
-            toast.error("Unabled to find the item that was to be updated.");
+            toast.error("Unable to find the item that was to be updated.");
             return;
         }
         fetch("/library" + item.fullPath, {
@@ -316,13 +324,28 @@ export class Library extends Component {
         this.list(source.fullPath);
     }
 
-    view(source, player = true) {
-        this.mediaViewer.current.view(source, player);
+    view(source, index = 0, player = true) {
+        this.current = index;
+        this.mediaViewer.current.view([source], 0, player);
     }
 
-    highlight(source) {
-        if (source !== null) {
-        } else {
+    previous() {
+        if (!this.viewing || (this.current === -1)) return;
+        let index = this.current - 1;
+        if ((index >= 0) && (index < this.state.items.length)) {
+            this.current = index;
+            let source = this.state.items[index];
+            this.mediaViewer.current.view([source], 0, true);
+        }
+    }
+
+    next() {
+        if (!this.viewing || (this.current === -1)) return;
+        let index = this.current + 1;
+        if ((index >= 0) && (index < this.state.items.length)) {
+            this.current = index;
+            let source = this.state.items[index];
+            this.mediaViewer.current.view([source], 0, true);
         }
     }
 
@@ -358,63 +381,90 @@ export class Library extends Component {
     }
 
     onKeyDown(event) {
-        if (!this.grid.current) return;
-        let grid = this.grid.current;
-        let height = grid.props.height;
-        let rowCount = grid.props.rowCount;
-        let rowHeight = grid.props.rowHeight;
-        let pageRows = Math.ceil(height / rowHeight);
-        let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
+        if (this.editing) return;
+        let photoViewer = extract(null, this.mediaViewer, 'current', 'photoViewer', 'current', 'viewer');
         let videoPlayer = extract(null, this.mediaViewer, 'current', 'videoPlayer', 'current', 'player');
         if (this.viewing) {
-            videoPlayer.userActive(true);
+            // handle the arrow up and down first
             switch (event.code) {
-                case 'KeyF':
-                    if (videoPlayer.isFullscreen()) {
-                        videoPlayer.exitFullscreen();
-                    } else {
-                        videoPlayer.requestFullscreen();
-                    }
+                case 'ArrowUp':
+                    this.previous();
+                    return;
+                case 'ArrowDown':
+                    this.next();
+                    return;
+                default:
                     break;
-                case 'KeyM':
-                    videoPlayer.muted(videoPlayer.muted() ? false : true);
-                    break;
-                case 'KeyK':
-                case 'Space':
-                    if (videoPlayer) {
+            }
+            // doesn't seem to be a next/prev, what else could it be...
+            if (videoPlayer)
+            {
+                videoPlayer.userActive(true);
+                let step = this.state.options.videoPlayer.seekStep.small;
+                switch (event.code) {
+                    case 'KeyF':
+                        if (videoPlayer.isFullscreen()) {
+                            videoPlayer.exitFullscreen();
+                        } else {
+                            videoPlayer.requestFullscreen();
+                        }
+                        break;
+                    case 'KeyM':
+                        videoPlayer.muted(videoPlayer.muted() ? false : true);
+                        break;
+                    case 'KeyK':
+                    case 'Space':
                         if (videoPlayer.paused()) videoPlayer.play(); else videoPlayer.pause();
-                    }
-                    break;
-                case 'ArrowLeft':
-                    if (videoPlayer) {
-                        let step = this.state.options.videoPlayer.seekStep.small;
+                        break;
+                    case 'ArrowLeft':
                         if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
                         if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
-                       videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
-                    }
-                    break;
-                case 'ArrowRight':
-                    if (videoPlayer) {
-                        let step = this.state.options.videoPlayer.seekStep.small;
+                        videoPlayer.currentTime(Math.max(0, videoPlayer.currentTime() - step));
+                        break;
+                    case 'ArrowRight':
                         if (event.metaKey) step = this.state.options.videoPlayer.seekStep.medium;
                         if (event.shiftKey) step = this.state.options.videoPlayer.seekStep.big;
                         videoPlayer.currentTime(videoPlayer.currentTime() + step);
-                    }
-                    break;
-                case 'ArrowUp':
-                    if (videoPlayer) {
+                        break;
+                    case 'ArrowUp':
                         videoPlayer.volume(Math.min(videoPlayer.volume() + this.state.options.videoPlayer.volumeStep, 1.0));
-                    }
-                    break;
-                case 'ArrowDown':
-                    if (videoPlayer) {
+                        break;
+                    case 'ArrowDown':
                         videoPlayer.volume(Math.max(videoPlayer.volume() - this.state.options.videoPlayer.volumeStep, 0.0));
-                    }
-                    break;
-                default:
-                    return;
+                        break;
+                    default:
+                        return;
+                }
+            } else if (photoViewer) {
+                console.log(photoViewer);
+                switch (event.code) {
+                    case 'KeyF':
+                        if (photoViewer.fulled) {
+                            photoViewer.exit();
+                        } else {
+                            photoViewer.full();
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        photoViewer.zoom(-this.state.options.photoViewer.zoom.ratio, this.state.options.photoViewer.zoom.hasTooltip);
+                        break;
+                    case 'ArrowRight':
+                        photoViewer.zoom(this.state.options.photoViewer.zoom.ratio, this.state.options.photoViewer.zoom.hasTooltip);
+                        break;
+                    default:
+                        return;
+                }
+            } else {
+                return;
             }
         } else {
+            if (!this.grid.current) return;
+            let grid = this.grid.current;
+            let height = grid.props.height;
+            let rowCount = grid.props.rowCount;
+            let rowHeight = grid.props.rowHeight;
+            let pageRows = Math.ceil(height / rowHeight);
+            let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
             switch (event.code) {
                 case 'Home':
                     grid.scrollToItem({ align: "start", rowIndex: 0 });
@@ -497,11 +547,12 @@ export class Library extends Component {
                                     <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
                                     {
                                         ({ columnIndex, rowIndex, style }) => {
-                                            let source = this.state.items[(rowIndex * columnCount) + columnIndex];
+                                            let index = (rowIndex * columnCount) + columnIndex;
+                                            let source = this.state.items[index];
                                             if (source !== undefined) {
                                                 return (
                                                     <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer library={this.props.forwardedRef} source={source} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} onHighlight={this.highlight.bind(this)} />
+                                                        <MediaContainer library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                                     </div>
                                                 );
                                             } else {
@@ -515,7 +566,7 @@ export class Library extends Component {
                                 )}
                             }
                         </AutoSizer>
-                        <MediaViewer ref={this.mediaViewer} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>

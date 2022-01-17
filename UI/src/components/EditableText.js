@@ -47,6 +47,9 @@ export class EditableText extends Component {
                 }
             }
             this.textArea.current.setSelectionRange(start, end);
+            if (this.props.onEditing) {
+                this.props.onEditing(true);
+            }
         });
     }
 
@@ -59,6 +62,9 @@ export class EditableText extends Component {
         this.setState({
             editing: false
         }, () => {
+            if (this.props.onEditing) {
+                this.props.onEditing(false);
+            }
             if (this.props.onChange && (this.state.current !== this.state.previous)) {
                 this.props.onChange(this.state.current, event);
             }
