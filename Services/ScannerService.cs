@@ -130,6 +130,24 @@ namespace MediaCurator.Services
       }
 
       /// <summary>
+      /// Determines the interval at which the database is updated while scanning in order to avoid losing the progress.
+      /// </summary>
+      public int DatabaseUpdateInterval
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:DatabaseUpdateInterval").Exists())
+            {
+               return _configuration.GetSection("Scanner:DatabaseUpdateInterval").Get<int>();
+            }
+            else
+            {
+               return 0;
+            }
+         }
+      }
+
+      /// <summary>
       /// Determines whether or not the startup update is enabled.
       /// </summary>
       public bool StartupUpdate
@@ -265,7 +283,7 @@ namespace MediaCurator.Services
                // Queue the folder startup folder scan.
                _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
                {
-                  return Task.Run(() => Scan(folder, "Startup"));
+                  return Task.Run(() => Scan(folder, "Startup"), cancellationToken);
                });
             }
          }
@@ -282,7 +300,7 @@ namespace MediaCurator.Services
                   // Queue the folder periodic scan.
                   _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
                   {
-                     return Task.Run(() => Scan(folder, "Periodic"));
+                     return Task.Run(() => Scan(folder, "Periodic"), cancellationToken);
                   });
                }
             }, null, TimeSpan.Zero.Milliseconds, Period);
@@ -294,7 +312,7 @@ namespace MediaCurator.Services
             // Queue the startup update task.
             _taskQueue.QueueBackgroundWorkItem("Startup Update", cancellationToken =>
             {
-               return Task.Run(() => Update(ref _totalCounterMax, ref _totalCounter, _progressFile, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken));
+               return Task.Run(() => Update(ref _totalCounterMax, ref _totalCounter, _progressFile, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken), cancellationToken);
             });
 
             _logger.LogInformation("Startup Update Queued.");
@@ -331,6 +349,8 @@ namespace MediaCurator.Services
 
       private void Scan(string path, string type)
       {
+         Stopwatch watch = new();
+         var interval = DatabaseUpdateInterval;
          var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          _logger.LogInformation("{} Scanning Started: {}", type, path);
@@ -349,8 +369,7 @@ namespace MediaCurator.Services
          catch (System.UnauthorizedAccessException e)
          {
             // We probably do not have access to the folder. Let's ignore this one and move on.
-            _logger.LogWarning("Access Denied: {}", path);
-            _logger.LogDebug(e.Message);
+            _logger.LogWarning("Access Denied To: {} Because: {}", path, e.Message);
 
             return;
          }
@@ -372,6 +391,9 @@ namespace MediaCurator.Services
 
          // Update the Status message.
          _progressStatus.Report("Processing Files...");
+
+         // Start the watch
+         if (interval > 0) watch.Start();
 
          // Loop through the files in the specific MediaLocation.
          foreach (var file in files)
@@ -408,9 +430,17 @@ namespace MediaCurator.Services
             }
             catch (Exception e)
             {
-               _logger.LogError("An exception has been thrown while adding to the Media Library: {}", e.Message);
+               _logger.LogError("Failed To Insert: {} Because: {}", file, e.Message);
 
                break;
+            }
+
+            // Update the MediaLibrary if the interval has ellapsed.
+            if ((interval > 0) && (watch.ElapsedMilliseconds > interval))
+            {
+               _mediaLibrary.UpdateDatabase();
+
+               watch.Restart();
             }
 
          Skip:
@@ -439,6 +469,9 @@ namespace MediaCurator.Services
                           IProgress<string> progressStatus,
                           CancellationToken cancellationToken)
       {
+         Stopwatch watch = new();
+         var interval = DatabaseUpdateInterval;
+
          _logger.LogInformation("Startup Update Started.");
 
          // It's now time to go through the MediaLibrary itself and check for changes on the disk. 
@@ -459,6 +492,9 @@ namespace MediaCurator.Services
          // Update the total number of files to be processed according to the number of media 
          // files currently present in the database.
          totalCounterMax = mediaFiles.Count();
+
+         // Start the watch
+         if (interval > 0) watch.Start();
 
          // Loop through the mediaFiles.
          foreach (XElement element in mediaFiles)
@@ -496,6 +532,14 @@ namespace MediaCurator.Services
                _logger.LogError("An exception has been thrown while updating the Media Library: {}", e.Message);
 
                break;
+            }
+
+            // Update the MediaLibrary if the interval has ellapsed.
+            if ((interval > 0) && (watch.ElapsedMilliseconds > interval))
+            {
+               _mediaLibrary.UpdateDatabase();
+
+               watch.Restart();
             }
 
             // Update the Total Progress.
@@ -547,7 +591,7 @@ namespace MediaCurator.Services
       private void OnError(object source, ErrorEventArgs e)
       {
          // Specify what is done when an error has occured.
-         Debug.WriteLine($"Error: {e.ToString()}");
+         Debug.WriteLine($"Error: {e}");
       }
 
       private void OnCreated(object source, FileSystemEventArgs e)
@@ -558,7 +602,7 @@ namespace MediaCurator.Services
          // Queue the add operation.
          _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
          {
-            return Task.Run(() => AddFile(e.FullPath));
+            return Task.Run(() => AddFile(e.FullPath), cancellationToken);
          });
       }
 
@@ -570,7 +614,7 @@ namespace MediaCurator.Services
          // Queue the add operation.
          _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
          {
-            return Task.Run(() => UpdateFile(e.FullPath));
+            return Task.Run(() => UpdateFile(e.FullPath), cancellationToken);
          });
       }
 
@@ -582,13 +626,13 @@ namespace MediaCurator.Services
          // Queue the delete operation.
          _taskQueue.QueueBackgroundWorkItem(e.OldFullPath, cancellationToken =>
          {
-            return Task.Run(() => UpdateFile(e.OldFullPath));
+            return Task.Run(() => UpdateFile(e.OldFullPath), cancellationToken);
          });
 
          // Queue the add operation.
          _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
          {
-            return Task.Run(() => AddFile(e.FullPath));
+            return Task.Run(() => AddFile(e.FullPath), cancellationToken);
          });
       }
    }
