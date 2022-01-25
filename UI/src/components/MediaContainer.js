@@ -105,9 +105,12 @@ export class MediaContainer extends Component {
         const favorite = flags.includes('Favorite');
         const pattern = /(.*)\.(.*)/g;
         let match = pattern.exec(source.name);
-        if (match !== null) {
+        // FIXME: Use the source.extension instead but its leading dot needs to be removed first.
+        if ((match !== null) && (source.type !== "Folder") && (source.type !== "Drive") && (source.type !== "Server")) {
             name = extract(null, match, 1);
             extension = extract(null, match, 2);
+        } else {
+            name = extract(null, match, 1);
         }
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
