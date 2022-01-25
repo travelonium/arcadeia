@@ -94,33 +94,15 @@ namespace MediaCurator.Services
       }
 
       /// <summary>
-      /// Determines whether or not the periodic scanning is enabled.
+      /// Determines the periodic scan interval in milliseconds and enables periodic scanning if non-zero.
       /// </summary>
-      public bool PeriodicScan
+      public long PeriodicScanInterval
       {
          get
          {
-            if (_configuration.GetSection("Scanner:PeriodicScan").Exists())
+            if (_configuration.GetSection("Scanner:PeriodicScanInterval").Exists())
             {
-               return _configuration.GetSection("Scanner:PeriodicScan").Get<bool>();
-            }
-            else
-            {
-               return false;
-            }
-         }
-      }
-
-      /// <summary>
-      /// Determines the periodic scan period if periodic scanning is enabled.
-      /// </summary>
-      public int Period
-      {
-         get
-         {
-            if (_configuration.GetSection("Scanner:Period").Exists())
-            {
-               return _configuration.GetSection("Scanner:Period").Get<int>();
+               return _configuration.GetSection("Scanner:PeriodicScanInterval").Get<long>();
             }
             else
             {
@@ -130,15 +112,15 @@ namespace MediaCurator.Services
       }
 
       /// <summary>
-      /// Determines the interval at which the database is updated while scanning in order to avoid losing the progress.
+      /// Determines the interval in milliseconds at which the database is updated while scanning in order to avoid losing the progress.
       /// </summary>
-      public int DatabaseUpdateInterval
+      public long DatabaseUpdateInterval
       {
          get
          {
             if (_configuration.GetSection("Scanner:DatabaseUpdateInterval").Exists())
             {
-               return _configuration.GetSection("Scanner:DatabaseUpdateInterval").Get<int>();
+               return _configuration.GetSection("Scanner:DatabaseUpdateInterval").Get<long>();
             }
             else
             {
@@ -289,7 +271,7 @@ namespace MediaCurator.Services
          }
 
          // Schedule the periodic scanning task if necessary.
-         if (PeriodicScan && (Period > 0))
+         if (PeriodicScanInterval > 0)
          {
             _logger.LogInformation("Configuring Periodic Scanning...");
 
@@ -303,7 +285,7 @@ namespace MediaCurator.Services
                      return Task.Run(() => Scan(folder, "Periodic"), cancellationToken);
                   });
                }
-            }, null, TimeSpan.Zero.Milliseconds, Period);
+            }, null, TimeSpan.Zero.Milliseconds, PeriodicScanInterval);
          }
 
          // Start the startup update task if necessary.
