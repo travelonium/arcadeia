@@ -285,7 +285,7 @@ namespace MediaCurator.Services
                      return Task.Run(() => Scan(folder, "Periodic"), cancellationToken);
                   });
                }
-            }, null, TimeSpan.Zero.Milliseconds, PeriodicScanInterval);
+            }, null, PeriodicScanInterval, PeriodicScanInterval);
          }
 
          // Start the startup update task if necessary.
