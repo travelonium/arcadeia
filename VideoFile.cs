@@ -280,7 +280,7 @@ namespace MediaCurator
             throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
          }
 
-         using (Process ffmpeg = new Process())
+         using (Process ffmpeg = new())
          {
             ffmpeg.StartInfo.FileName = executable;
 
