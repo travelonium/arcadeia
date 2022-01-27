@@ -294,6 +294,26 @@ namespace MediaCurator.Solr
 			}
 		}
 
+		public bool Clear()
+      {
+			try
+			{
+				SolrQuery query = new("*:*");
+				_solr.Delete(query);
+				_solr.Commit();
+
+				_logger.LogInformation("Solr Core Cleared!");
+
+				return true;
+			}
+			catch (SolrNetException e)
+			{
+				_logger.LogError("Failed To Clear, Because: {}", e.Message);
+
+				return false;
+			}
+		}
+
 		public async Task<bool> Ping()
       {
          try
@@ -407,7 +427,7 @@ namespace MediaCurator.Solr
 			}
 			catch (System.Exception e)
          {
-				_logger.LogError("Solr Connection Error: {}" + e.Message);
+				_logger.LogError("Solr Connection Error: {}", e.Message);
 
 				throw;
 			}

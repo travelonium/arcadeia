@@ -62,6 +62,16 @@ namespace MediaCurator
          // Read and store the supported extensions from the configuration file.
          SupportedExtensions = new MediaContainerTypeExtensions(_configuration);
 
+         // Initialize the Solr Index Service.
+         if (_configuration.GetSection("Solr:URL").Exists())
+         {
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+               solrIndexService.Initialize();
+            }
+         }
+
          // Check if the XML Database file already exists.
          if (File.Exists(fullPath))
          {
@@ -98,20 +108,21 @@ namespace MediaCurator
                // Reset the Modified flag.
                Modified = false;
 
-               _logger.LogInformation("Media Library Created: " + fullPath);
+               // Clear the Solr index in case it's already been populated before.
+               if (_configuration.GetSection("Solr:URL").Exists())
+               {
+                  using (IServiceScope scope = _serviceProvider.CreateScope())
+                  {
+                     ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+                     solrIndexService.Clear();
+                  }
+               }
+
+               _logger.LogInformation("Media Library Created: {}", fullPath);
             }
             catch (Exception e)
             {
-               _logger.LogError("Media Library Creation Failed! Cause: " + e.Message);
-            }
-         }
-
-         if (_configuration.GetSection("Solr:URL").Exists())
-         {
-            using (IServiceScope scope = _serviceProvider.CreateScope())
-            {
-               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
-               solrIndexService.Initialize();
+               _logger.LogError("Media Library Creation Failed, Because: {}", e.Message);
             }
          }
       }
@@ -159,7 +170,7 @@ namespace MediaCurator
       public List<IMediaContainer> ListMediaContainers(string path, string query = null, uint flags = 0, uint values = 0, bool recursive = false)
       {
          IMediaContainer mediaContainer = new MediaContainer(_configuration, _thumbnailsDatabase, this, path);
-         List<IMediaContainer> mediaContainers = new List<IMediaContainer>();
+         List<IMediaContainer> mediaContainers = new();
 
          // In case of a Server or a Drive or a Folder located in the root, the mediaContainer's Self
          // will be null and it only will have found a Parent element which is the one we need. As a

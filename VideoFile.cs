@@ -324,6 +324,7 @@ namespace MediaCurator
                   if (error.Length > 0)
                   {
                      Debug.WriteLine("o");
+                     Debug.WriteLine("Arguments: " + ffmpeg.StartInfo.Arguments);
                      Debug.WriteLine(error);
                   }
                   else
