@@ -435,6 +435,14 @@
     }
 }
 
+.photo-preview-overlay {
+
+    .preview {
+        max-width: 480px;
+        max-height: 480px;
+    }
+}
+
 /*
 @-webkit-keyframes spinner {
     0% {

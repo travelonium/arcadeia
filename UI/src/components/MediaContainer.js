@@ -88,8 +88,7 @@ export class MediaContainer extends Component {
         let width = extract(0, this.state.current, 'width');
         let height = extract(0, this.state.current, 'height');
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
-        let params = "width=500&height=500";
-        let src = "/preview/photo/" + this.props.source.id + "/" + this.props.source.name + "?" + params;
+        let src = "/thumbnails/" + this.props.source.id + "/" + "large.jpg";
         return (
             <div className="photo-preview-overlay" {...props} >
                 <img className="preview" src={src} />

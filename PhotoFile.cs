@@ -16,6 +16,18 @@ namespace MediaCurator
    {
       #region Constants
 
+      private Lazy<Dictionary<string, Dictionary<string, int>>> Configuration => new(() =>
+      {
+         var section = _configuration.GetSection("Thumbnails:Photo");
+
+         if (section.Exists())
+         {
+            return section.Get<Dictionary<string, Dictionary<string, int>>>();
+         }
+
+         return new Dictionary<string, Dictionary<string, int>>();
+      });
+
       #endregion // Constants
 
       #region Fields
@@ -164,28 +176,31 @@ namespace MediaCurator
          return output;
       }
 
-      private byte[] GenerateThumbnail(string path)
+      private byte[] GenerateThumbnail(string path, int width, int height, bool crop)
       {
-         int width = 720;
-         int height = width / 16 * 9;
          byte[] output = null;
 
          using (var image = new MagickImage(path))
          {
-            var size = new MagickGeometry(width, height)
-            {
-               IgnoreAspectRatio = false,
-               FillArea = true
-            };
-
             try
             {
+               var size = new MagickGeometry((width > 0) ? width : image.BaseWidth, (height > 0) ? height : image.BaseHeight)
+               {
+                  IgnoreAspectRatio = false,
+                  FillArea = crop
+               };
+
                // Convert the photo's format in case the encoder is missing as it is in case of HEIC files
                image.Format = MagickFormat.Jpeg;
 
                image.AutoOrient();
                image.Thumbnail(size);
-               image.Extent(size, Gravity.Center);
+
+               if (crop)
+               {
+                  image.Extent(size, Gravity.Center);
+               }
+
                output = image.ToByteArray();
 
                if (output.Length > 0)
@@ -213,13 +228,12 @@ namespace MediaCurator
       /// <returns>The count of successfully generated thumbnails.</returns>
       public override int GenerateThumbnails()
       {
-         int index = 0;
-         int total = 1;
+         int total = 0;
 
          // Make sure the photo file is valid and not corrupted or empty.
          if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
          {
-            return index;
+            return total;
          }
 
          /*----------------------------------------------------------------------------------
@@ -230,24 +244,44 @@ namespace MediaCurator
 
          Debug.Write(" [");
 
-         for (int counter = 1; counter <= total; counter++)
+         foreach (var item in Configuration.Value)
          {
-            // Generate the thumbnail.
-            byte[] thumbnail = GenerateThumbnail(FullPath);
+            int count = 0;
+            int width = -1;
+            int height = -1;
+            bool crop = false;
+            string label = item.Key;
 
-            if ((thumbnail != null) && (thumbnail.Length > 0))
+            if (item.Value.ContainsKey("Count")) count = item.Value["Count"];
+            if (item.Value.ContainsKey("Width")) width = item.Value["Width"];
+            if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
+            if (item.Value.ContainsKey("Crop")) crop = (item.Value["Crop"] > 0);
+
+            for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
-               // Add the newly generated thumbnail to the database.
-               Thumbnails[index] = thumbnail;
+               // Generate the thumbnail.
+               byte[] thumbnail = GenerateThumbnail(FullPath, width, height, crop);
 
-               // Increase the index
-               index++;
+               if ((thumbnail != null) && (thumbnail.Length > 0))
+               {
+                  // Add the newly generated thumbnail to the database.
+                  if (count >= 1)
+                  {
+                     Thumbnails[counter] = thumbnail;
+                  }
+                  else
+                  {
+                     Thumbnails[label] = thumbnail;
+                  }
+
+                  total++;
+               }
             }
          }
 
          Debug.WriteLine("]");
 
-         return index;
+         return total;
       }
 
       #endregion // Photo File Operations

@@ -15,23 +15,6 @@ namespace MediaCurator
    {
       #region Constants
 
-      private static readonly int[,] TotalThumbnails =
-      {
-      /* Total number of thumbnails based on the length in seconds :                              */
-      /*   From      To       Count             Maximum Duration     Every X Seconds              */
-         { 0,        60,      24       },    // 1m                   2.5s
-         { 61,       120,     24       },    // 2m                   5s
-         { 121,      240,     24       },    // 4m                   10s
-         { 241,      480,     24       },    // 8m                   20s
-         { 481,      960,     24       },    // 16m                  40s
-         { 961,      1920,    24       },    // 32m                  80s
-         { 1921,     3840,    24       },    // 64m                  160s
-         { 3841,     7680,    24       },    // 128m                 320s
-         { 7681,     15360,   24       },    // 256m                 640s
-         { 15361,    30720,   24       },    // 512m                 1280s
-         { 30721,    61440,   24       },    // 1024m                2560s
-      };
-
       private Lazy<Dictionary<string, Dictionary<string, int>>> Configuration => new(() =>
       {
          var section = _configuration.GetSection("Thumbnails:Video");
@@ -278,7 +261,7 @@ namespace MediaCurator
          }
       }
 
-      private byte[] GenerateThumbnail(string filePath, int position, int width, int height, bool crop)
+      private byte[] GenerateThumbnail(string path, int position, int width, int height, bool crop)
       {
          byte[] output = null;
          string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
@@ -295,7 +278,7 @@ namespace MediaCurator
          {
             ffmpeg.StartInfo.FileName = executable;
 
-            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} -i \"{1}\" ", position.ToString(), filePath);
+            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} -i \"{1}\" ", position.ToString(), path);
             ffmpeg.StartInfo.Arguments += String.Format("-y -vf select=\"eq(pict_type\\,I),scale={0}:{1}", width.ToString(), height.ToString());
 
             if (crop)
@@ -336,7 +319,17 @@ namespace MediaCurator
                }
                else
                {
-                  Debug.Write("o");
+                  var error = ffmpeg.StandardError.ReadToEnd();
+
+                  if (error.Length > 0)
+                  {
+                     Debug.WriteLine("o");
+                     Debug.WriteLine(error);
+                  }
+                  else
+                  {
+                     Debug.Write("o");
+                  }
                }
             }
             else
@@ -375,27 +368,11 @@ namespace MediaCurator
 
          Debug.Write("GENERATING THUMBNAILS: " + FullPath);
 
-         // Determine the count of thumbnails to generate based on the duration.
-         /*
-         for (int row = 0; row < TotalThumbnails.GetLength(0); row++)
-         {
-            // Initialize the totalThumbnails with the largest value so far.
-            total = TotalThumbnails[row, 2];
-
-            if ((Duration >= TotalThumbnails[row, 0]) &&
-                (Duration <= TotalThumbnails[row, 1]))
-            {
-               // Break out of the loop and have the current value of totalThumbnails persist.
-               break;
-            }
-         }
-         */
-
          Debug.Write(" [");
 
          foreach (var item in Configuration.Value)
          {
-            int count = 1;
+            int count = 0;
             int width = -1;
             int height = -1;
             bool crop = false;
@@ -406,9 +383,9 @@ namespace MediaCurator
             if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
             if (item.Value.ContainsKey("Crop")) crop = (item.Value["Crop"] > 0);
 
-            for (int counter = 0; counter < count; counter++)
+            for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
-               int position = (int)((counter + 0.5) * Duration / count);
+               int position = (int)((counter + 0.5) * Duration / Math.Max(24, count));
 
                // Generate the thumbnail.
                byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
@@ -416,7 +393,7 @@ namespace MediaCurator
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {
                   // Add the newly generated thumbnail to the database.
-                  if (count > 1)
+                  if (count >= 1)
                   {
                      Thumbnails[counter] = thumbnail;
                   }
