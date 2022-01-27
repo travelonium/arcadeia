@@ -285,9 +285,7 @@ namespace MediaCurator
          return mediaContainers;
       }
 
-      public MediaFile InsertMedia(string path,
-                                   IProgress<Tuple<double, double>> progress,
-                                   IProgress<byte[]> preview)
+      public MediaFile InsertMedia(string path)
       {
          string fileName = System.IO.Path.GetFileName(path);
          MediaContainerType mediaType = GetMediaType(path);
@@ -309,7 +307,7 @@ namespace MediaCurator
 
             case MediaContainerType.Audio:
 
-               /*mediaFile = */ InsertAudioFile(path, progress, preview);
+               /*mediaFile = */ InsertAudioFile(path);
 
                break;
 
@@ -319,7 +317,7 @@ namespace MediaCurator
 
             case MediaContainerType.Video:
 
-               mediaFile = InsertVideoFile(path, progress, preview);
+               mediaFile = InsertVideoFile(path);
 
                break;
 
@@ -329,7 +327,7 @@ namespace MediaCurator
 
             case MediaContainerType.Photo:
 
-               mediaFile = InsertPhotoFile(path, progress, preview);
+               mediaFile = InsertPhotoFile(path);
 
                break;
          }
@@ -352,17 +350,10 @@ namespace MediaCurator
       /// anything has changed and if the element needs to be updated or deleted.
       /// </summary>
       /// <param name="mediaElement">The media element to be checked for chanegs.</param>
-      /// <param name="progress">The file progress if it required regeneration of thumbnails.</param>
-      /// <param name="preview">The thumbnail preview.</param>
-      public void UpdateMedia(XElement element,
-                              IProgress<Tuple<double, double>> progress,
-                              IProgress<byte[]> preview)
+      public void UpdateMedia(XElement element)
       {
          // Instantiate a MediaFile using the acquired element.
          MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
-
-         // Reset the Current File Progress.
-         progress.Report(new Tuple<double, double>(0, 0));
 
          if (mediaFile != null)
          {
@@ -400,7 +391,7 @@ namespace MediaCurator
 
                case MediaContainerType.Video:
 
-                  mediaFile = UpdateVideoFile(element, progress, preview);
+                  mediaFile = UpdateVideoFile(element);
 
                   break;
 
@@ -410,7 +401,7 @@ namespace MediaCurator
 
                case MediaContainerType.Photo:
 
-                  mediaFile = UpdatePhotoFile(element, progress, preview);
+                  mediaFile = UpdatePhotoFile(element);
 
                   break;
             }
@@ -442,9 +433,7 @@ namespace MediaCurator
       /// <param name="progress">The file progress if it required regeneration of thumbnails.</param>
       /// <param name="preview">The thumbnail preview.</param>
       /// <returns></returns>
-      public MediaFile UpdateMedia(string path,
-                                   IProgress<Tuple<double, double>> progress,
-                                   IProgress<byte[]> preview)
+      public MediaFile UpdateMedia(string path)
       {
          string fileName = System.IO.Path.GetFileName(path);
          MediaContainerType mediaType = GetMediaType(path);
@@ -478,7 +467,7 @@ namespace MediaCurator
 
                if (mediaFile.Self != null)
                {
-                  UpdateVideoFile(mediaFile.Self, progress, preview);
+                  UpdateVideoFile(mediaFile.Self);
                }
 
                break;
@@ -493,7 +482,7 @@ namespace MediaCurator
 
                if (mediaFile.Self != null)
                {
-                  UpdatePhotoFile(mediaFile.Self, progress, preview);
+                  UpdatePhotoFile(mediaFile.Self);
                }
 
                break;
@@ -519,33 +508,33 @@ namespace MediaCurator
          return mediaFile;
       }
 
-      private void InsertAudioFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private void InsertAudioFile(string path)
       {
 
       }
 
-      private VideoFile InsertVideoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private VideoFile InsertVideoFile(string path)
       {
          VideoFile videoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
          return videoFile;
       }
 
-      private VideoFile UpdateVideoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private VideoFile UpdateVideoFile(XElement element)
       {
          VideoFile videoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
 
          return videoFile;
       }
 
-      private PhotoFile InsertPhotoFile(string path, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private PhotoFile InsertPhotoFile(string path)
       {
          PhotoFile photoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, path);
 
          return photoFile;
       }
 
-      private PhotoFile UpdatePhotoFile(XElement element, IProgress<Tuple<double, double>> progress, IProgress<byte[]> preview)
+      private PhotoFile UpdatePhotoFile(XElement element)
       {
          PhotoFile photoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, element, true);
 
