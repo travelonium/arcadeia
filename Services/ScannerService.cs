@@ -263,7 +263,7 @@ namespace MediaCurator.Services
             foreach (var folder in WatchedFolders)
             {
                // Queue the folder startup folder scan.
-               _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
+               _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
                {
                   return Task.Run(() => Scan(folder, "Startup"), cancellationToken);
                });
@@ -280,7 +280,7 @@ namespace MediaCurator.Services
                foreach (var folder in AvailableWatchedFolders)
                {
                   // Queue the folder periodic scan.
-                  _taskQueue.QueueBackgroundWorkItem(folder, cancellationToken =>
+                  _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
                   {
                      return Task.Run(() => Scan(folder, "Periodic"), cancellationToken);
                   });
@@ -292,7 +292,7 @@ namespace MediaCurator.Services
          if (StartupUpdate)
          {
             // Queue the startup update task.
-            _taskQueue.QueueBackgroundWorkItem("Startup Update", cancellationToken =>
+            _taskQueue.QueueBackgroundTask("Startup Update", cancellationToken =>
             {
                return Task.Run(() => Update(ref _totalCounterMax, ref _totalCounter, _progressFile, _progressTotal, _progressThumbnailPreview, _progressStatus, _cancellationToken), cancellationToken);
             });
@@ -301,7 +301,7 @@ namespace MediaCurator.Services
          }
 
          // Start the background task processor.
-         Task.Run(() => BackgroundTaskProcessorAsync(_cancellationToken).Wait());
+         Task.Run(() => BackgroundTaskProcessorAsync(_cancellationToken).Wait(), cancellationToken);
 
          _logger.LogInformation("Scanner Service Started.");
 
@@ -314,15 +314,15 @@ namespace MediaCurator.Services
 
          while (!cancellationToken.IsCancellationRequested)
          {
-            var workItem = await _taskQueue.DequeueAsync(cancellationToken);
+            var task = await _taskQueue.DequeueAsync(cancellationToken);
 
             try
             {
-               await workItem(cancellationToken);
+               await task(cancellationToken);
             }
             catch (Exception e)
             {
-               _logger.LogError(e, "Error executing {WorkItem}.", nameof(workItem));
+               _logger.LogError(e, "Error Executing: {}", nameof(task));
             }
          }
 
@@ -582,7 +582,7 @@ namespace MediaCurator.Services
          Debug.WriteLine($"File {e.ChangeType}: {e.FullPath}");
 
          // Queue the add operation.
-         _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
+         _taskQueue.QueueBackgroundTask(e.FullPath, cancellationToken =>
          {
             return Task.Run(() => AddFile(e.FullPath), cancellationToken);
          });
@@ -594,7 +594,7 @@ namespace MediaCurator.Services
          Debug.WriteLine($"File {e.ChangeType}: {e.FullPath}");
 
          // Queue the add operation.
-         _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
+         _taskQueue.QueueBackgroundTask(e.FullPath, cancellationToken =>
          {
             return Task.Run(() => UpdateFile(e.FullPath), cancellationToken);
          });
@@ -606,13 +606,13 @@ namespace MediaCurator.Services
          Debug.WriteLine($"File Renamed: {e.OldFullPath} -> {e.FullPath}");
 
          // Queue the delete operation.
-         _taskQueue.QueueBackgroundWorkItem(e.OldFullPath, cancellationToken =>
+         _taskQueue.QueueBackgroundTask(e.OldFullPath, cancellationToken =>
          {
             return Task.Run(() => UpdateFile(e.OldFullPath), cancellationToken);
          });
 
          // Queue the add operation.
-         _taskQueue.QueueBackgroundWorkItem(e.FullPath, cancellationToken =>
+         _taskQueue.QueueBackgroundTask(e.FullPath, cancellationToken =>
          {
             return Task.Run(() => AddFile(e.FullPath), cancellationToken);
          });
