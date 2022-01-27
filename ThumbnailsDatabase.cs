@@ -20,6 +20,8 @@ namespace MediaCurator
 
       private Lazy<string> _fullPath => new(_configuration["Thumbnails:Database:Path"] + Platform.Separator.Path + _configuration["Thumbnails:Database:Name"]);
 
+      private Dictionary<string, string> _columns = new();
+
       private Lazy<string> _connectionString => new(new SQLiteConnectionStringBuilder
       {
          Version = 3,
@@ -113,6 +115,9 @@ namespace MediaCurator
 
          // Update the database layout if needed.
          UpdateDatabaseLayout();
+
+         // Retrieve and store the list of all the columns
+         _columns = GetColumns("Thumbnails");
       }
 
       /// <summary>
@@ -162,9 +167,11 @@ namespace MediaCurator
 
       public byte[] GetThumbnail(string id, string label)
       {
-         byte[] thumbnail = Array.Empty<byte>();
          string column = label.ToUpper();
+         byte[] thumbnail = Array.Empty<byte>();
          string sql = "SELECT " + column + " FROM Thumbnails WHERE ID='" + id + "'";
+
+         if (!_columns.ContainsKey(column)) return thumbnail;
 
          using (SQLiteConnection connection = new(_connectionString.Value))
          {
@@ -199,6 +206,8 @@ namespace MediaCurator
          string column = label.ToUpper();
          byte[] thumbnail = Array.Empty<byte>();
          string sql = "SELECT " + column + " FROM Thumbnails WHERE ID='" + id + "'";
+
+         if (!_columns.ContainsKey(column)) return thumbnail;
 
          using (SQLiteConnection connection = new(_connectionString.Value))
          {
@@ -298,6 +307,19 @@ namespace MediaCurator
             default:
                return;
          }
+
+         using SQLiteConnection connection = new(_connectionString.Value);
+
+         connection.Open();
+
+         using SQLiteCommand command = new(sql, connection);
+
+         command.ExecuteNonQuery();
+      }
+
+      public void Checkpoint(string argument = "TRUNCATE")
+      {
+         string sql = String.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
 
          using SQLiteConnection connection = new(_connectionString.Value);
 
@@ -448,6 +470,32 @@ namespace MediaCurator
          bool result = (Convert.ToInt32(command.ExecuteScalar()) > 0);
 
          return result;
+      }
+
+      /// <summary>
+      /// Retrieves all or the column names and their types from a given table.
+      /// </summary>
+      /// <param name="table">The table name.</param>
+      /// <returns></returns>
+      private Dictionary<string, string> GetColumns(string table)
+      {
+         Dictionary<string, string> columns = new();
+         string sql = "PRAGMA table_info( " + table + " )";
+
+         using (SQLiteConnection connection = new(_connectionString.Value))
+         {
+            connection.Open();
+
+            using SQLiteCommand command = new(sql, connection);
+            using SQLiteDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+               columns.Add(reader["name"].ToString().ToUpper(), reader["type"].ToString().ToUpper());
+            }
+         }
+
+         return columns;
       }
 
       /// <summary>

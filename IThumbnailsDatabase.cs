@@ -20,6 +20,7 @@ namespace MediaCurator
       void SetThumbnail(string id, int index, ref byte[] data);
       void SetThumbnail(string id, string label, ref byte[] data);
       void SetJournalMode(SQLiteJournalModeEnum mode);
+      void Checkpoint(string argument = "TRUNCATE");
       void Vacuum();
    }
 }

@@ -10,7 +10,7 @@ export class PhotoViewer extends React.Component {
         // instantiate Viewer.js
         this.viewer = new Viewer(this.imagesElement, Object.assign({}, this.props.options, {
             viewed: this.onViewed.bind(this)
-        }))
+        }));
     }
 
     // destroy viewer on unmount

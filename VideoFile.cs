@@ -32,6 +32,18 @@ namespace MediaCurator
          { 30721,    61440,   24       },    // 1024m                2560s
       };
 
+      private Lazy<Dictionary<string, Dictionary<string, int>>> Configuration => new(() =>
+      {
+         var section = _configuration.GetSection("Thumbnails:Video");
+
+         if (section.Exists())
+         {
+            return section.Get<Dictionary<string, Dictionary<string, int>>>();
+         }
+
+         return new Dictionary<string, Dictionary<string, int>>();
+      });
+
       #endregion // Constants
 
       #region Fields
@@ -266,9 +278,8 @@ namespace MediaCurator
          }
       }
 
-      private byte[] GenerateThumbnail(string filePath, int position)
+      private byte[] GenerateThumbnail(string filePath, int position, int width, int height, bool crop)
       {
-         int width = 720;
          byte[] output = null;
          string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
 
@@ -284,9 +295,15 @@ namespace MediaCurator
          {
             ffmpeg.StartInfo.FileName = executable;
 
-            ffmpeg.StartInfo.Arguments = "-ss " + position.ToString() + " -i \"" + filePath + "\" ";
-            ffmpeg.StartInfo.Arguments += "-y -vf select=\"eq(pict_type\\,I),scale=";
-            ffmpeg.StartInfo.Arguments += width.ToString() + ":-1,crop=iw:'min(iw/16*9,ih)'\" -vframes 1 -f singlejpeg -";
+            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} -i \"{1}\" ", position.ToString(), filePath);
+            ffmpeg.StartInfo.Arguments += String.Format("-y -vf select=\"eq(pict_type\\,I),scale={0}:{1}", width.ToString(), height.ToString());
+
+            if (crop)
+            {
+               ffmpeg.StartInfo.Arguments += String.Format(",crop=iw:'min({0},ih)'", (height > 0) ? height.ToString() : "iw/16*9");
+            }
+
+            ffmpeg.StartInfo.Arguments += "\" -vframes 1 -f singlejpeg -";
 
             ffmpeg.StartInfo.CreateNoWindow = true;
             ffmpeg.StartInfo.UseShellExecute = false;
@@ -341,13 +358,12 @@ namespace MediaCurator
       /// <returns>The count of successfully generated thumbnails.</returns>
       public override int GenerateThumbnails()
       {
-         int index = 0;
          int total = 0;
 
          // Make sure the video file is valid and not corrupted or empty.
          if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
          {
-            return index;
+            return total;
          }
 
          // TODO: Improve the thumbnail generation by generating a .webm file:
@@ -360,6 +376,7 @@ namespace MediaCurator
          Debug.Write("GENERATING THUMBNAILS: " + FullPath);
 
          // Determine the count of thumbnails to generate based on the duration.
+         /*
          for (int row = 0; row < TotalThumbnails.GetLength(0); row++)
          {
             // Initialize the totalThumbnails with the largest value so far.
@@ -372,29 +389,50 @@ namespace MediaCurator
                break;
             }
          }
+         */
 
          Debug.Write(" [");
 
-         for (int counter = 1; counter <= total; counter++)
+         foreach (var item in Configuration.Value)
          {
-            int position = (int)((counter - 0.5) * Duration / total);
+            int count = 1;
+            int width = -1;
+            int height = -1;
+            bool crop = false;
+            string label = item.Key;
 
-            // Generate the thumbnail.
-            byte[] thumbnail = GenerateThumbnail(FullPath, position);
+            if (item.Value.ContainsKey("Count")) count = item.Value["Count"];
+            if (item.Value.ContainsKey("Width")) width = item.Value["Width"];
+            if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
+            if (item.Value.ContainsKey("Crop")) crop = (item.Value["Crop"] > 0);
 
-            if ((thumbnail != null) && (thumbnail.Length > 0))
+            for (int counter = 0; counter < count; counter++)
             {
-               // Add the newly generated thumbnail to the database.
-               Thumbnails[index] = thumbnail;
+               int position = (int)((counter + 0.5) * Duration / count);
 
-               // Increase the index
-               index++;
+               // Generate the thumbnail.
+               byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
+
+               if ((thumbnail != null) && (thumbnail.Length > 0))
+               {
+                  // Add the newly generated thumbnail to the database.
+                  if (count > 1)
+                  {
+                     Thumbnails[counter] = thumbnail;
+                  }
+                  else
+                  {
+                     Thumbnails[label] = thumbnail;
+                  }
+
+                  total++;
+               }
             }
          }
 
          Debug.WriteLine("]");
 
-         return index;
+         return total;
       }
 
       #endregion // Video File Operations

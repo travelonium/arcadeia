@@ -541,7 +541,6 @@ namespace MediaCurator
          return photoFile;
       }
 
-
       public void UpdateDatabase()
       {
          if (Modified)
@@ -574,6 +573,9 @@ namespace MediaCurator
 
                throw;
             }
+
+            // Perform a WAL checkpoint on the Thumbnails Database
+            _thumbnailsDatabase.Checkpoint();
          }
       }
 
