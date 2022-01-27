@@ -410,6 +410,11 @@ namespace MediaCurator
 
          Debug.WriteLine("]");
 
+         if (total > 0)
+         {
+            Modified = true;
+         }
+
          return total;
       }
 

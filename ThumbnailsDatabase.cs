@@ -129,6 +129,19 @@ namespace MediaCurator
 
       #region Interface
 
+      public void Create(string id)
+      {
+         if (!RowExists("Thumbnails", "ID", id))
+         {
+            AddRow("Thumbnails", "ID", id);
+         }
+      }
+
+      public bool Exists(string id)
+      {
+         return RowExists("Thumbnails", "ID", id);
+      }
+
       public void SetThumbnail(string id, int index, ref byte[] data)
       {
          if (!RowExists("Thumbnails", "ID", id))

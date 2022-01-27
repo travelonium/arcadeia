@@ -64,6 +64,17 @@ namespace MediaCurator
          }
       }
 
+      /// <summary>
+      /// Whether or not the row for the current file exists which means that it has been initialized.
+      /// </summary>
+      public bool Initialized
+      {
+         get
+         {
+            return _database.Exists(_id);
+         }
+      }
+
       #region Constructors
 
       public MediaFileThumbnails(IThumbnailsDatabase database, string id)
@@ -94,6 +105,14 @@ namespace MediaCurator
       {
          byte[] thumbnail = await _database.GetThumbnailAsync(_id, index, cancellationToken);
          return thumbnail;
+      }
+
+      /// <summary>
+      /// Initialize the record for the current file.
+      /// </summary>
+      public void Initialize()
+      {
+         _database.Create(_id);
       }
 
       public int DeleteAll()

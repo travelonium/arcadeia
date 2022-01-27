@@ -338,7 +338,7 @@ namespace MediaCurator
                break;
          }
 
-         if ((mediaFile != null) && mediaFile.Created)
+         if ((mediaFile != null) && (mediaFile.Created || mediaFile.Modified))
          {
             // Add the new media to the Solr index if indexing is enabled.
             if (_configuration.GetSection("Solr:URL").Exists())
@@ -348,7 +348,14 @@ namespace MediaCurator
                solrIndexService.Add(mediaFile.Model);
             }
 
-            _logger.LogInformation("Media Added: {}", path);
+            if (mediaFile.Created)
+            {
+               _logger.LogInformation("Media Added: {}", mediaFile.FullPath);
+            }
+            else if (mediaFile.Modified)
+            {
+               _logger.LogInformation("Media Updated: {}", mediaFile.FullPath);
+            }
          }
 
          return mediaFile;

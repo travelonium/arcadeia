@@ -11,6 +11,8 @@ namespace MediaCurator
       string FullPath { get; }
       int Maximum { get; }
 
+      void Create(string id);
+      bool Exists(string id);
       int DeleteThumbnails(string id);
       byte[] GetThumbnail(string id, int index);
       byte[] GetThumbnail(string id, string label);
