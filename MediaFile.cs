@@ -226,8 +226,7 @@ namespace MediaCurator
                }
                catch (Exception e)
                {
-                  throw new Exception("Failed to insert the new " + type + " element due to " +
-                                       e.Message);
+                  throw new Exception(String.Format("Failed to insert the new {0} element because: {1}", type, e.Message), e);
                }
 
                // Retrieve the newly created element.
@@ -236,8 +235,7 @@ namespace MediaCurator
                // Make sure that we succeeded to put our hands on it.
                if (Self == null)
                {
-                  throw new Exception("Failed to add the new " + type +
-                                       " element to the MediaLibrary.");
+                  throw new Exception(String.Format("Failed to add the new {0} element to the MediaLibrary.", type));
                }
             }
 

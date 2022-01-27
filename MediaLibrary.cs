@@ -65,11 +65,9 @@ namespace MediaCurator
          // Initialize the Solr Index Service.
          if (_configuration.GetSection("Solr:URL").Exists())
          {
-            using (IServiceScope scope = _serviceProvider.CreateScope())
-            {
-               ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
-               solrIndexService.Initialize();
-            }
+            using IServiceScope scope = _serviceProvider.CreateScope();
+            ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+            solrIndexService.Initialize();
          }
 
          // Check if the XML Database file already exists.
@@ -111,11 +109,9 @@ namespace MediaCurator
                // Clear the Solr index in case it's already been populated before.
                if (_configuration.GetSection("Solr:URL").Exists())
                {
-                  using (IServiceScope scope = _serviceProvider.CreateScope())
-                  {
-                     ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
-                     solrIndexService.Clear();
-                  }
+                  using IServiceScope scope = _serviceProvider.CreateScope();
+                  ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+                  solrIndexService.Clear();
                }
 
                _logger.LogInformation("Media Library Created: {}", fullPath);
@@ -298,9 +294,8 @@ namespace MediaCurator
 
       public MediaFile InsertMedia(string path)
       {
-         string fileName = System.IO.Path.GetFileName(path);
-         MediaContainerType mediaType = GetMediaType(path);
          MediaFile mediaFile = null;
+         MediaContainerType mediaType = GetMediaType(path);
 
          switch (mediaType)
          {
@@ -343,14 +338,17 @@ namespace MediaCurator
                break;
          }
 
-         // Add the new media to the Solr index if indexing is enabled.
-         if ((mediaFile != null) && mediaFile.Created && (_configuration.GetSection("Solr:URL").Exists()))
+         if ((mediaFile != null) && mediaFile.Created)
          {
-            using (IServiceScope scope = _serviceProvider.CreateScope())
+            // Add the new media to the Solr index if indexing is enabled.
+            if (_configuration.GetSection("Solr:URL").Exists())
             {
+               using IServiceScope scope = _serviceProvider.CreateScope();
                ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
                solrIndexService.Add(mediaFile.Model);
             }
+
+            _logger.LogInformation("Media Added: {}", path);
          }
 
          return mediaFile;
@@ -364,7 +362,7 @@ namespace MediaCurator
       public void UpdateMedia(XElement element)
       {
          // Instantiate a MediaFile using the acquired element.
-         MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
+         MediaFile mediaFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
 
          if (mediaFile != null)
          {
@@ -417,12 +415,14 @@ namespace MediaCurator
                   break;
             }
 
-            // Update or Delete the new media in the Solr index if indexing is enabled.
-            if ((mediaFile != null) && mediaFile.Modified && (_configuration.GetSection("Solr:URL").Exists()))
+            if ((mediaFile != null) && mediaFile.Modified)
             {
-               using (IServiceScope scope = _serviceProvider.CreateScope())
+               // Update or Delete the new media in the Solr index if indexing is enabled.
+               if (_configuration.GetSection("Solr:URL").Exists())
                {
+                  using IServiceScope scope = _serviceProvider.CreateScope();
                   ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+
                   if (mediaFile.Flags.Deleted)
                   {
                      solrIndexService.Delete(mediaFile.Model);
@@ -431,6 +431,15 @@ namespace MediaCurator
                   {
                      solrIndexService.Update(mediaFile.Model);
                   }
+               }
+
+               if (mediaFile.Flags.Deleted)
+               {
+                  _logger.LogInformation("Media Deleted: {}", mediaFile.FullPath);
+               }
+               else
+               {
+                  _logger.LogInformation("Media Updated: {}", mediaFile.FullPath);
                }
             }
          }
@@ -499,12 +508,14 @@ namespace MediaCurator
                break;
          }
 
-         // Update or Delete the new media in the Solr index if indexing is enabled.
-         if ((mediaFile != null) && (_configuration.GetSection("Solr:URL").Exists()))
+         if ((mediaFile != null) && mediaFile.Modified)
          {
-            using (IServiceScope scope = _serviceProvider.CreateScope())
+            // Update or Delete the new media in the Solr index if indexing is enabled.
+            if (_configuration.GetSection("Solr:URL").Exists())
             {
+               using IServiceScope scope = _serviceProvider.CreateScope();
                ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+
                if (mediaFile.Flags.Deleted)
                {
                   solrIndexService.Delete(mediaFile.Model);
@@ -513,6 +524,15 @@ namespace MediaCurator
                {
                   solrIndexService.Update(mediaFile.Model);
                }
+            }
+
+            if (mediaFile.Flags.Deleted)
+            {
+               _logger.LogInformation("Media Deleted: {}", mediaFile.FullPath);
+            }
+            else
+            {
+               _logger.LogInformation("Media Updated: {}", mediaFile.FullPath);
             }
          }
 

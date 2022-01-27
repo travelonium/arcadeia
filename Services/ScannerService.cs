@@ -228,7 +228,7 @@ namespace MediaCurator.Services
             }
             catch (Exception e)
             {
-               _logger.LogWarning("Failed To Watch: {} Because: {}", folder, e.Message);
+               _logger.LogWarning("Failed To Watch: {}, Because: {}", folder, e.Message);
             }
          }
 
@@ -353,9 +353,9 @@ namespace MediaCurator.Services
                }
                catch (Exception e)
                {
-                  _logger.LogError("Failed To Insert: {} Because: {}", file, e.Message);
+                  _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
 
-                  break;
+                  goto Skip;
                }
 
                // Update the MediaLibrary if the interval has ellapsed.
@@ -388,7 +388,7 @@ namespace MediaCurator.Services
          catch (System.UnauthorizedAccessException e)
          {
             // We probably do not have access to the folder. Let's ignore this one and move on.
-            _logger.LogWarning("{} Scanning Failed: {} Because: {}", type, path, e.Message);
+            _logger.LogWarning("{} Scanning Failed: {}, Because: {}", type, path, e.Message);
 
             // Let's update the MediaLibrary with the new entries if any so far.
             _mediaLibrary.UpdateDatabase();
