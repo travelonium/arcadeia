@@ -2,11 +2,11 @@
 using System.IO;
 using System.Threading;
 using System.Data.SQLite;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 namespace MediaCurator
 {
@@ -16,9 +16,42 @@ namespace MediaCurator
 
       private readonly ILogger<ThumbnailsDatabase> _logger;
 
-      private Lazy<string> _path => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"]);
+      private Lazy<string> _path => new(_configuration["Thumbnails:Database:Path"]);
 
-      private Lazy<string> _fullPath => new Lazy<string>(_configuration["ThumbnailsDatabase:Path"] + Platform.Separator.Path + _configuration["ThumbnailsDatabase:Name"]);
+      private Lazy<string> _fullPath => new(_configuration["Thumbnails:Database:Path"] + Platform.Separator.Path + _configuration["Thumbnails:Database:Name"]);
+
+      private Dictionary<string, string> _columns = new();
+
+      private Lazy<string> _connectionString => new(new SQLiteConnectionStringBuilder
+      {
+         Version = 3,
+         Pooling = true,
+         DataSource = FullPath,
+         BusyTimeout = 5000
+      }.ToString());
+
+      private Lazy<int> _maximum => new(() =>
+      {
+         int maximum = 0;
+
+         foreach (var name in new string[] { "Thumbnails:Video", "Thumbnails:Photo", "Thumbnails:Audio" })
+         {
+            var section = _configuration.GetSection(name);
+
+            if (section.Exists())
+            {
+               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
+               {
+                  if (item.Value.ContainsKey("Count"))
+                  {
+                     maximum = Math.Max(item.Value["Count"], maximum);
+                  }
+               }
+            }
+         }
+
+         return maximum;
+      });
 
       /// <summary>
       /// The directory in which where the database file is to be found or created.
@@ -41,8 +74,6 @@ namespace MediaCurator
             return _fullPath.Value;
          }
       }
-
-      private Lazy<int> _maximum => new Lazy<int>(_configuration.GetValue<int>("ThumbnailsDatabase:Maximum"));
 
       /// <summary>
       /// The maximum count of thumbnails the database is able to store.
@@ -74,16 +105,19 @@ namespace MediaCurator
                // Create the new database file
                SQLiteConnection.CreateFile(FullPath);
 
-               _logger.LogInformation("Thumbnails Database Created: " + FullPath);
+               _logger.LogInformation("Thumbnails Database Created: {}", FullPath);
             }
             catch (Exception e)
             {
-               _logger.LogError("Thumbnails Database Creation Failed! Reason: " + e.Message);
+               _logger.LogError("Thumbnails Database Creation Failed! Becasue: {}", e.Message);
             }
          }
 
          // Update the database layout if needed.
          UpdateDatabaseLayout();
+
+         // Retrieve and store the list of all the columns
+         _columns = GetColumns("Thumbnails");
       }
 
       /// <summary>
@@ -95,49 +129,115 @@ namespace MediaCurator
 
       #region Interface
 
+      public void Create(string id)
+      {
+         if (!RowExists("Thumbnails", "ID", id))
+         {
+            AddRow("Thumbnails", "ID", id);
+         }
+      }
+
+      public bool Exists(string id)
+      {
+         return RowExists("Thumbnails", "ID", id);
+      }
+
       public void SetThumbnail(string id, int index, ref byte[] data)
       {
-         if (!RowExists("Thumbnails", "Id", id))
+         if (!RowExists("Thumbnails", "ID", id))
          {
-            AddRow("Thumbnails", "Id", id);
+            AddRow("Thumbnails", "ID", id);
          }
 
          string column = "T" + index.ToString();
-         string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE Id='" + id + "'";
+         string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE ID='" + id + "'";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
          command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
          command.ExecuteNonQuery();
       }
 
-      public byte[] GetThumbnail(string id, int index)
+      public void SetThumbnail(string id, string label, ref byte[] data)
       {
-         byte[] thumbnail = { };
-         string column = "T" + index.ToString();
-         string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
+         if (!RowExists("Thumbnails", "ID", id))
+         {
+            AddRow("Thumbnails", "ID", id);
+         }
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         string column = label.ToUpper();
+         string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE ID='" + id + "'";
+
+         using SQLiteConnection connection = new(_connectionString.Value);
+         connection.Open();
+
+         using SQLiteCommand command = new(sql, connection);
+         command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
+         command.ExecuteNonQuery();
+      }
+
+      public byte[] GetThumbnail(string id, string label)
+      {
+         string column = label.ToUpper();
+         byte[] thumbnail = Array.Empty<byte>();
+         string sql = "SELECT " + column + " FROM Thumbnails WHERE ID='" + id + "'";
+
+         if (!_columns.ContainsKey(column)) return thumbnail;
+
+         using (SQLiteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using SQLiteCommand command = new(sql, connection);
             using var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
                object blob = reader[column];
 
-               if (blob != null)
+               if ((blob != null) && (blob.GetType() == typeof(byte[])))
                {
-                  if (blob.GetType() == typeof(byte[]))
-                  {
-                     thumbnail = (byte[])blob;
+                  thumbnail = (byte[])blob;
 
-                     break;
-                  }
+                  break;
+               }
+            }
+         }
+
+         return thumbnail;
+      }
+
+      public byte[] GetThumbnail(string id, int index)
+      {
+         return GetThumbnail(id, "T" + index.ToString());
+      }
+
+      public async Task<byte[]> GetThumbnailAsync(string id, string label, CancellationToken cancellationToken)
+      {
+         string column = label.ToUpper();
+         byte[] thumbnail = Array.Empty<byte>();
+         string sql = "SELECT " + column + " FROM Thumbnails WHERE ID='" + id + "'";
+
+         if (!_columns.ContainsKey(column)) return thumbnail;
+
+         using (SQLiteConnection connection = new(_connectionString.Value))
+         {
+            await connection.OpenAsync(cancellationToken);
+
+            using SQLiteCommand command = new(sql, connection);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+               object blob = reader[column];
+
+               if ((blob != null) && (blob.GetType() == typeof(byte[])))
+               {
+                  thumbnail = (byte[])blob;
+
+                  break;
                }
             }
          }
@@ -147,123 +247,24 @@ namespace MediaCurator
 
       public async Task<byte[]> GetThumbnailAsync(string id, int index, CancellationToken cancellationToken)
       {
-         byte[] thumbnail = { };
-         string column = "T" + index.ToString();
-         string sql = "SELECT " + column + " FROM Thumbnails WHERE Id='" + id + "'";
-
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            await connection.OpenAsync(cancellationToken);
-
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-            while (await reader.ReadAsync(cancellationToken))
-            {
-               object blob = reader[column];
-
-               if (blob != null)
-               {
-                  if (blob.GetType() == typeof(byte[]))
-                  {
-                     thumbnail = (byte[])blob;
-
-                     break;
-                  }
-               }
-            }
-         }
-
-         return thumbnail;
-      }
-
-      public List<byte[]> GetThumbnails(string id)
-      {
-         List<byte[]> thumbnails = new List<byte[]>();
-         string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
-
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            connection.Open();
-
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
-            using var reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-               for (int i = 0; i < Maximum; i++)
-               {
-                  string column = "T" + i.ToString();
-
-                  object blob = reader[column];
-
-                  if (blob != null)
-                  {
-                     if (blob.GetType() == typeof(byte[]))
-                     {
-                        thumbnails.Add((byte[])blob);
-                     }
-                  }
-               }
-
-               break;
-            }
-         }
-
-         return thumbnails;
-      }
-
-      public async Task<List<byte[]>> GetThumbnailsAsync(string id, CancellationToken cancellationToken)
-      {
-         List<byte[]> thumbnails = new List<byte[]>();
-         string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
-
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
-         {
-            await connection.OpenAsync(cancellationToken);
-
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-            while (await reader.ReadAsync(cancellationToken))
-            {
-               for (int i = 0; i < Maximum; i++)
-               {
-                  string column = "T" + i.ToString();
-
-                  object blob = reader[column];
-
-                  if (blob != null)
-                  {
-                     if (blob.GetType() == typeof(byte[]))
-                     {
-                        thumbnails.Add((byte[])blob);
-                     }
-                  }
-               }
-
-               break;
-            }
-         }
-
-         return thumbnails;
+         return await GetThumbnailAsync(id, "T" + index.ToString(), cancellationToken);
       }
 
       public int DeleteThumbnails(string id)
       {
-         return DeleteRow("Thumbnails", "Id", id);
+         return DeleteRow("Thumbnails", "ID", id);
       }
 
       public int GetThumbnailsCount(string id)
       {
          int count = 0;
-         string sql = "SELECT * FROM Thumbnails WHERE Id='" + id + "'";
+         string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using SQLiteCommand command = new(sql, connection);
             using var reader = command.ExecuteReader();
 
             while (reader.Read())
@@ -274,12 +275,13 @@ namespace MediaCurator
 
                   object blob = reader[column];
 
-                  if (blob != null)
+                  if ((blob != null) && (blob.GetType() == typeof(byte[])))
                   {
-                     if (blob.GetType() == typeof(byte[]))
-                     {
-                        count++;
-                     }
+                     count++;
+                  }
+                  else
+                  {
+                     break;
                   }
                }
 
@@ -290,43 +292,66 @@ namespace MediaCurator
          return count;
       }
 
-      public List<string> GetRowIdsList()
+      public void SetJournalMode(SQLiteJournalModeEnum mode)
       {
-         List<string> ids = new List<string>();
-         string sql = "SELECT Id FROM Thumbnails";
+         string sql = "PRAGMA journal_mode=";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         switch (mode)
          {
-            connection.Open();
-
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
-            using var reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-               object id = reader["Id"];
-
-               if (id != null)
-               {
-                  if (id.GetType() == typeof(string))
-                  {
-                     ids.Add((string)id);
-                  }
-               }
-            }
+            case SQLiteJournalModeEnum.Delete:
+               sql += "DELETE;";
+               break;
+            case SQLiteJournalModeEnum.Truncate:
+               sql += "TRUNCATE;";
+               break;
+            case SQLiteJournalModeEnum.Persist:
+               sql += "PERSIST;";
+               break;
+            case SQLiteJournalModeEnum.Memory:
+               sql += "MEMORY;";
+               break;
+            case SQLiteJournalModeEnum.Wal:
+               sql += "WAL;";
+               break;
+            case SQLiteJournalModeEnum.Off:
+               sql += "OFF;";
+               break;
+            case SQLiteJournalModeEnum.Default:
+            default:
+               return;
          }
 
-         return ids;
+         using SQLiteConnection connection = new(_connectionString.Value);
+
+         connection.Open();
+
+         using SQLiteCommand command = new(sql, connection);
+
+         command.ExecuteNonQuery();
+      }
+
+      public void Checkpoint(string argument = "TRUNCATE")
+      {
+         string sql = String.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
+
+         using SQLiteConnection connection = new(_connectionString.Value);
+
+         connection.Open();
+
+         using SQLiteCommand command = new(sql, connection);
+
+         command.ExecuteNonQuery();
       }
 
       public void Vacuum()
       {
          string sql = "VACUUM;";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
+
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
 
          command.ExecuteNonQuery();
       }
@@ -340,32 +365,52 @@ namespace MediaCurator
       /// </summary>
       private void UpdateDatabaseLayout()
       {
+         // Enable the WAL (Write-Ahead Logging) journaling mode
+         SetJournalMode(SQLiteJournalModeEnum.Wal);
+
          // Create the Thumbnails table
          if (!TableExists("Thumbnails"))
          {
             CreateThumbnailsTable();
          }
 
-         // Add the Id column
-         if (!ColumnExists("Thumbnails", "Id"))
+         // Add the ID column
+         if (!ColumnExists("Thumbnails", "ID"))
          {
-            AddColumn("Thumbnails", "Id", "TEXT PRIMARY KEY NOT NULL");
+            AddColumn("Thumbnails", "ID", "TEXT PRIMARY KEY NOT NULL");
          }
 
-         // Add the T column
-         if (!ColumnExists("Thumbnails", "T"))
+         // Add the thumbnails columns as configured
+         foreach (var name in new string[] { "Thumbnails:Video", "Thumbnails:Photo", "Thumbnails:Audio" })
          {
-            AddColumn("Thumbnails", "T", "UNSIGNED BIG INT");
-         }
+            var section = _configuration.GetSection(name);
 
-         // Add the individual thumbnail columns
-         for (int i = 0; i < _configuration.GetValue<int>("ThumbnailsDatabase:Maximum"); i++)
-         {
-            string column = "T" + i.ToString();
-
-            if (!ColumnExists("Thumbnails", column))
+            if (section.Exists())
             {
-               AddColumn("Thumbnails", column, "BLOB");
+               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
+               {
+                  if (item.Value.ContainsKey("Count"))
+                  {
+                     for (int i = 0; i < item.Value["Count"]; i++)
+                     {
+                        string column = item.Key.ToUpper() + i.ToString();
+
+                        if (!ColumnExists("Thumbnails", column))
+                        {
+                           AddColumn("Thumbnails", column, "BLOB");
+                        }
+                     }
+                  }
+                  else
+                  {
+                     string column = item.Key.ToUpper();
+
+                     if (!ColumnExists("Thumbnails", column))
+                     {
+                        AddColumn("Thumbnails", column, "BLOB");
+                     }
+                  }
+               }
             }
          }
       }
@@ -379,10 +424,11 @@ namespace MediaCurator
       {
          string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '" + table + "'";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
+
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
          using SQLiteDataReader reader = command.ExecuteReader();
 
          bool result = ((reader.StepCount > 0));
@@ -400,16 +446,16 @@ namespace MediaCurator
       {
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using (SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;"))
+         using (SQLiteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new SQLiteCommand(sql, connection);
+            using SQLiteCommand command = new(sql, connection);
             using SQLiteDataReader reader = command.ExecuteReader();
 
             while (reader.Read())
             {
-               if (reader["name"].Equals(column))
+               if (reader["name"].ToString().ToUpper().Equals(column.ToUpper()))
                {
                   return true;
                }
@@ -430,13 +476,39 @@ namespace MediaCurator
       {
          string sql = "SELECT COUNT(*) FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
          bool result = (Convert.ToInt32(command.ExecuteScalar()) > 0);
 
          return result;
+      }
+
+      /// <summary>
+      /// Retrieves all or the column names and their types from a given table.
+      /// </summary>
+      /// <param name="table">The table name.</param>
+      /// <returns></returns>
+      private Dictionary<string, string> GetColumns(string table)
+      {
+         Dictionary<string, string> columns = new();
+         string sql = "PRAGMA table_info( " + table + " )";
+
+         using (SQLiteConnection connection = new(_connectionString.Value))
+         {
+            connection.Open();
+
+            using SQLiteCommand command = new(sql, connection);
+            using SQLiteDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+               columns.Add(reader["name"].ToString().ToUpper(), reader["type"].ToString().ToUpper());
+            }
+         }
+
+         return columns;
       }
 
       /// <summary>
@@ -444,12 +516,12 @@ namespace MediaCurator
       /// </summary>
       private void CreateThumbnailsTable()
       {
-         string sql = "CREATE TABLE Thumbnails (Id text primary key not null)";
+         string sql = "CREATE TABLE Thumbnails (ID text primary key not null)";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
          command.ExecuteNonQuery();
       }
 
@@ -463,10 +535,10 @@ namespace MediaCurator
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
          command.ExecuteNonQuery();
       }
 
@@ -474,10 +546,10 @@ namespace MediaCurator
       {
          string sql = "INSERT INTO " + table + " (" + column + ") VALUES (@" + column + ")";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
 
          command.Parameters.Add("@" + column, System.Data.DbType.StringFixedLength).Value = value;
 
@@ -488,10 +560,10 @@ namespace MediaCurator
       {
          string sql = "DELETE FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using SQLiteConnection connection = new SQLiteConnection(@"Data Source=" + FullPath + ";Version=3;Pooling=True;Max Pool Size=100;");
+         using SQLiteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new SQLiteCommand(sql, connection);
+         using SQLiteCommand command = new(sql, connection);
 
          return command.ExecuteNonQuery();
       }

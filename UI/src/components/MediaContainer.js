@@ -88,8 +88,7 @@ export class MediaContainer extends Component {
         let width = extract(0, this.state.current, 'width');
         let height = extract(0, this.state.current, 'height');
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
-        let params = "width=500&height=500";
-        let src = "/preview/photo/" + this.props.source.id + "/" + this.props.source.name + "?" + params;
+        let src = "/thumbnails/" + this.props.source.id + "/" + "large.jpg";
         return (
             <div className="photo-preview-overlay" {...props} >
                 <img className="preview" src={src} />
@@ -105,9 +104,12 @@ export class MediaContainer extends Component {
         const favorite = flags.includes('Favorite');
         const pattern = /(.*)\.(.*)/g;
         let match = pattern.exec(source.name);
-        if (match !== null) {
+        // FIXME: Use the source.extension instead but its leading dot needs to be removed first.
+        if ((match !== null) && (source.type !== "Folder") && (source.type !== "Drive") && (source.type !== "Server")) {
             name = extract(null, match, 1);
             extension = extract(null, match, 2);
+        } else {
+            name = extract(null, match, 1);
         }
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >

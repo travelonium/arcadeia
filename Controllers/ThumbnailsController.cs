@@ -1,6 +1,8 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -27,11 +29,22 @@ namespace MediaCurator.Controllers
          _cancellationToken = applicationLifetime.ApplicationStopping;
       }
 
-      // GET: /<controller>/{id}/{index}
-      [Route("[controller]/{id}/{index}.jpg")]
-      public async Task<IActionResult> Index(string id, int index)
+      // GET: /<controller>/{id}/{index}.jpg
+      [Route("[controller]/{id}/{label}.jpg")]
+      public async Task<IActionResult> Index(string id, string label)
       {
-         var thumbnail = await _thumbnailsDatabase.GetThumbnailAsync(id, index, _cancellationToken);
+         byte[] thumbnail;
+         var pattern = new Regex("^\\d*$", RegexOptions.IgnoreCase);
+
+         if (pattern.IsMatch(label))
+         {
+            var index = Convert.ToInt32(label);
+            thumbnail = await _thumbnailsDatabase.GetThumbnailAsync(id, index, _cancellationToken);
+         }
+         else
+         {
+            thumbnail = await _thumbnailsDatabase.GetThumbnailAsync(id, label, _cancellationToken);
+         }
 
          if (thumbnail.Length > 0)
          {
@@ -46,7 +59,7 @@ namespace MediaCurator.Controllers
       [Route("[controller]/{id}")]
       public async Task<IActionResult> Index(string id)
       {
-         return await Index(id, 0);
+         return await Index(id, "0");
       }
    }
 }

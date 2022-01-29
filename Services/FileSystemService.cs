@@ -105,7 +105,7 @@ namespace MediaCurator.Services
 
             if (!process.HasExited || (process.ExitCode != 0))
             {
-               _logger.LogError("Failed To Mount: {} Because: ", device, output);
+               _logger.LogError("Failed To Mount: {} Because: {}", device, output);
 
                return false;
             }
@@ -139,7 +139,7 @@ namespace MediaCurator.Services
 
             if (!process.HasExited || (process.ExitCode != 0))
             {
-               _logger.LogError("Failed To Unmount: {} Because: ", device, output);
+               _logger.LogError("Failed To Unmount: {} Because: {}", device, output);
 
                return false;
             }

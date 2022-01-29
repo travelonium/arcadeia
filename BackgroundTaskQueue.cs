@@ -9,40 +9,52 @@ namespace MediaCurator
 {
    public class BackgroundTaskQueue : IBackgroundTaskQueue
    {
-      private ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _workItems = new ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>>();
-      private SemaphoreSlim _signal = new SemaphoreSlim(0);
+      private ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _tasks = new();
+      private ConcurrentDictionary<string, Timer> _timers = new();
+      private SemaphoreSlim _signal = new(0);
 
-      public void QueueBackgroundWorkItem(string key, Func<CancellationToken, Task> workItem)
+      public void QueueBackgroundTask(string key, Func<CancellationToken, Task> task)
       {
-         if (workItem == null)
+         if (task == null)
          {
-            throw new ArgumentNullException(nameof(workItem));
+            throw new ArgumentNullException(nameof(task));
          }
 
          // Make sure the item has not already been added to the queue.
-         foreach (var item in _workItems)
+         foreach (var entry in _tasks)
          {
-            if (item.Item1 == key)
+            if (entry.Item1 == key)
             {
                return;
             }
          }
 
-         Debug.WriteLine("QUEUED: " + key);
+         if (_timers.ContainsKey(key))
+         {
+            _timers[key].Dispose();
+            _timers.Remove(key, out _);
+         }
 
-         _workItems.Enqueue(new Tuple<string, Func<CancellationToken, Task>>(key, workItem));
-         _signal.Release();
+         _timers.TryAdd(key, new Timer((_) =>
+         {
+            _tasks.Enqueue(new Tuple<string, Func<CancellationToken, Task>>(key, task));
+
+            Debug.WriteLine("QUEUED: " + key);
+
+            _signal.Release();
+
+         }, null, 15000, Timeout.Infinite));
       }
 
       public async Task<Func<CancellationToken, Task>> DequeueAsync(CancellationToken cancellationToken)
       {
          await _signal.WaitAsync(cancellationToken);
 
-         _workItems.TryDequeue(out var workItem);
+         _tasks.TryDequeue(out var task);
 
-         Debug.WriteLine("DEQUEUED: " + workItem.Item1);
+         Debug.WriteLine("DEQUEUED: " + task.Item1);
 
-         return workItem.Item2;
+         return task.Item2;
       }
    }
 }

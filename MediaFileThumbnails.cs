@@ -33,6 +33,24 @@ namespace MediaCurator
       }
 
       /// <summary>
+      /// Get or Set a specific thumbnail related to the current file using the provided laebl.
+      /// </summary>
+      /// <param name="label">The thumbnail label.</param>
+      /// <returns>
+      /// The thumbnail image data.
+      /// </returns>
+      public byte[] this[string label]
+      {
+         get
+         {
+            byte[] thumbnail = _database.GetThumbnail(_id, label);
+            return thumbnail;
+         }
+
+         set => _database.SetThumbnail(_id, label, ref value);
+      }
+
+      /// <summary>
       /// Gets the total number of existing thumbnails in existence for this particular file.
       /// </summary>
       /// <value>
@@ -43,6 +61,17 @@ namespace MediaCurator
          get
          {
             return _database.GetThumbnailsCount(_id);
+         }
+      }
+
+      /// <summary>
+      /// Whether or not the row for the current file exists which means that it has been initialized.
+      /// </summary>
+      public bool Initialized
+      {
+         get
+         {
+            return _database.Exists(_id);
          }
       }
 
@@ -76,6 +105,14 @@ namespace MediaCurator
       {
          byte[] thumbnail = await _database.GetThumbnailAsync(_id, index, cancellationToken);
          return thumbnail;
+      }
+
+      /// <summary>
+      /// Initialize the record for the current file.
+      /// </summary>
+      public void Initialize()
+      {
+         _database.Create(_id);
       }
 
       public int DeleteAll()
