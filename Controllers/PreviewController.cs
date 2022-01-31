@@ -35,7 +35,7 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{name}")]
       public IActionResult Video(string id, string name)
       {
-         VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary);
+         VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((videoFile.Name != name) || (!videoFile.Exists()))
          {
@@ -50,7 +50,7 @@ namespace MediaCurator.Controllers
       [Route("photo/{id}/{name}")]
       public IActionResult Photo(string id, string name, [FromQuery] int width = 0, [FromQuery] int height = 0)
       {
-         PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary);
+         PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((photoFile.Name != name) || (!photoFile.Exists()))
          {
