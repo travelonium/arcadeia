@@ -59,7 +59,7 @@ export class Library extends Component {
             if (this.props.navigation.current.state.query) {
                 this.search();
             } else {
-                this.list(this.state.path, true);
+                this.list(this.state.path);
             }
         });
         // handles the browser history operations
@@ -67,7 +67,7 @@ export class Library extends Component {
             let path = extract(null, event, 'state', 'path');
             if (path) {
                 this.props.navigation.current.resetSearchParams(() => {
-                    this.list(event.state.path, true, true);
+                    this.list(event.state.path, true);
                 });
             }
         };
@@ -76,75 +76,8 @@ export class Library extends Component {
     componentDidUpdate() {
     }
 
-    list(path, search = false, history = false) {
-        if (!path) return;
-        let params = new URLSearchParams(path.split('?')[1]);
-        let flags = parseInt(params.get("flags") ?? 0);
-        let values = parseInt(params.get("values") ?? 0);
-        let favorite = this.props.navigation.current.state.favorite;
-        if (!search) this.props.navigation.current.clearSearch();
-        // update the favorite flags parameters
-        flags = updateBit(flags, 1, favorite);
-        values = updateBit(values, 1, favorite);
-        // update the deleted flags bits to exclude the deleted files
-        flags = updateBit(flags, 0, 1);
-        values = updateBit(values, 0, 0);
-        if (flags) {
-            params.set("flags", flags);
-        } else {
-            params.delete("flags");
-        }
-        if (values) {
-            params.set("values", values);
-        } else {
-            params.delete("values");
-        }
-        path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        this.controller.abort();
-        this.controller = new AbortController();
-        this.setState({
-            items: [],
-            path: path,
-            loading: true,
-            status: "Requesting",
-        }, () => {
-            // change the url and the history before going any further
-            if (!history) window.history.pushState({path: path}, "", path);
-            fetch("/library" + path, {
-                signal: this.controller.signal,
-            })
-            .then((response) => {
-                this.setState({
-                    status: "Loading",
-                    items: []
-                });
-                return response.json();
-            })
-            .then((json) => {
-                let items = Array.isArray(json) ? json : [json];
-                this.setState({
-                    loading: false,
-                    status: items.length ? "" : "No Items",
-                    path: path,
-                    items: items
-                });
-                // pass on the source to the viewer if this is a file
-                return Array.isArray(json) ? null : json;
-            })
-            .then((source) => {
-                if (source !== null) {
-                    this.view(source);
-                }
-            })
-            .catch((error) => {
-                if (error.name === 'AbortError') return;
-                this.setState({
-                    loading: false,
-                    status: error.message,
-                    items: []
-                });
-            });
-        });
+    list(path, history = false) {
+        this.search(path, history);
     }
 
     /**
@@ -203,25 +136,28 @@ export class Library extends Component {
         });
     }
 
-    search() {
-        let path = this.state.path;
-        if (!this.state.path) return;
-        let query = this.props.navigation.current.state.query;
+    search(browse = null, history = false) {
+        if (browse) this.props.navigation.current.clearSearch();
+        let path = browse ?? this.state.path;
+        if (!path) return;
+        let query = browse ? "*" : this.props.navigation.current.state.query;
         let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (!query) {
+        if (!query && !browse) {
             // looks like the search field has been cleared, let's call off the search
-            this.list(path.split('?')[0], true);
+            this.list(path.split('?')[0]);
             return;
         }
         let deleted = false;
         let favorite = this.props.navigation.current.state.favorite;
         let recursive = this.props.navigation.current.state.recursive;
-        // update the recursive parameter
-        params.set("recursive", recursive);
-        // update the query parameter
-        params.set("query", query);
+        if (!browse) {
+            // update the recursive parameter
+            params.set("recursive", recursive);
+            // update the query parameter
+            params.set("query", query);
+        }
         // update the favorite flags parameters
         flags = updateBit(flags, 1, favorite);
         values = updateBit(values, 1, favorite);
@@ -259,7 +195,7 @@ export class Library extends Component {
         } else {
             input.fq.push("-flags:Deleted");
         }
-        if (!recursive) {
+        if (!recursive || browse) {
             input.fq.push("path:\"" + path.split('?')[0] + "\"");
         } else {
             input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
@@ -274,7 +210,7 @@ export class Library extends Component {
             status: "Requesting",
         }, () => {
             // change the url and the history before going any further
-            window.history.pushState({path: path}, "", path);
+            if (!history) window.history.pushState({path: path}, "", path);
             fetch(solr + "?" + this.querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
