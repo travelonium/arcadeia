@@ -330,6 +330,7 @@ namespace MediaCurator.Services
                catch (Exception e)
                {
                   _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
+                  _logger.LogDebug("{}", e.ToString());
 
                   goto Skip;
                }
@@ -397,7 +398,8 @@ namespace MediaCurator.Services
             }
             catch (Exception e)
             {
-               _logger.LogError("An exception has been thrown while updating the Media Library: {}", e.Message);
+               _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
+               _logger.LogDebug("{}", e.ToString());
 
                break;
             }
