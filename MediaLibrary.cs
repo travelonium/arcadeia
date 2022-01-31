@@ -31,6 +31,8 @@ namespace MediaCurator
 
          if (Created)
          {
+            DateCreated = DateTime.UtcNow;
+
             if (Save())
             {
                Created = false;

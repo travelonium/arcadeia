@@ -1,8 +1,8 @@
-﻿using System.Xml.Linq;
+﻿using System;
 
 namespace MediaCurator
 {
-   public interface IMediaContainer
+   public interface IMediaContainer : IDisposable
    {
       IMediaContainer Root { get; }
       public IMediaContainer Parent { get; set; }

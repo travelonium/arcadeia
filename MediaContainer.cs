@@ -1,15 +1,15 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MediaCurator.Solr;
+using System.Globalization;
 
 namespace MediaCurator
 {
-   public class MediaContainer : IMediaContainer, IDisposable
+   public class MediaContainer : IMediaContainer
    {
       protected readonly IServiceProvider Services;
 
@@ -271,6 +271,54 @@ namespace MediaCurator
             while ((container = container.Parent) != null);
 
             return path;
+         }
+      }
+
+      protected string _dateCreated = null;
+
+      /// <summary>
+      /// Gets or sets the creation date of the file.
+      /// </summary>
+      /// <value>
+      /// The creation date in DateTime.
+      /// </value>
+      public DateTime DateCreated
+      {
+         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateCreated, CultureInfo.InvariantCulture), DateTimeKind.Utc);
+
+         set
+         {
+            TimeSpan difference = value - DateCreated;
+            if (difference >= TimeSpan.FromSeconds(1))
+            {
+               _dateCreated = value.ToString(CultureInfo.InvariantCulture);
+
+               Modified = true;
+            }
+         }
+      }
+
+      protected string _dateModified = null;
+
+      /// <summary>
+      /// Gets or sets the last modification date of the file.
+      /// </summary>
+      /// <value>
+      /// The last modification date in DateTime.
+      /// </value>
+      public DateTime DateModified
+      {
+         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateModified, CultureInfo.InvariantCulture), DateTimeKind.Utc);
+
+         set
+         {
+            TimeSpan difference = value - DateModified;
+            if (difference >= TimeSpan.FromSeconds(1))
+            {
+               _dateModified = value.ToString(CultureInfo.InvariantCulture);
+
+               Modified = true;
+            }
          }
       }
 

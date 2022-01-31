@@ -47,52 +47,6 @@ namespace MediaCurator
          set;
       }
 
-      private string _dateCreated = null;
-
-      /// <summary>
-      /// Gets or sets the creation date of the file.
-      /// </summary>
-      /// <value>
-      /// The creation date in DateTime.
-      /// </value>
-      public DateTime DateCreated
-      {
-         get => Convert.ToDateTime(_dateCreated, CultureInfo.InvariantCulture);
-
-         set
-         {
-            if (DateCreated != value)
-            {
-               _dateCreated = value.ToString(CultureInfo.InvariantCulture);
-
-               Modified = true;
-            }
-         }
-      }
-
-      private string _dateModified = null;
-
-      /// <summary>
-      /// Gets or sets the last modification date of the file.
-      /// </summary>
-      /// <value>
-      /// The last modification date in DateTime.
-      /// </value>
-      public DateTime DateModified
-      {
-         get => Convert.ToDateTime(_dateModified, CultureInfo.InvariantCulture);
-
-         set
-         {
-            if (DateModified != value)
-            {
-               _dateModified = value.ToString(CultureInfo.InvariantCulture);
-
-               Modified = true;
-            }
-         }
-      }
-
       /// <summary>
       /// Gets the content type (MIME type) of the file.
       /// </summary>
@@ -201,11 +155,11 @@ namespace MediaCurator
          try
          {
             // Acquire the common file information.
-            FileInfo fileInfo = new(path);
+            FileInfo fileInfo = new(FullPath);
 
             Size = fileInfo.Length;
-            DateCreated = fileInfo.CreationTime;
-            DateModified = fileInfo.LastWriteTime;
+            DateCreated = fileInfo.CreationTimeUtc;
+            DateModified = fileInfo.LastWriteTimeUtc;
          }
          catch (Exception e)
          {
@@ -220,10 +174,10 @@ namespace MediaCurator
             return;
          }
 
-         if (Created)
+         if (Created || Modified)
          {
             // Retrieve the media specific file information.
-            GetFileInfo(path);
+            GetFileInfo(FullPath);
          }
 
          if (Thumbnails.Initialized)

@@ -39,7 +39,7 @@ namespace MediaCurator.Controllers
 
          try
          {
-            if (!(System.IO.Directory.Exists(path)) && !(System.IO.File.Exists(path)))
+            if ((!System.IO.Directory.Exists(path) && !System.IO.File.Exists(path)) || String.IsNullOrEmpty(modified.Id) || String.IsNullOrEmpty(modified.Type))
             {
                return NotFound(new
                {
@@ -47,7 +47,10 @@ namespace MediaCurator.Controllers
                });
             }
 
-            MediaContainer mediaContainer = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, path: path);
+            var type = modified.Type.ToEnum<MediaContainerType>().ToType();
+
+            // Create the parent container of the right type.
+            using IMediaContainer mediaContainer = (MediaContainer) Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null);
 
             mediaContainer.Model = modified;
 
