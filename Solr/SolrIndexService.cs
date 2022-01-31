@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Collections.Generic;
 using System.Threading;
@@ -13,16 +12,16 @@ namespace MediaCurator.Solr
 {
    public class SolrIndexService<T, TSolrOperations> : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
    {
-		private readonly TSolrOperations _solr;
+		private readonly TSolrOperations Solr;
 
-		private readonly IConfiguration _configuration;
+		private readonly IConfiguration Configuration;
 
-		private readonly IHttpClientFactory _factory;
+		private readonly IHttpClientFactory Factory;
 
-		private readonly ILogger<SolrIndexService<T, TSolrOperations>> _logger;
+		private readonly ILogger<SolrIndexService<T, TSolrOperations>> Logger;
 
-		private readonly Dictionary<string, Dictionary<string, object>> _types = new Dictionary<string, Dictionary<string, object>>
-		{
+		private readonly Dictionary<string, Dictionary<string, object>> Types = new()
+      {
 			{
 				"text_ngram", new Dictionary<string, object>
 				{
@@ -99,9 +98,40 @@ namespace MediaCurator.Solr
 			}
 		};
 
-		private readonly Dictionary<string, Dictionary<string, object>> _fields = new Dictionary<string, Dictionary<string, object>>
-		{
-			{	"name", new Dictionary<string, object>
+		private readonly Dictionary<string, Dictionary<string, object>> Fields = new()
+      {
+			{
+				"id", new Dictionary<string, object>
+				{
+					{ "name", "id" },
+					{ "type", "string" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{
+				"parent", new Dictionary<string, object>
+				{
+					{ "name", "parent" },
+					{ "type", "string" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{
+				"parentType", new Dictionary<string, object>
+				{
+					{ "name", "parentType" },
+					{ "type", "string" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{
+				"name", new Dictionary<string, object>
 				{
 					{ "name", "name" },
 					{ "type", "text_ngram" },
@@ -140,7 +170,7 @@ namespace MediaCurator.Solr
 			{  "fullPath", new Dictionary<string, object>
 				{
 					{ "name", "fullPath" },
-					{ "type", "text_ngram" },
+					{ "type", "string" },
 					{ "multiValued", false },
 					{ "indexed", true },
 					{ "stored", true },
@@ -192,7 +222,7 @@ namespace MediaCurator.Solr
 			},
 			{  "extension", new Dictionary<string, object>
 				{
-					{ "name", "contentType" },
+					{ "name", "extension" },
 					{ "type", "string" },
 					{ "multiValued", false },
 					{ "indexed", true },
@@ -240,7 +270,7 @@ namespace MediaCurator.Solr
 		{
 			get
 			{
-				return _configuration.GetSection("Solr:URL").Get<string>();
+				return Configuration.GetSection("Solr:URL").Get<string>();
 			}
 		}
 
@@ -249,10 +279,20 @@ namespace MediaCurator.Solr
 										IConfiguration configuration,
 										ILogger<SolrIndexService<T, TSolrOperations>> logger)
 		{
-			_logger = logger;
-			_factory = factory;
-			_configuration = configuration;
-			_solr = (TSolrOperations)solr;
+			Logger = logger;
+			Factory = factory;
+         Configuration = configuration;
+			Solr = (TSolrOperations) solr;
+		}
+
+		public SolrQueryResults<T> Get(string field, string value)
+      {
+			return Solr.Query(new SolrQueryByField(field, value));
+      }
+
+		public SolrQueryResults<T> Get(ISolrQuery query)
+		{
+			return Solr.Query(query);
 		}
 
 		public bool Add(T document)
@@ -264,14 +304,14 @@ namespace MediaCurator.Solr
 		{
 			try
 			{
-				_solr.Add(document);
-				_solr.Commit();
+				Solr.Add(document);
+				Solr.Commit();
 
 				return true;
 			}
 			catch (SolrNetException e)
 			{
-				_logger.LogError("Failed To Update, Because: {}", e.Message);
+				Logger.LogError("Failed To Update, Because: {}", e.Message);
 
 				return false;
 			}
@@ -281,14 +321,14 @@ namespace MediaCurator.Solr
 		{
 			try
 			{
-				_solr.Delete(document);
-				_solr.Commit();
+				Solr.Delete(document);
+				Solr.Commit();
 
 				return true;
 			}
 			catch (SolrNetException e)
 			{
-				_logger.LogError("Failed To Delete, Because: {}", e.Message);
+				Logger.LogError("Failed To Delete, Because: {}", e.Message);
 
 				return false;
 			}
@@ -298,17 +338,16 @@ namespace MediaCurator.Solr
       {
 			try
 			{
-				SolrQuery query = new("*:*");
-				_solr.Delete(query);
-				_solr.Commit();
+				Solr.Delete(SolrQuery.All);
+				Solr.Commit();
 
-				_logger.LogInformation("Solr Core Cleared!");
+				Logger.LogInformation("Solr Core Cleared!");
 
 				return true;
 			}
 			catch (SolrNetException e)
 			{
-				_logger.LogError("Failed To Clear, Because: {}", e.Message);
+				Logger.LogError("Failed To Clear, Because: {}", e.Message);
 
 				return false;
 			}
@@ -318,7 +357,7 @@ namespace MediaCurator.Solr
       {
          try
          {
-				HttpClient client = _factory.CreateClient();
+				HttpClient client = Factory.CreateClient();
 				HttpResponseMessage response = await client.GetAsync(URL + "/admin/ping");
 				return response.IsSuccessStatusCode;
 			}
@@ -330,14 +369,14 @@ namespace MediaCurator.Solr
 
 		public async Task<bool> FieldTypeExistsAsync(string name)
 		{
-			HttpClient client = _factory.CreateClient();
+			HttpClient client = Factory.CreateClient();
 			HttpResponseMessage response = await client.GetAsync(URL + "/schema/fieldtypes/" + name);
 			return response.IsSuccessStatusCode;
 		}
 
 		public async Task<bool> AddFieldType(string name, Dictionary<string, object> definition)
 		{
-			HttpClient client = _factory.CreateClient();
+			HttpClient client = Factory.CreateClient();
 			Dictionary<string, Dictionary<string, object>> data = new Dictionary<string, Dictionary<string, object>>
 			{
 				{ "add-field-type",  definition }
@@ -348,7 +387,7 @@ namespace MediaCurator.Solr
 
 		public async Task<bool> AddField(string name, Dictionary<string, object> definition)
       {
-			HttpClient client = _factory.CreateClient();
+			HttpClient client = Factory.CreateClient();
 			Dictionary<string, Dictionary<string, object>> data = new Dictionary<string, Dictionary<string, object>>
 			{
 				{ "add-field",  definition }
@@ -359,7 +398,7 @@ namespace MediaCurator.Solr
 
 		public async Task<bool> FieldExistsAsync(string name)
       {
-			HttpClient client = _factory.CreateClient();
+			HttpClient client = Factory.CreateClient();
          HttpResponseMessage response = await client.GetAsync(URL + "/schema/fields/" + name);
 			return response.IsSuccessStatusCode;
       }
@@ -368,7 +407,7 @@ namespace MediaCurator.Solr
       {
 			uint retries = 10;
 
-			_logger.LogInformation("Waiting For Solr Server...");
+			Logger.LogInformation("Waiting For Solr Server...");
 
 			while (true)
 			{
@@ -379,7 +418,7 @@ namespace MediaCurator.Solr
 
             if (--retries == 0)
             {
-					_logger.LogError("Timeout While Waiting For Solr Server!");
+					Logger.LogError("Timeout While Waiting For Solr Server!");
 
 					break;
             }
@@ -390,44 +429,46 @@ namespace MediaCurator.Solr
 			try
          {
 				// Ensure the required field types are defined and define them otherwise.
-				foreach (var key in _types.Keys)
+				foreach (var key in Types.Keys)
 				{
 					if (!FieldTypeExistsAsync(key).Result)
 					{
-						_logger.LogInformation("Schema Field Type Not Found: {}", key);
+						Logger.LogInformation("Schema Field Type Not Found: {}", key);
 
-						if (AddFieldType(key, _types[key]).Result)
+						if (AddFieldType(key, Types[key]).Result)
 						{
-							_logger.LogInformation("Schema Field Type Added: {}", key);
+							Logger.LogInformation("Schema Field Type Added: {}", key);
 						}
 						else
 						{
-							_logger.LogError("Failed To Add Schema Field Type: {}", key);
+							Logger.LogError("Failed To Add Schema Field Type: {}", key);
 						}
 					}
 				}
 
 				// Ensure the required fields are defined and define them otherwise.
-				foreach (var key in _fields.Keys)
+				foreach (var key in Fields.Keys)
 				{
 					if (!FieldExistsAsync(key).Result)
 					{
-						_logger.LogInformation("Schema Field Not Found: {}", key);
+						Logger.LogInformation("Schema Field Not Found: {}", key);
 
-						if (AddField(key, _fields[key]).Result)
+						if (AddField(key, Fields[key]).Result)
 						{
-							_logger.LogInformation("Schema Field Added: {}", key);
+							Logger.LogInformation("Schema Field Added: {}", key);
 						}
 						else
 						{
-							_logger.LogError("Failed To Add Schema Field: {}", key);
+							Logger.LogError("Failed To Add Schema Field: {}", key);
 						}
 					}
 				}
+
+				Logger.LogInformation("Solr Index Service Initialized.");
 			}
 			catch (System.Exception e)
          {
-				_logger.LogError("Solr Connection Error: {}", e.Message);
+				Logger.LogError("Solr Connection Error: {}", e.Message);
 
 				throw;
 			}

@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Xml.Linq;
-using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics;
 
 namespace MediaCurator
 {
-   public class MediaContainerFlags : INotifyPropertyChanged
+   public class MediaContainerFlags
    {
       #region Constants
 
@@ -20,16 +18,9 @@ namespace MediaCurator
 
       #endregion // Constants
 
+      private readonly HashSet<Flag> _flags = new();
+
       #region Fields
-
-      /// <summary>
-      /// The XML Element this particular container object is associated with in the MediaLibrary. 
-      /// This is passed on to the <see cref="MediaContainerFlags"/> by the parent object's 
-      /// constructor.
-      /// </summary>
-      private XElement Self = null;
-
-      public event PropertyChangedEventHandler PropertyChanged;
 
       /// <summary>
       /// Gets or sets a value indicating whether this <see cref="MediaContainerFlags"/> instance is 
@@ -42,12 +33,12 @@ namespace MediaCurator
       {
          get
          {
-            return GetFlagValue((uint)Flag.Favorite);
+            return GetFlagValue(Flag.Favorite);
          }
 
          set
          {
-            SetFlagValue((uint)Flag.Favorite, value);
+            SetFlagValue(Flag.Favorite, value);
          }
       }
 
@@ -62,42 +53,36 @@ namespace MediaCurator
       {
          get
          {
-            return GetFlagValue((uint)Flag.Deleted);
+            return GetFlagValue(Flag.Deleted);
          }
 
          set
          {
-            SetFlagValue((uint)Flag.Deleted, value);
+            SetFlagValue(Flag.Deleted, value);
          }
       }
 
       /// <summary>
       /// Returns a list of all the flags set on the <see cref="MediaContainer"/>.
       /// </summary>
-      public List<Flag> All
+      public HashSet<Flag> All
       {
-         get
-         {
-            var flags = new List<Flag>();
-
-            if (GetFlags() > 0)
-            {
-               foreach (var flag in Enum.GetValues(typeof(Flag)).Cast<Flag>())
-               {
-                  if (GetFlagValue((uint)flag))
-                  {
-                     flags.Add(flag);
-                  }
-               }
-            }
-
-            return flags;
-         }
+         get => _flags;
       }
 
       #endregion // Fields
 
       #region Operators
+
+
+      /// <summary>
+      /// Returns all the flags set as a string array.
+      /// </summary>
+      /// <returns>A string array listing all the set flags.</returns>
+      public string[] ToArray()
+      {
+         return All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray();
+      }
 
       #endregion // Operators
 
@@ -106,19 +91,23 @@ namespace MediaCurator
       /// <summary>
       /// Initializes a new instance of the <see cref="MediaContainerFlags"/> class.
       /// </summary>
+      public MediaContainerFlags()
+      {
+      }
+
+      /// <summary>
+      /// Initializes a new instance of the <see cref="MediaContainerFlags"/> class by parsing the.
+      /// </summary>
       /// <param name="self">The node element representing the current MediaContainer.</param>
       /// <exception cref="NullReferenceException">The MediaContainerFlags cannot be initialized using
       /// a non-existing element!</exception>
-      public MediaContainerFlags(XElement self)
+      public MediaContainerFlags(IEnumerable<string> flags)
       {
-         if (self != null)
+         if (flags == null) return;
+
+         foreach (var flag in flags)
          {
-            Self = self;
-         }
-         else
-         {
-            throw new NullReferenceException("The MediaContainerFlags cannot be initialized using" +
-                                             "a non-existing element!");
+            _flags.Add(Enum.Parse<Flag>(flag, true));
          }
       }
 
@@ -127,113 +116,31 @@ namespace MediaCurator
       #region Common Functionality
 
       /// <summary>
-      /// Returns the value of the Flags attribute.
-      /// </summary>
-      /// <returns>
-      /// The integer which encapsulates all the flags set.
-      /// </returns>
-      private uint GetFlags()
-      {
-         uint flags = 0x00000000;
-         string flagsString = Tools.GetAttributeValue(Self, "Flags");
-
-         if (flagsString.Length > 0)
-         {
-            flags = Convert.ToUInt32(flagsString, 16);
-         }
-
-         return flags;
-      }
-
-
-      /// <summary>
-      /// Sets the value of the Flags attribute.
-      /// </summary>
-      /// <param name="flags">The flags.</param>
-      private void SetFlags(uint flags)
-      {
-         Tools.SetAttributeValue(Self, "Flags", Convert.ToString(flags, 16));
-      }
-
-      /// <summary>
-      /// Sets the flags supplied and clears the non-listed ones.
-      /// </summary>
-      /// <param name="flags">The flags to set.</param>
-      public void SetFlags(IEnumerable<Flag> flags)
-      {
-         uint value = 0x00000000;
-
-         foreach (var flag in flags)
-         {
-            value |= (uint)flag;
-         }
-
-         SetFlags(value);
-      }
-
-      /// <summary>
       /// Returns the value of the specified flag.
       /// </summary>
-      /// <param name="mask">The flag mask.</param>
+      /// <param name="flag">The flag.</param>
       /// <returns>
       ///   <c>true</c> if flag is set; otherwise, <c>false</c>.
       /// </returns>
-      private bool GetFlagValue(uint mask)
+      private bool GetFlagValue(Flag flag)
       {
-         bool flagValue = false;
-         uint flags = GetFlags();
-
-         if ((flags & mask) != 0)
-         {
-            flagValue = true;
-         }
-
-         return flagValue;
+         return _flags.Contains(flag);
       }
 
       /// <summary>
       /// Sets the value of the supplied flag value.
       /// </summary>
-      /// <param name="mask">The flag mask.</param>
+      /// <param name="flag">The flag to set/reset.</param>
       /// <param name="value">if set to <c>true</c> [value].</param>
-      private void SetFlagValue(uint mask, bool value)
+      private void SetFlagValue(Flag flag, bool value)
       {
-         uint flags = GetFlags();
-
-         // Read the current value of the flags attribute.
-         string flagsString = Tools.GetAttributeValue(Self, "Flags");
-
          if (value)
          {
-            flags |= mask;
+            _flags.Add(flag);
          }
          else
          {
-            flags &= ~mask;
-         }
-
-         // Set the new value of the flags attribute.
-         Tools.SetAttributeValue(Self, "Flags", Convert.ToString(flags, 16));
-
-         switch (mask)
-         {
-            case ((uint)Flag.Favorite):
-               NotifyPropertyChanged("Favorite");
-               break;
-
-            case ((uint)Flag.Deleted):
-               NotifyPropertyChanged("Deleted");
-               break;
-         }
-
-         NotifyPropertyChanged("Source");
-      }
-
-      protected void NotifyPropertyChanged(string propertyName)
-      {
-         if (PropertyChanged != null)
-         {
-            PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            _flags.Remove(flag);
          }
       }
 

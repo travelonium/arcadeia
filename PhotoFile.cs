@@ -1,13 +1,8 @@
 ﻿using System;
-using System.IO;
-using System.Xml.Linq;
 using System.Diagnostics;
-using System.Globalization;
 using System.Collections.Generic;
-using System.Threading;
-using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using ImageMagick;
 
 namespace MediaCurator
@@ -16,9 +11,9 @@ namespace MediaCurator
    {
       #region Constants
 
-      private Lazy<Dictionary<string, Dictionary<string, int>>> Configuration => new(() =>
+      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
       {
-         var section = _configuration.GetSection("Thumbnails:Photo");
+         var section = Configuration.GetSection("Thumbnails:Photo");
 
          if (section.Exists())
          {
@@ -32,16 +27,28 @@ namespace MediaCurator
 
       #region Fields
 
+      private long _width = 0;
+      private long _height = 0;
+
+      /// <summary>
+      /// Gets or sets the resolution of the photo file.
+      /// </summary>
+      /// <value>
+      /// The photo file resolution.
+      /// </value>
       public ResolutionType Resolution
       {
-         get
-         {
-            return new ResolutionType(Tools.GetAttributeValue(Self, "Resolution"));
-         }
+         get => new(_width, _height);
 
          set
          {
-            Tools.SetAttributeValue(Self, "Resolution", value.ToString());
+            if (Resolution != value)
+            {
+               _width = value.Width;
+               _height = value.Height;
+
+               Modified = true;
+            }
          }
       }
 
@@ -62,7 +69,19 @@ namespace MediaCurator
 
          set
          {
+            if (value == null) return;
+
             base.Model = value;
+
+            if ((_width == 0) && (_height == 0))
+            {
+               _width = value.Width;
+               _height = value.Height;
+            }
+            else
+            {
+               Resolution = new(_width, _height);
+            }
          }
       }
 
@@ -70,35 +89,16 @@ namespace MediaCurator
 
       #region Constructors
 
-      public PhotoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
-         : base(configuration, thumbnailsDatabase, mediaLibrary, "Photo", path)
+      public PhotoFile(ILogger<MediaContainer> logger,
+                       IServiceProvider services,
+                       IConfiguration configuration,
+                       IThumbnailsDatabase thumbnailsDatabase,
+                       IMediaLibrary mediaLibrary,
+                       string id = null, string path = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
       {
-         // The base class constructor will take care of the parents and the creation or retrieval
-         // of the element itself. Here we'll attend to additional properties of a photo file.
-
-         if (Self != null)
-         {
-            if (Created)
-            {
-               // This element did not exist before and has been createdn or it did exist but it has
-               // been marked as "Modified". Therefore, the missing/updated fields need be filled in here.
-            }
-         }
-      }
-
-      public PhotoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
-         : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
-      {
-         if (Self != null)
-         {
-            if (update)
-            {
-               if (Modified)
-               {
-                  // This file existed before but has changed since the last scan.
-               }
-            }
-         }
+         // The base class constructor will take care of the entry, its general attributes and its
+         // parents and below we'll take care of its specific attributes.
       }
 
       #endregion // Constructors
@@ -244,7 +244,7 @@ namespace MediaCurator
 
          Debug.Write(" [");
 
-         foreach (var item in Configuration.Value)
+         foreach (var item in ThumbnailsConfiguration.Value)
          {
             int count = 0;
             int width = -1;

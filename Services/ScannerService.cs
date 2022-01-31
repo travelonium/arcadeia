@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Xml.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -10,20 +9,23 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using MediaCurator.Solr;
+using SolrNet;
 
 namespace MediaCurator.Services
 {
    public class ScannerService : IHostedService, IDisposable
    {
+      private readonly IServiceProvider _services;
+
       protected readonly IConfiguration _configuration;
 
       private readonly ILogger<ScannerService> _logger;
 
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
-
       private readonly IMediaLibrary _mediaLibrary;
 
-      private readonly Dictionary<string, FileSystemWatcher> _watchers = new Dictionary<string, FileSystemWatcher>();
+      private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
 
       private readonly IBackgroundTaskQueue _taskQueue;
 
@@ -97,24 +99,6 @@ namespace MediaCurator.Services
       }
 
       /// <summary>
-      /// Determines the interval in milliseconds at which the database is updated while scanning in order to avoid losing the progress.
-      /// </summary>
-      public long DatabaseUpdateInterval
-      {
-         get
-         {
-            if (_configuration.GetSection("Scanner:DatabaseUpdateInterval").Exists())
-            {
-               return _configuration.GetSection("Scanner:DatabaseUpdateInterval").Get<long>();
-            }
-            else
-            {
-               return 0;
-            }
-         }
-      }
-
-      /// <summary>
       /// Determines whether or not the startup update is enabled.
       /// </summary>
       public bool StartupUpdate
@@ -168,18 +152,18 @@ namespace MediaCurator.Services
          }
       }
 
-      public ScannerService(IConfiguration configuration,
-                            ILogger<ScannerService> logger,
+      public ScannerService(ILogger<ScannerService> logger,
+                            IServiceProvider services,
+                            IConfiguration configuration,
                             IBackgroundTaskQueue taskQueue,
                             IHostApplicationLifetime applicationLifetime,
-                            IThumbnailsDatabase thumbnailsDatabase,
                             IMediaLibrary mediaLibrary)
       {
          _logger = logger;
+         _services = services;
          _taskQueue = taskQueue;
          _mediaLibrary = mediaLibrary;
          _configuration = configuration;
-         _thumbnailsDatabase = thumbnailsDatabase;
          _cancellationToken = applicationLifetime.ApplicationStopping;
       }
 
@@ -308,8 +292,6 @@ namespace MediaCurator.Services
 
       private void Scan(string path, string type)
       {
-         Stopwatch watch = new();
-         var interval = DatabaseUpdateInterval;
          var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          _logger.LogInformation("{} Scanning Started: {}", type, path);
@@ -318,9 +300,6 @@ namespace MediaCurator.Services
          {
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
 
-            // Start the watch
-            if (interval > 0) watch.Start();
-
             // Loop through the files in the specific MediaLocation.
             foreach (var file in files)
             {
@@ -328,9 +307,6 @@ namespace MediaCurator.Services
 
                if (_cancellationToken.IsCancellationRequested)
                {
-                  // Let's update the MediaLibrary with the new entries if any so far.
-                  _mediaLibrary.UpdateDatabase();
-
                   // Return gracefully now!
                   return;
                }
@@ -349,7 +325,7 @@ namespace MediaCurator.Services
                try
                {
                   // Add the file to the MediaLibrary.
-                  MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
+                  using MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
                }
                catch (Exception e)
                {
@@ -358,20 +334,9 @@ namespace MediaCurator.Services
                   goto Skip;
                }
 
-               // Update the MediaLibrary if the interval has ellapsed.
-               if ((interval > 0) && (watch.ElapsedMilliseconds > interval))
-               {
-                  _mediaLibrary.UpdateDatabase();
-
-                  watch.Restart();
-               }
-
             Skip:
                continue;
             }
-
-            // Now that we're done with this location, let's update the MediaLibrary with the new entries if any.
-            _mediaLibrary.UpdateDatabase();
 
             _logger.LogInformation("{} Scanning Finished: {}", type, path);
          }
@@ -380,9 +345,6 @@ namespace MediaCurator.Services
             // This is strange. A location previously specified seems to have been deleted. We can all but ignore it.
             _logger.LogWarning("Path Unavailable: {}", path);
 
-            // Let's update the MediaLibrary with the new entries if any so far.
-            _mediaLibrary.UpdateDatabase();
-
             return;
          }
          catch (System.UnauthorizedAccessException e)
@@ -390,60 +352,46 @@ namespace MediaCurator.Services
             // We probably do not have access to the folder. Let's ignore this one and move on.
             _logger.LogWarning("{} Scanning Failed: {}, Because: {}", type, path, e.Message);
 
-            // Let's update the MediaLibrary with the new entries if any so far.
-            _mediaLibrary.UpdateDatabase();
-
             return;
          }
       }
 
       private void Update(CancellationToken cancellationToken)
       {
-         Stopwatch watch = new();
-         var interval = DatabaseUpdateInterval;
-
          _logger.LogInformation("Startup Update Started.");
 
          // It's now time to go through the MediaLibrary itself and check for changes on the disk. 
 
+         // Consume the scoped Solr Index Service.
+         using IServiceScope scope = _services.CreateScope();
+         ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+
          // Enumerate all the media files from the MediaLibrary database. This is used to detect
          // whether or not any files have been physically removed and thus update the MediaLibrary.
-         IEnumerable<XElement> mediaFiles = from element in _mediaLibrary.Self.Descendants()
-                                            where ((element.Name == "Audio") ||
-                                                   (element.Name == "Video") ||
-                                                   (element.Name == "Photo"))
-                                            select element;
 
-         Debug.WriteLine("\r\nProcessing {0} Media Library Entries...", mediaFiles.Count());
+         var documents = solrIndexService.Get(SolrQuery.All);
 
-         // Start the watch
-         if (interval > 0) watch.Start();
+         Debug.WriteLine("\r\nProcessing {0} Media Library Entries...", documents.Count);
 
          // Loop through the mediaFiles.
-         foreach (XElement element in mediaFiles)
+         foreach (var document in documents)
          {
             if (cancellationToken.IsCancellationRequested)
             {
-               // Let's update the MediaLibrary with the new entries if any so far.
-               _mediaLibrary.UpdateDatabase();
-
                // Return gracefully now!
                return;
             }
 
             try
             {
-               // Instantiate a MediaFile using the acquired element.
-               MediaFile mediaFile = new MediaFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
-
-               if (mediaFile != null)
+               if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                {
                   // Make sure if the path is located in a watched folder, that folder is available.
-                  if ((WatchedFolders.Count(folder => mediaFile.FullPath.StartsWith(folder)) == 0) ||
-                      (AvailableWatchedFolders.Count(folder => mediaFile.FullPath.StartsWith(folder)) > 0))
+                  if (!WatchedFolders.Any(folder => document.FullPath.StartsWith(folder)) ||
+                      AvailableWatchedFolders.Any(folder => document.FullPath.StartsWith(folder)))
                   {
-                     // Update the current media file element.
-                     _mediaLibrary.UpdateMedia(element);
+                     // Update the current media file.
+                     using MediaFile mediaFile = _mediaLibrary.UpdateMedia(id: document.Id);
                   }
                }
             }
@@ -453,40 +401,19 @@ namespace MediaCurator.Services
 
                break;
             }
-
-            // Update the MediaLibrary if the interval has ellapsed.
-            if ((interval > 0) && (watch.ElapsedMilliseconds > interval))
-            {
-               _mediaLibrary.UpdateDatabase();
-
-               watch.Restart();
-            }
          }
-
-         // Now that we're done with this task, let's update the MediaLibrary with the new changes.
-         _mediaLibrary.UpdateDatabase();
 
          _logger.LogInformation("Startup Update Finished.");
       }
 
       private void AddFile(string file)
       {
-         var progressFile = new Progress<Tuple<double, double>>();
-         var progressThumbnailPreview = new Progress<byte[]>();
-
-         MediaFile mediaFile = _mediaLibrary.InsertMedia(file);
-
-         _mediaLibrary.UpdateDatabase();
+         using MediaFile _ = _mediaLibrary.InsertMedia(file);
       }
 
       private void UpdateFile(string file)
       {
-         var progressFile = new Progress<Tuple<double, double>>();
-         var progressThumbnailPreview = new Progress<byte[]>();
-
-         MediaFile mediaFile = _mediaLibrary.UpdateMedia(file);
-
-         _mediaLibrary.UpdateDatabase();
+         using MediaFile _ = _mediaLibrary.UpdateMedia(file);
       }
 
       public Task StopAsync(CancellationToken cancellationToken)
