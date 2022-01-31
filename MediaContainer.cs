@@ -212,7 +212,7 @@ namespace MediaCurator
          {
             if (Parent == null)
             {
-               return FullPath;
+               return null;
             }
             else
             {
