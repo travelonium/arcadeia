@@ -7,6 +7,6 @@ namespace MediaCurator
    public interface IMediaLibrary : IMediaContainer
    {
       MediaFile InsertMedia(string path);
-      MediaFile UpdateMedia(string id = null, string path = null);
+      MediaContainer UpdateMediaContainer(string id = null, string type = null, string path = null);
    }
 }

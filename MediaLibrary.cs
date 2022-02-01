@@ -97,46 +97,61 @@ namespace MediaCurator
       /// anything has changed and if the element needs to be updated or deleted.
       /// </summary>
       /// <param name="model">The media entry to be checked for changes.</param>
-      public MediaFile UpdateMedia(string id = null, string path = null)
+      public MediaContainer UpdateMediaContainer(string id = null, string type = null, string path = null)
       {
-         Debug.Assert((id != null) || (path != null));
-         Debug.Assert((id == null) || (path == null));
+         Debug.Assert(((id != null) && (type != null)) || (path != null));
+         Debug.Assert(((id == null) && (type == null)) || (path == null));
 
-         // Instantiate a MediaFile using the given id or path.
-         MediaFile mediaFile = new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id, path: path);
+         MediaContainer mediaContainer;
 
-         switch (mediaFile.GetMediaContainerType())
+         if (path != null)
          {
-            /*-------------------------------------------------------------------------------------
-                                                AUDIO FILE
-            -------------------------------------------------------------------------------------*/
+            mediaContainer = new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: null, path: path);
 
-            case MediaContainerType.Audio:
+            if (String.IsNullOrEmpty(mediaContainer.Type))
+            {
+               throw new ArgumentNullException(mediaContainer.Type, String.Format("Failed to determine the MediaContainer type: {0}", mediaContainer.FullPath));
+            }
 
-               throw new NotImplementedException("Audio files cannot yet be handled!");
+            if (String.IsNullOrEmpty(mediaContainer.Id))
+            {
+               throw new ArgumentNullException(mediaContainer.Id, String.Format("Failed to determine the MediaContainer id: {0}", mediaContainer.FullPath));
+            }
 
-            /*-------------------------------------------------------------------------------------
-                                                VIDEO FILE
-            -------------------------------------------------------------------------------------*/
-
-            case MediaContainerType.Video:
-
-               mediaFile = UpdateVideoFile(mediaFile.Id);
-
-               break;
-
-            /*-------------------------------------------------------------------------------------
-                                                PHOTO FILE
-            -------------------------------------------------------------------------------------*/
-
-            case MediaContainerType.Photo:
-
-               mediaFile = UpdatePhotoFile(mediaFile.Id);
-
-               break;
+            id = mediaContainer.Id;
+            type = mediaContainer.Type;
          }
 
-         return mediaFile;
+         switch (type.ToEnum<MediaContainerType>())
+         {
+            case MediaContainerType.Audio:
+               throw new NotImplementedException("Audio files cannot yet be handled!");
+
+            case MediaContainerType.Video:
+               mediaContainer = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               break;
+
+            case MediaContainerType.Photo:
+               mediaContainer = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               break;
+
+            case MediaContainerType.Drive:
+               mediaContainer = new MediaDrive(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               break;
+
+            case MediaContainerType.Server:
+               mediaContainer = new MediaServer(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               break;
+
+            case MediaContainerType.Folder:
+               mediaContainer = new MediaFolder(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               break;
+
+            default:
+               return null;
+         }
+
+         return mediaContainer;
       }
 
       private void InsertAudioFile(string path)

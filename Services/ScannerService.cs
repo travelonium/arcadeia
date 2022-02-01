@@ -15,7 +15,7 @@ using SolrNet;
 
 namespace MediaCurator.Services
 {
-   public class ScannerService : IHostedService, IDisposable
+   public class ScannerService : IHostedService
    {
       private readonly IServiceProvider _services;
 
@@ -372,7 +372,7 @@ namespace MediaCurator.Services
 
          var documents = solrIndexService.Get(SolrQuery.All);
 
-         Debug.WriteLine("\r\nProcessing {0} Media Library Entries...", documents.Count);
+         _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
 
          // Loop through the mediaFiles.
          foreach (var document in documents)
@@ -391,8 +391,8 @@ namespace MediaCurator.Services
                   if (!WatchedFolders.Any(folder => document.FullPath.StartsWith(folder)) ||
                       AvailableWatchedFolders.Any(folder => document.FullPath.StartsWith(folder)))
                   {
-                     // Update the current media file.
-                     using MediaFile mediaFile = _mediaLibrary.UpdateMedia(id: document.Id);
+                     // Update the current media container.
+                     using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
                   }
                }
             }
@@ -415,7 +415,7 @@ namespace MediaCurator.Services
 
       private void UpdateFile(string file)
       {
-         using MediaFile _ = _mediaLibrary.UpdateMedia(file);
+         using MediaContainer _ = _mediaLibrary.UpdateMediaContainer(path: file);
       }
 
       public Task StopAsync(CancellationToken cancellationToken)
@@ -425,10 +425,6 @@ namespace MediaCurator.Services
          _logger.LogInformation("Scanner Service Stopped.");
 
          return Task.CompletedTask;
-      }
-
-      public void Dispose()
-      {
       }
 
       private void OnError(object source, ErrorEventArgs e)

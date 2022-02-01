@@ -378,7 +378,9 @@ namespace MediaCurator
             }
             else
             {
-               if (value.ParentType.ToEnum<MediaContainerType>() == MediaContainerType.Library)
+               var parentType = value.ParentType.ToEnum<MediaContainerType>();
+
+               if (parentType == MediaContainerType.Library)
                {
                   parent = MediaLibrary;
                }
@@ -606,6 +608,10 @@ namespace MediaCurator
       public bool Save()
       {
          var result = false;
+
+         // This can happen when a container has been loaded that does not exist on either disk or
+         // the library.
+         if (Created && Deleted) return false;
 
          // Save the Parent(s) before attending to the child!
          Parent?.Save();
