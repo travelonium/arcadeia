@@ -3,4 +3,9 @@
 # Start the docker compose application in debug mode.
 
 docker-compose -f docker-compose.yml -f docker-compose-debug.yml pull
-docker-compose -f docker-compose.yml -f docker-compose-debug.yml up
+
+if [ $# -eq 0 ]; then
+    docker-compose -f docker-compose.yml -f docker-compose-debug.yml up
+else
+    docker-compose -f docker-compose.yml -f docker-compose-debug.yml start $@
+fi
