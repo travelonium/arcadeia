@@ -367,17 +367,8 @@ namespace MediaCurator
          {
             if (value == null) return;
 
-            if (_id == null) _id = value.Id;
-            else
-            {
-               Id = value.Id;
-            }
-
-            if (_parentType == null) _parentType = value.ParentType;
-            else
-            {
-               ParentType = value.ParentType;
-            }
+            Id = value.Id;
+            ParentType = value.ParentType;
 
             IMediaContainer parent = null;
 
@@ -400,41 +391,18 @@ namespace MediaCurator
                }
             }
 
-            if (_parent == null) _parent = parent;
-            else
+            Parent = parent;
+            Type = value.Type;
+
+            // Handle a possible rename operation.
+            if ((Name != null) && (value.Name != Name))
             {
-               Parent = parent;
+               Move(FullPath, value.Path + value.Name);
             }
 
-            if (_name == null) _name = value.Name;
-            else
-            {
-               if (value.Name != Name)
-               {
-                  // Handle the rename operation
-                  Move(FullPath, value.Path + value.Name);
-               }
-
-               Name = value.Name;
-            }
-
-            if (_description == null) _description = value.Description;
-            else
-            {
-               Description = value.Description;
-            }
-
-            if (_type == null) _type = value.Type;
-            else
-            {
-               Type = value.Type;
-            }
-
-            if (_flags == null) _flags = new MediaContainerFlags(value.Flags);
-            else
-            {
-               Flags = new MediaContainerFlags(value.Flags);
-            }
+            Name = value.Name;
+            Description = value.Description;
+            Flags = new MediaContainerFlags(value.Flags);
 
             if (value.Path != Path)
             {
@@ -479,6 +447,8 @@ namespace MediaCurator
          if (model != null)
          {
             Model = model;
+
+            Modified = false;
 
             return;
          }

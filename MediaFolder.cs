@@ -13,7 +13,6 @@ namespace MediaCurator
 
       #region Constructors
 
-
       public MediaFolder(ILogger<MediaContainer> logger,
                          IServiceProvider services,
                          IConfiguration configuration,

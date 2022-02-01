@@ -73,15 +73,7 @@ namespace MediaCurator
 
             base.Model = value;
 
-            if ((_width == 0) && (_height == 0))
-            {
-               _width = value.Width;
-               _height = value.Height;
-            }
-            else
-            {
-               Resolution = new(_width, _height);
-            }
+            Resolution = new(value.Width, value.Height);
          }
       }
 
@@ -135,7 +127,7 @@ namespace MediaCurator
                                                 RESOLUTION
             --------------------------------------------------------------------------------*/
 
-            Resolution = new ResolutionType(String.Format("{0}x{1}", info.Width, info.Height));
+            Resolution = new ResolutionType(info.Width, info.Height);
          }
       }
 

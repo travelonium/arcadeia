@@ -101,25 +101,10 @@ namespace MediaCurator
 
             base.Model = value;
 
-            if (_size == 0) _size = value.Size;
-            else
-            {
-               Size = value.Size;
-            }
-
+            Size = value.Size;
+            DateCreated = value.DateCreated;
+            DateModified = value.DateModified;
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
-
-            if (_dateCreated == null) _dateCreated = value.DateCreated.ToString(CultureInfo.InvariantCulture);
-            else
-            {
-               DateCreated = value.DateCreated;
-            }
-
-            if (_dateModified == null) _dateModified = value.DateModified.ToString(CultureInfo.InvariantCulture);
-            else
-            {
-               DateModified = value.DateModified;
-            }
          }
       }
 

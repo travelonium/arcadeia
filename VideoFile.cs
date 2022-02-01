@@ -101,21 +101,8 @@ namespace MediaCurator
 
             base.Model = value;
 
-            if (_duration == 0) _duration = value.Duration;
-            else
-            {
-               Duration = value.Duration;
-            }
-
-            if ((_width == 0) && (_height == 0))
-            {
-               _width = value.Width;
-               _height = value.Height;
-            }
-            else
-            {
-               Resolution = new(_width, _height);
-            }
+            Duration = value.Duration;
+            Resolution = new(value.Width, value.Height);
          }
       }
 

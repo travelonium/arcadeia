@@ -316,7 +316,7 @@ namespace MediaCurator.Services
                {
                   if (pattern.IsMatch(name))
                   {
-                     _logger.LogDebug("IGNORED: {}", file);
+                     _logger.LogDebug("File Ignored: {}", file);
 
                      goto Skip;
                   }
