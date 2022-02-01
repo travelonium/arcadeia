@@ -51,21 +51,11 @@ namespace MediaCurator
          switch (mediaType)
          {
             /*-------------------------------------------------------------------------------------
-                                                 UNKNOWN
-            -------------------------------------------------------------------------------------*/
-
-            case MediaContainerType.Unknown:
-
-               break;
-
-            /*-------------------------------------------------------------------------------------
                                                 AUDIO FILE
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Audio:
-
-               /*mediaFile = */ InsertAudioFile(path);
-
+               /* mediaFile = new AudioFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path); */
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -73,9 +63,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Video:
-
-               mediaFile = InsertVideoFile(path);
-
+               mediaFile = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -83,9 +71,17 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Photo:
+               mediaFile = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
+               break;
 
-               mediaFile = InsertPhotoFile(path);
+            /*-------------------------------------------------------------------------------------
+                                                 UNKNOWN
+            -------------------------------------------------------------------------------------*/
 
+            case MediaContainerType.Unknown:
+               break;
+
+            default:
                break;
          }
 
@@ -93,10 +89,9 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Checks an already present element in the MediaLibrary against its physical file to see if
+      /// Checks an already present element in the MediaLibrary against its physical form to see if
       /// anything has changed and if the element needs to be updated or deleted.
       /// </summary>
-      /// <param name="model">The media entry to be checked for changes.</param>
       public MediaContainer UpdateMediaContainer(string id = null, string type = null, string path = null)
       {
          Debug.Assert(((id != null) && (type != null)) || (path != null));
@@ -152,36 +147,6 @@ namespace MediaCurator
          }
 
          return mediaContainer;
-      }
-
-      private void InsertAudioFile(string path)
-      {
-
-      }
-
-      private VideoFile UpdateAudioFile(string id)
-      {
-         return null;
-      }
-
-      private VideoFile InsertVideoFile(string path)
-      {
-         return new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
-      }
-
-      private VideoFile UpdateVideoFile(string id)
-      {
-         return new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
-      }
-
-      private PhotoFile InsertPhotoFile(string path)
-      {
-         return new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
-      }
-
-      private PhotoFile UpdatePhotoFile(string id)
-      {
-         return new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
       }
 
       private MediaContainerType GetMediaType(string path)

@@ -28,7 +28,7 @@ namespace MediaCurator
          if (Created)
          {
             // Extract the Drive Name from the supplied path removing the \ and : characters. 
-            Name = MediaContainer.GetPathComponents(path).Child.Trim(new Char[] { '\\', ':' });
+            Name = MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\', ':' });
          }
       }
 

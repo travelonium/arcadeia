@@ -26,10 +26,17 @@ namespace MediaCurator
 
          if (Skipped) return;
 
+         if (!Exists())
+         {
+            Deleted = true;
+
+            return;
+         }
+
          if (Created)
          {
             // Extract the Folder Name from the supplied path removing the \ and / characters.
-            Name = MediaContainer.GetPathComponents(path).Child.Trim(new Char[] { '\\', '/' });
+            Name = MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\', '/' });
          }
       }
 
