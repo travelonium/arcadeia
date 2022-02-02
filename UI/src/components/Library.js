@@ -1,7 +1,6 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import React, { Component } from 'react';
-import Navbar from 'react-bootstrap/Navbar';
 import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
@@ -286,11 +285,11 @@ export class Library extends Component {
     }
 
     files() {
-        let count = this.state.items.reduce((count, item) =>{
+        let count = this.state.items.reduce((count, item) => {
             if ((item.type === "Video") || (item.type === "Audio") || (item.type === "Photo")) return (count + 1);
             return count;
         }, 0);
-        return (count === 0) ? '' : (count + ((count == 1) ? " File" : " Files"));
+        return (count === 0) ? '' : (count + ((count === 1) ? " File" : " Files"));
     }
 
     querify(dictionary, query = new URLSearchParams()) {

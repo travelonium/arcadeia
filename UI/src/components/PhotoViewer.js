@@ -3,6 +3,7 @@ import cx from 'classnames';
 import Viewer from 'viewerjs';
 import { extract } from './../utils';
 import 'viewerjs/dist/viewer.css';
+import _ from 'lodash';
 
 export class PhotoViewer extends React.Component {
 
@@ -22,7 +23,7 @@ export class PhotoViewer extends React.Component {
 
     componentDidUpdate(prevProps) {
         let sources = this.props.sources;
-        if (sources !== prevProps.sources) {
+        if (!_.isEqual(sources, prevProps.sources)) {
             this.viewer.update();
         }
     }
@@ -37,8 +38,9 @@ export class PhotoViewer extends React.Component {
             <div ref={element => this.imagesElement = element} className={cx(this.props.className, "photo-viewer")}>
             {
                 sources.map((source, index) => {
+                    const description = extract("", source, 'description');
                     return (
-                        <img key={index} id="image" src={source} />
+                        <img key={index} id="image" src={source} alt={description} />
                     );
                 })
             }

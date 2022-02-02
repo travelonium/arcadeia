@@ -21,6 +21,10 @@ export class MediaContainer extends Component {
         };
     }
 
+    componentDidUpdate(prevProps) {
+        // console.log(prevProps);
+    }
+
     update(source) {
         this.setState({
             current: source,
@@ -85,32 +89,22 @@ export class MediaContainer extends Component {
     }
 
     preview(props) {
+        let name = extract(0, this.state.current, 'name');
         let width = extract(0, this.state.current, 'width');
         let height = extract(0, this.state.current, 'height');
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
-        let src = "/thumbnails/" + this.props.source.id + "/" + "large.jpg";
+        let src = "/thumbnails/" + this.props.source.id + "/large.jpg";
         return (
             <div className="photo-preview-overlay" {...props} >
-                <img className="preview" src={src} />
+                <img className="preview" src={src} alt={name + ' Preview'} />
             </div>
         );
     }
 
     render() {
-        let name = null;
-        let extension = null;
         const source = this.state.current;
         const flags = extract([], source, "flags");
         const favorite = flags.includes('Favorite');
-        const pattern = /(.*)\.(.*)/g;
-        let match = pattern.exec(source.name);
-        // FIXME: Use the source.extension instead but its leading dot needs to be removed first.
-        if ((match !== null) && (source.type !== "Folder") && (source.type !== "Drive") && (source.type !== "Server")) {
-            name = extract(null, match, 1);
-            extension = extract(null, match, 2);
-        } else {
-            name = extract(null, match, 1);
-        }
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
@@ -118,7 +112,7 @@ export class MediaContainer extends Component {
                         <div className="thumbnail-container">
                             <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
                             <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
-                            <Badge variant="dark" className={cx("extension", extension ? "visible" : "invisible")}>{extension}</Badge>
+                            <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
                             <div className="flags px-1">
                                 <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                             </div>
