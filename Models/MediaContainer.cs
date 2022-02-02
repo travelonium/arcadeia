@@ -31,6 +31,15 @@ namespace MediaCurator.Models
       [SolrField("fullPath")]
       public string FullPath { get; set; }
 
+      [SolrField("dateAdded")]
+      public DateTime DateAdded { get; set; }
+
+      [SolrField("dateCreated")]
+      public DateTime DateCreated { get; set; }
+
+      [SolrField("dateModified")]
+      public DateTime DateModified { get; set; }
+
       [SolrField("flags")]
       public string[] Flags { get; set; }
 
@@ -40,12 +49,6 @@ namespace MediaCurator.Models
 
       [SolrField("size")]
       public long Size { get; set; }
-
-      [SolrField("dateCreated")]
-      public DateTime DateCreated { get; set; }
-
-      [SolrField("dateModified")]
-      public DateTime DateModified { get; set; }
 
       [SolrField("contentType")]
       public string ContentType { get; set; }

@@ -87,8 +87,6 @@ namespace MediaCurator
 
             model.Size = Size;
             model.Thumbnails = Thumbnails.Count;
-            model.DateCreated = DateCreated;
-            model.DateModified = DateModified;
             model.ContentType = ContentType;
             model.Extension = Extension;
 
@@ -102,8 +100,6 @@ namespace MediaCurator
             base.Model = value;
 
             Size = value.Size;
-            DateCreated = value.DateCreated;
-            DateModified = value.DateModified;
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
          }
       }
@@ -152,7 +148,7 @@ namespace MediaCurator
             // likely the problem is that the combination of the file name and/or path are too long.
             // Better skip this file altogether.
 
-            Logger.LogWarning("Faile To Retrieve File Information For: {}, Because: {}", path, e.Message);
+            Logger.LogWarning("Failed To Retrieve File Information For: {}, Because: {}", FullPath, e.Message);
 
             Skipped = true;
 

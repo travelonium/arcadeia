@@ -274,6 +274,30 @@ namespace MediaCurator
          }
       }
 
+      protected string _dateAdded = null;
+
+      /// <summary>
+      /// Gets or sets the date the container was added to the MediaLibrary.
+      /// </summary>
+      /// <value>
+      /// The addition date in DateTime.
+      /// </value>
+      public DateTime DateAdded
+      {
+         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateAdded, CultureInfo.InvariantCulture), DateTimeKind.Utc);
+
+         set
+         {
+            TimeSpan difference = value - DateAdded;
+            if (difference >= TimeSpan.FromSeconds(1))
+            {
+               _dateAdded = value.ToString(CultureInfo.InvariantCulture);
+
+               Modified = true;
+            }
+         }
+      }
+
       protected string _dateCreated = null;
 
       /// <summary>
@@ -360,6 +384,9 @@ namespace MediaCurator
             Type = Type,
             Path = Path,
             FullPath = FullPath,
+            DateAdded = DateAdded,
+            DateCreated = DateCreated,
+            DateModified = DateModified,
             Flags = Flags.ToArray()
          };
 
@@ -404,6 +431,11 @@ namespace MediaCurator
 
             Name = value.Name;
             Description = value.Description;
+
+            DateAdded = value.DateAdded;
+            DateCreated = value.DateCreated;
+            DateModified = value.DateModified;
+
             Flags = new MediaContainerFlags(value.Flags);
 
             if (value.Path != Path)
@@ -494,6 +526,7 @@ namespace MediaCurator
          Name = pathComponents.Child;
          Type = this.GetType().ToMediaContainerType().ToString();
          Flags = new MediaContainerFlags();
+         DateAdded = DateTime.UtcNow;
 
          Created = true;
 

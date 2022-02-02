@@ -33,6 +33,29 @@ namespace MediaCurator
             return;
          }
 
+
+         try
+         {
+            // Acquire the common directory information.
+            DirectoryInfo directoryInfo = new(FullPath);
+
+            DateCreated = directoryInfo.CreationTimeUtc;
+            DateModified = directoryInfo.LastWriteTimeUtc;
+         }
+         catch (Exception e)
+         {
+            // Apparently something went wrong and most details of the directory are irretrievable.
+            // Most likely the problem is that the combination of the file name and/or path are too
+            // long. Better skip this directory altogether.
+
+            Logger.LogWarning("Failed To Retrieve Directory Information For: {}, Because: {}", FullPath, e.Message);
+            Logger.LogDebug("{}", e.ToString());
+
+            Skipped = true;
+
+            return;
+         }
+
          if (Created)
          {
             // Extract the Folder Name from the supplied path removing the \ and / characters.
