@@ -80,9 +80,9 @@ namespace MediaCurator
          {
             if (_parent != value)
             {
-               _parent = value;
+               Modified = (_parent != null);
 
-               Modified = true;
+               _parent = value;
             }
          }
       }
@@ -99,9 +99,9 @@ namespace MediaCurator
          {
             if (_parentType != value)
             {
-               _parentType = value;
+               Modified = (_parentType != null);
 
-               Modified = true;
+               _parentType = value;
             }
          }
       }
@@ -123,9 +123,9 @@ namespace MediaCurator
          {
             if (_id != value)
             {
-               _id = value;
+               Modified = (_id != null);
 
-               Modified = true;
+               _id = value;
             }
          }
       }
@@ -147,9 +147,9 @@ namespace MediaCurator
          {
             if (_name != value)
             {
-               _name = value;
+               Modified = (_name != null);
 
-               Modified = true;
+               _name = value;
             }
          }
       }
@@ -170,9 +170,9 @@ namespace MediaCurator
          {
             if (_description != value)
             {
-               _description = value;
+               Modified = (_description != null);
 
-               Modified = true;
+               _description = value;
             }
          }
       }
@@ -193,9 +193,9 @@ namespace MediaCurator
          {
             if (_type != value)
             {
-               _type = value;
+               Modified = (_type != null);
 
-               Modified = true;
+               _type = value;
             }
          }
       }
@@ -291,9 +291,9 @@ namespace MediaCurator
             TimeSpan difference = value - DateAdded;
             if (difference >= TimeSpan.FromSeconds(1))
             {
-               _dateAdded = value.ToString(CultureInfo.InvariantCulture);
+               Modified = (_dateAdded != null);
 
-               Modified = true;
+               _dateAdded = value.ToString(CultureInfo.InvariantCulture);
             }
          }
       }
@@ -315,9 +315,9 @@ namespace MediaCurator
             TimeSpan difference = value - DateCreated;
             if (difference >= TimeSpan.FromSeconds(1))
             {
-               _dateCreated = value.ToString(CultureInfo.InvariantCulture);
+               Modified = (_dateCreated != null);
 
-               Modified = true;
+               _dateCreated = value.ToString(CultureInfo.InvariantCulture);
             }
          }
       }
@@ -339,9 +339,9 @@ namespace MediaCurator
             TimeSpan difference = value - DateModified;
             if (difference >= TimeSpan.FromSeconds(1))
             {
-               _dateModified = value.ToString(CultureInfo.InvariantCulture);
+               Modified = (_dateModified != null);
 
-               Modified = true;
+               _dateModified = value.ToString(CultureInfo.InvariantCulture);
             }
          }
       }
@@ -362,9 +362,9 @@ namespace MediaCurator
          {
             if ((_flags == null) || (!_flags.All.SetEquals(value.All)))
             {
-               _flags = value;
+               Modified = (_flags != null);
 
-               Modified = true;
+               _flags = value;
             }
          }
       }
@@ -458,6 +458,8 @@ namespace MediaCurator
                             string id = null, string path = null
       )
       {
+         bool reused = false;
+
          Logger = logger;
          Services = services;
          Configuration = configuration;
@@ -466,7 +468,7 @@ namespace MediaCurator
 
          // The Solr service needs to be initialized only once when the MediaLibrary is instantiated
          // but before the Load() is called and therefore we do it here.
-         if (GetType().ToString() == typeof(MediaLibrary).ToString())
+         if (GetType().ToMediaContainerType() == MediaContainerType.Library)
          {
             // Consume the scoped Solr Index Service.
             using IServiceScope scope = Services.CreateScope();
@@ -490,13 +492,13 @@ namespace MediaCurator
          // We couldn't find an entry in the Solr index corresponding to either the container's Id
          // or its Path. Let's create a new entry then.
 
-         Id = mediaLibrary?.GenerateUniqueId(path, out bool reused) ?? System.IO.Path.GetRandomFileName();
-
-         // Split the path in parent, child components.
-         var pathComponents = GetPathComponents(path);
+         Id = mediaLibrary?.GenerateUniqueId(path, out reused) ?? System.IO.Path.GetRandomFileName();
 
          if ((id != null) || (path != null))
          {
+            // Split the path in parent, child components.
+            var pathComponents = GetPathComponents(path);
+
             if (pathComponents.Parent != null)
             {
                // There is a parent to take care of. Let's infer the parent type.
@@ -523,12 +525,15 @@ namespace MediaCurator
             // This is the MediaLibrary itself and thus has no parents. Leaving the Parent = null;
          }
 
-         Name = pathComponents.Child;
+         Name = GetMediaContainerName(path);
          Type = this.GetType().ToMediaContainerType().ToString();
          Flags = new MediaContainerFlags();
          DateAdded = DateTime.UtcNow;
 
-         Created = true;
+         if (!reused)
+         {
+            Created = true;
+         }
 
          // Now that we're here, we can assume that the container entry and its parent(s) have been
          // created. Now the constructor of the inherited calling class will take care of the
@@ -707,6 +712,31 @@ namespace MediaCurator
          }
 
          return result;
+      }
+
+      string GetMediaContainerName(string path)
+      {
+
+         var pathComponents = GetPathComponents(path);
+
+         switch (GetType().ToMediaContainerType())
+         {
+            case MediaContainerType.Server:
+               // Extract the Server Name from the supplied path removing the \ characters.
+               return MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\' });
+
+            case MediaContainerType.Drive:
+               // Extract the Drive Name from the supplied path removing the \ and : characters.
+               return MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\', ':' });
+
+            case MediaContainerType.Folder:
+               // Extract the Folder Name from the supplied path removing the \ and / characters.
+               return MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\', '/' });
+
+            default:
+               return pathComponents.Child;
+         }
+
       }
 
       #endregion // Public Methods

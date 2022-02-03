@@ -31,7 +31,7 @@ namespace MediaCurator
 
       #region Fields
 
-      private double _duration = 0.0;
+      private double _duration = -1.0;
 
       /// <summary>
       /// Gets or sets the duration of the video file.
@@ -47,15 +47,15 @@ namespace MediaCurator
          {
             if (_duration != value)
             {
-               _duration = value;
+               Modified = (_duration >= 0.0);
 
-               Modified = true;
+               _duration = value;
             }
          }
       }
 
-      private long _width = 0;
-      private long _height = 0;
+      private long _width  = -1;
+      private long _height = -1;
 
       /// <summary>
       /// Gets or sets the resolution of the video file.
@@ -71,10 +71,10 @@ namespace MediaCurator
          {
             if (Resolution != value)
             {
+               Modified = ((_width >= 0) || (_height >= 0));
+
                _width = value.Width;
                _height = value.Height;
-
-               Modified = true;
             }
          }
       }

@@ -12,7 +12,7 @@ namespace MediaCurator
    {
       #region Fields
 
-      private long _size = 0;
+      private long _size = -1;
 
       /// <summary>
       /// Gets or sets the size of the file.
@@ -28,9 +28,9 @@ namespace MediaCurator
          {
             if (_size != value)
             {
-               _size = value;
+               Modified = (_size >= 0);
 
-               Modified = true;
+               _size = value;
             }
          }
       }
