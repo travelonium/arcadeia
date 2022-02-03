@@ -716,9 +716,6 @@ namespace MediaCurator
 
       string GetMediaContainerName(string path)
       {
-
-         var pathComponents = GetPathComponents(path);
-
          switch (GetType().ToMediaContainerType())
          {
             case MediaContainerType.Server:
@@ -734,7 +731,7 @@ namespace MediaCurator
                return MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\', '/' });
 
             default:
-               return pathComponents.Child;
+               return GetPathComponents(path).Child;
          }
 
       }

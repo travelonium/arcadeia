@@ -52,7 +52,7 @@ namespace MediaCurator
       {
          lock (_lock)
          {
-            if (_ids.ContainsKey(path))
+            if ((path != null) && _ids.ContainsKey(path))
             {
                reused = true;
                return _ids[path];
