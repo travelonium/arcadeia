@@ -314,7 +314,7 @@ namespace MediaCurator.Services
                      {
                         _logger.LogDebug("File Ignored: {}", file);
 
-                        continue;
+                        return;
                      }
                   }
 

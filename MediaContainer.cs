@@ -492,7 +492,7 @@ namespace MediaCurator
          // We couldn't find an entry in the Solr index corresponding to either the container's Id
          // or its Path. Let's create a new entry then.
 
-         Id = mediaLibrary?.GenerateUniqueId(path, out reused) ?? System.IO.Path.GetRandomFileName();
+         Id = MediaLibrary.GenerateUniqueId(path, out reused) ?? System.IO.Path.GetRandomFileName();
 
          if ((id != null) || (path != null))
          {
