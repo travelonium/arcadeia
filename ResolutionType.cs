@@ -6,10 +6,10 @@ namespace MediaCurator
    /// The type representing a photo or video file's resolution. It has a width and a height property
    /// and multiple ways of supplying them.
    /// </summary>
-   public class ResolutionType
+   public class ResolutionType : IComparable
    {
-      public uint Width { get; set; }
-      public uint Height { get; set; }
+      public long Width { get; set; }
+      public long Height { get; set; }
 
       /// <summary>
       /// Initializes a new instance of the <see cref="ResolutionType"/> class having been supplied
@@ -25,9 +25,8 @@ namespace MediaCurator
          {
             if (resolution.Contains('x'))
             {
-               Width = Convert.ToUInt16(resolution.Substring(0, resolution.IndexOf('x')));
-               Height = Convert.ToUInt16(resolution.Substring((resolution.IndexOf('x') + 1),
-                                                                (resolution.Length - (resolution.IndexOf('x') + 1))));
+               Width = Convert.ToInt64(resolution.Substring(0, resolution.IndexOf('x')));
+               Height = Convert.ToInt64(resolution[(resolution.IndexOf('x') + 1)..]);
             }
          }
          catch (Exception)
@@ -43,7 +42,7 @@ namespace MediaCurator
       /// </summary>
       /// <param name="width">The width.</param>
       /// <param name="height">The height.</param>
-      public ResolutionType(uint width, uint height)
+      public ResolutionType(long width, long height)
       {
          Width = width;
          Height = height;
@@ -74,6 +73,21 @@ namespace MediaCurator
          }
 
          return resolution;
+      }
+
+      public int CompareTo(object obj)
+      {
+         if (obj == null) return 1;
+
+         if (obj is not ResolutionType other)
+         {
+            throw new ArgumentException("The supplied object is not a ResolutionType object.");
+         }
+
+         if (((other.Width == Width) && (other.Height == Height)) || ((other.Width + other.Height) == (Width + Height))) return 0;
+
+         if ((other.Width + other.Height) > (Width + Height)) return -1;
+         else return 1;
       }
    }
 }

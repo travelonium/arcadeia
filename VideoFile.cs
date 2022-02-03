@@ -15,9 +15,9 @@ namespace MediaCurator
    {
       #region Constants
 
-      private Lazy<Dictionary<string, Dictionary<string, int>>> Configuration => new(() =>
+      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
       {
-         var section = _configuration.GetSection("Thumbnails:Video");
+         var section = Configuration.GetSection("Thumbnails:Video");
 
          if (section.Exists())
          {
@@ -31,63 +31,51 @@ namespace MediaCurator
 
       #region Fields
 
-      public double Duration
-      {
-         get
-         {
-            string duration = Tools.GetAttributeValue(Self, "Duration");
-            return Double.Parse((duration.Length > 0) ? duration : "0.0",
-                                 CultureInfo.InvariantCulture);
-         }
-
-         set
-         {
-            Tools.SetAttributeValue(Self, "Duration", value.ToString(CultureInfo.InvariantCulture));
-         }
-      }
+      private double _duration = 0.0;
 
       /// <summary>
-      /// Gets the video duration in text to be shown on thumbnails.
+      /// Gets or sets the duration of the video file.
       /// </summary>
       /// <value>
-      /// The video duration in text format.
+      /// The video file duration.
       /// </value>
-      public string DurationText
+      public double Duration
       {
-         get
-         {
-            string duration = "";
-
-            if (Duration <= 0)
-            {
-               return duration;
-            }
-
-            TimeSpan timespan = TimeSpan.FromSeconds(Duration);
-
-            if (timespan.Hours > 0.0)
-            {
-               duration += string.Format("{0:D2}:", timespan.Hours);
-            }
-
-            duration += string.Format("{0:D2}:{1:D2}",
-                                       timespan.Minutes,
-                                       timespan.Seconds);
-
-            return " " + duration + " ";
-         }
-      }
-
-      public ResolutionType Resolution
-      {
-         get
-         {
-            return new ResolutionType(Tools.GetAttributeValue(Self, "Resolution"));
-         }
+         get => _duration;
 
          set
          {
-            Tools.SetAttributeValue(Self, "Resolution", value.ToString());
+            if (_duration != value)
+            {
+               _duration = value;
+
+               Modified = true;
+            }
+         }
+      }
+
+      private long _width = 0;
+      private long _height = 0;
+
+      /// <summary>
+      /// Gets or sets the resolution of the video file.
+      /// </summary>
+      /// <value>
+      /// The video file resolution.
+      /// </value>
+      public ResolutionType Resolution
+      {
+         get => new(_width, _height);
+
+         set
+         {
+            if (Resolution != value)
+            {
+               _width = value.Width;
+               _height = value.Height;
+
+               Modified = true;
+            }
          }
       }
 
@@ -109,56 +97,12 @@ namespace MediaCurator
 
          set
          {
+            if (value == null) return;
+
             base.Model = value;
-         }
-      }
 
-      /// <summary>
-      /// Gets the tooltip text of this video file.
-      /// </summary>
-      public override string ToolTip
-      {
-         get
-         {
-            string tooltip = "";
-            TimeSpan duration = TimeSpan.FromSeconds(Duration);
-
-            tooltip += String.Format("{0}", Name);
-
-            if (Duration < 3600)               // < 1h
-            {
-               tooltip += String.Format("\nDuration: {0:D2}:{1:D2}",
-                                         duration.Minutes, duration.Seconds);
-            }
-            else                                // >= 1h
-            {
-               tooltip += String.Format("\nDuration: {0:D2}:{1:D2}:{2:D2}",
-                                         duration.Hours, duration.Minutes, duration.Seconds);
-            }
-
-            tooltip += String.Format("\nResolution: {0}", Resolution);
-
-            tooltip += String.Format("\nDate Created: {0}", DateCreated);
-            tooltip += String.Format("\nDate Modified: {0}", DateModified);
-
-            if (Size < 0x400L)                 // < 1KB
-            {
-               tooltip += String.Format("\nSize: {0}B", Size);
-            }
-            else if (Size < 0x100000L)         // < 1MB
-            {
-               tooltip += String.Format("\nSize: {0:F2}KB", (double)Size / (double)0x400UL);
-            }
-            else if (Size < 0x40000000L)       // < 1GB
-            {
-               tooltip += String.Format("\nSize: {0:F2}MB", (double)Size / (double)0x100000UL);
-            }
-            else if (Size < 0x10000000000L)    // < 1TB
-            {
-               tooltip += String.Format("\nSize: {0:F2}GB", ((double)Size / (double)0x40000000UL));
-            }
-
-            return tooltip;
+            Duration = value.Duration;
+            Resolution = new(value.Width, value.Height);
          }
       }
 
@@ -166,35 +110,18 @@ namespace MediaCurator
 
       #region Constructors
 
-      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, string path)
-         : base(configuration, thumbnailsDatabase, mediaLibrary, "Video", path)
+      public VideoFile(ILogger<MediaContainer> logger,
+                       IServiceProvider services,
+                       IConfiguration configuration,
+                       IThumbnailsDatabase thumbnailsDatabase,
+                       IMediaLibrary mediaLibrary,
+                       string id = null, string path = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
       {
-         // The base class constructor will take care of the parents and the creation or retrieval
-         // of the element itself. Here we'll attend to additional properties of a video file.
+         // The base class constructor will take care of the entry, its general attributes and its
+         // parents and below we'll take care of its specific attributes.
 
-         if (Self != null)
-         {
-            if (Created)
-            {
-               // This element did not exist before and has been createdn or it did exist but it has
-               // been marked as "Modified". Therefore, the missing/updated fields need be filled in here.
-            }
-         }
-      }
-
-      public VideoFile(IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary, XElement element, bool update = false)
-         : base(configuration, thumbnailsDatabase, mediaLibrary, element, update)
-      {
-         if (Self != null)
-         {
-            if (update)
-            {
-               if (Modified)
-               {
-                  // This file existed before but has changed since the last scan.
-               }
-            }
-         }
+         if (Skipped) return;
       }
 
       #endregion // Constructors
@@ -204,7 +131,7 @@ namespace MediaCurator
       public override void GetFileInfo(string path)
       {
          string output = null;
-         string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
+         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
 
          if (!File.Exists(executable))
          {
@@ -224,7 +151,7 @@ namespace MediaCurator
 
             output = ffprobe.StandardOutput.ReadToEnd();
 
-            ffprobe.WaitForExit(_configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
+            ffprobe.WaitForExit(Configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
          }
 
          var fileInfo = JsonDocument.Parse(output).RootElement;
@@ -264,7 +191,7 @@ namespace MediaCurator
       private byte[] GenerateThumbnail(string path, int position, int width, int height, bool crop)
       {
          byte[] output = null;
-         string executable = _configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
+         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
 
          int waitInterval = 100;
          int totalWaitTime = 0;
@@ -301,7 +228,7 @@ namespace MediaCurator
                totalWaitTime += waitInterval;
             }
             while ((!ffmpeg.HasExited) &&
-                   (totalWaitTime < _configuration.GetSection("FFmpeg:Timeout").Get<Int32>()));
+                   (totalWaitTime < Configuration.GetSection("FFmpeg:Timeout").Get<Int32>()));
 
             if (ffmpeg.HasExited)
             {
@@ -371,7 +298,7 @@ namespace MediaCurator
 
          Debug.Write(" [");
 
-         foreach (var item in Configuration.Value)
+         foreach (var item in ThumbnailsConfiguration.Value)
          {
             int count = 0;
             int width = -1;

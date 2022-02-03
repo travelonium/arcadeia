@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +30,10 @@ namespace MediaCurator
          // Instantiate and configure an HTTPClient
          services.AddHttpClient();
 
+         // Configure the Solr Index Service
+         services.AddSolrNet<Models.MediaContainer>(Configuration.GetSection("Solr:URL").Get<string>());
+         services.AddScoped<ISolrIndexService<Models.MediaContainer>, SolrIndexService<Models.MediaContainer, ISolrOperations<Models.MediaContainer>>>();
+
          // Instantiate the ThumbnailsDatabase
          services.AddSingleton<IThumbnailsDatabase, ThumbnailsDatabase>();
 
@@ -47,13 +49,6 @@ namespace MediaCurator
 
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
-
-         // Configure the Solr Index Service if desired
-         if (Configuration.GetSection("Solr:URL").Exists())
-         {
-            services.AddSolrNet<Models.MediaContainer>(Configuration.GetSection("Solr:URL").Get<string>());
-            services.AddScoped<ISolrIndexService<Models.MediaContainer>, SolrIndexService<Models.MediaContainer, ISolrOperations<Models.MediaContainer>>>();
-         }
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>

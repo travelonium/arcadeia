@@ -10,6 +10,12 @@ namespace MediaCurator.Models
       [SolrUniqueKey("id")]
       public string Id { get; set; }
 
+      [SolrUniqueKey("parent")]
+      public string Parent { get; set; }
+
+      [SolrUniqueKey("parentType")]
+      public string ParentType { get; set; }
+
       [SolrField("name")]
       public string Name { get; set; }
 
@@ -25,6 +31,15 @@ namespace MediaCurator.Models
       [SolrField("fullPath")]
       public string FullPath { get; set; }
 
+      [SolrField("dateAdded")]
+      public DateTime DateAdded { get; set; }
+
+      [SolrField("dateCreated")]
+      public DateTime DateCreated { get; set; }
+
+      [SolrField("dateModified")]
+      public DateTime DateModified { get; set; }
+
       [SolrField("flags")]
       public string[] Flags { get; set; }
 
@@ -34,12 +49,6 @@ namespace MediaCurator.Models
 
       [SolrField("size")]
       public long Size { get; set; }
-
-      [SolrField("dateCreated")]
-      public DateTime DateCreated { get; set; }
-
-      [SolrField("dateModified")]
-      public DateTime DateModified { get; set; }
 
       [SolrField("contentType")]
       public string ContentType { get; set; }
@@ -58,10 +67,10 @@ namespace MediaCurator.Models
       public double Duration { get; set; }
 
       [SolrField("width")]
-      public uint Width { get; set; }
+      public long Width { get; set; }
 
       [SolrField("height")]
-      public uint Height { get; set; }
+      public long Height { get; set; }
 
       #endregion // VideoFile
    }

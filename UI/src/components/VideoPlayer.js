@@ -1,6 +1,7 @@
 import React from 'react';
 import videojs from 'video.js';
 import cx from 'classnames';
+import _ from 'lodash';
 
 export class VideoPlayer extends React.Component {
 
@@ -21,7 +22,7 @@ export class VideoPlayer extends React.Component {
 
     componentDidUpdate(prevProps) {
         let sources = this.props.sources;
-        if (sources !== prevProps.sources) {
+        if (!_.isEqual(sources, prevProps.sources)) {
             this.player.src(sources);
         }
     }

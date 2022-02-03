@@ -91,8 +91,13 @@ export class MediaViewer extends Component {
     }
 
     update(source) {
+        let index = this.state.index;
         let sources = this.state.sources;
-        sources[this.state.index] = source;
+        sources[index] = {
+            ...source,
+            // do not update the name until the possible rename operation is through
+            name: sources[index].name,
+        };
         this.setState({
             sources: sources
         }, () => {

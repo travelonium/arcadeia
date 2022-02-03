@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using MediaCurator;
-using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -16,14 +11,20 @@ namespace MediaCurator.Controllers
    [Route("[controller]")]
    public class PreviewController : Controller
    {
+      private readonly IServiceProvider _services;
       private readonly IMediaLibrary _mediaLibrary;
       private readonly IConfiguration _configuration;
-      private readonly ILogger<PreviewController> _logger;
+      private readonly ILogger<MediaContainer> _logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
 
-      public PreviewController(ILogger<PreviewController> logger, IConfiguration configuration, IThumbnailsDatabase thumbnailsDatabase, IMediaLibrary mediaLibrary)
+      public PreviewController(ILogger<MediaContainer> logger,
+                               IServiceProvider services,
+                               IConfiguration configuration,
+                               IThumbnailsDatabase thumbnailsDatabase,
+                               IMediaLibrary mediaLibrary)
       {
          _logger = logger;
+         _services = services;
          _mediaLibrary = mediaLibrary;
          _configuration = configuration;
          _thumbnailsDatabase = thumbnailsDatabase;
@@ -34,16 +35,9 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{name}")]
       public IActionResult Video(string id, string name)
       {
-         XElement element = Tools.GetElementByIdAttribute(_mediaLibrary.Self, "Video", id);
+         VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
-         if (element == null)
-         {
-            return NotFound();
-         }
-
-         VideoFile videoFile = new VideoFile(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
-
-         if ((videoFile.Self == null) || (videoFile.Name != name) || (!videoFile.Exists()))
+         if ((videoFile.Name != name) || (!videoFile.Exists()))
          {
             return NotFound();
          }
@@ -56,16 +50,9 @@ namespace MediaCurator.Controllers
       [Route("photo/{id}/{name}")]
       public IActionResult Photo(string id, string name, [FromQuery] int width = 0, [FromQuery] int height = 0)
       {
-         XElement element = Tools.GetElementByIdAttribute(_mediaLibrary.Self, "Photo", id);
+         PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
-         if (element == null)
-         {
-            return NotFound();
-         }
-
-         PhotoFile photoFile = new(_configuration, _thumbnailsDatabase, _mediaLibrary, element);
-
-         if ((photoFile.Self == null) || (photoFile.Name != name) || (!photoFile.Exists()))
+         if ((photoFile.Name != name) || (!photoFile.Exists()))
          {
             return NotFound();
          }

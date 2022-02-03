@@ -7,7 +7,7 @@ namespace MediaCurator
    /// <summary>
    /// The supported media container type extensions.
    /// </summary>
-   public class MediaContainerTypeExtensions
+   public class SupportedExtensions
    {
       public IConfiguration Configuration { get; }
 
@@ -21,7 +21,7 @@ namespace MediaCurator
          }
       }
 
-      public MediaContainerTypeExtensions(IConfiguration configuration)
+      public SupportedExtensions(IConfiguration configuration)
       {
          Configuration = configuration;
 
