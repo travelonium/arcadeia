@@ -34,6 +34,35 @@ namespace MediaCurator.Services
       private Timer _periodicScanTimer;
 
       /// <summary>
+      /// The lists of folders to be scanned for changes.
+      /// </summary>
+      public List<string> Folders
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:Folders").Exists())
+            {
+               return _configuration.GetSection("Scanner:Folders").Get<List<string>>();
+            }
+            else
+            {
+               return new List<string>();
+            }
+         }
+      }
+
+      /// <summary>
+      /// The lists of folders to be scanned for changes that are mounted or exist.
+      /// </summary>
+      public List<string> AvailableFolders
+      {
+         get
+         {
+            return Folders.Where(folder => Directory.Exists(folder)).ToList<string>();
+         }
+      }
+
+      /// <summary>
       /// The lists of folders to be watched for changes.
       /// </summary>
       public List<string> WatchedFolders
@@ -221,7 +250,7 @@ namespace MediaCurator.Services
          {
             _logger.LogInformation("Starting Startup Scanning...");
 
-            foreach (var folder in WatchedFolders)
+            foreach (var folder in AvailableFolders.Concat(AvailableWatchedFolders).ToList())
             {
                // Queue the folder startup folder scan.
                _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
@@ -238,7 +267,7 @@ namespace MediaCurator.Services
 
             _periodicScanTimer = new Timer(state =>
             {
-               foreach (var folder in AvailableWatchedFolders)
+               foreach (var folder in AvailableFolders)
                {
                   // Queue the folder periodic scan.
                   _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
@@ -372,6 +401,8 @@ namespace MediaCurator.Services
          // whether or not any files have been physically removed and thus update the MediaLibrary.
 
          var documents = solrIndexService.Get(SolrQuery.All);
+         var folders = Folders.Concat(WatchedFolders).ToList();
+         var availableFolders = AvailableFolders.Concat(AvailableWatchedFolders).ToList();
 
          _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
 
@@ -389,8 +420,8 @@ namespace MediaCurator.Services
                if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                {
                   // Make sure if the path is located in a watched folder, that folder is available.
-                  if (!WatchedFolders.Any(folder => document.FullPath.StartsWith(folder)) ||
-                      AvailableWatchedFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                  if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
+                      availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
                   {
                      // Update the current media container.
                      using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
