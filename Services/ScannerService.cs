@@ -181,6 +181,24 @@ namespace MediaCurator.Services
          }
       }
 
+      /// <summary>
+      /// The number of parallel scanner tasks while startup scanning.
+      /// </summary>
+      public int ParallelScannerTasks
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:ParallelScannerTasks").Exists())
+            {
+               return _configuration.GetSection("Scanner:ParallelScannerTasks").Get<int>();
+            }
+            else
+            {
+               return -1;
+            }
+         }
+      }
+
       public ScannerService(ILogger<ScannerService> logger,
                             IServiceProvider services,
                             IConfiguration configuration,
@@ -332,7 +350,7 @@ namespace MediaCurator.Services
             // Loop through the files in the specific MediaLocation in parallel.
             try
             {
-               Parallel.ForEach(files, /* new ParallelOptions { MaxDegreeOfParallelism = 10 },*/ (file) =>
+               Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, (file) =>
                {
                   var name = Path.GetFileName(file);
 
