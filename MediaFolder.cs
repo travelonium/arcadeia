@@ -33,7 +33,6 @@ namespace MediaCurator
             return;
          }
 
-
          try
          {
             // Acquire the common directory information.

@@ -8,5 +8,6 @@ namespace MediaCurator
    {
       MediaFile InsertMedia(string path);
       MediaContainer UpdateMediaContainer(string id = null, string type = null, string path = null);
+      string GenerateUniqueId(string path, out bool reused);
    }
 }

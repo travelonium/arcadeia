@@ -300,43 +300,44 @@ namespace MediaCurator.Services
          {
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
 
-            // Loop through the files in the specific MediaLocation.
-            foreach (var file in files)
+            // Loop through the files in the specific MediaLocation in parallel.
+            try
             {
-               var name = Path.GetFileName(file);
-
-               if (_cancellationToken.IsCancellationRequested)
+               Parallel.ForEach(files, /* new ParallelOptions { MaxDegreeOfParallelism = 10 },*/ (file) =>
                {
-                  // Return gracefully now!
-                  return;
-               }
+                  var name = Path.GetFileName(file);
 
-               // Should the file name be ignored
-               foreach (Regex pattern in patterns)
-               {
-                  if (pattern.IsMatch(name))
+                  // Should the file name be ignored
+                  foreach (Regex pattern in patterns)
                   {
-                     _logger.LogDebug("File Ignored: {}", file);
+                     if (pattern.IsMatch(name))
+                     {
+                        _logger.LogDebug("File Ignored: {}", file);
 
-                     goto Skip;
+                        continue;
+                     }
                   }
-               }
 
-               try
+                  try
+                  {
+                     // Add the file to the MediaLibrary.
+                     using MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
+                  }
+                  catch (Exception e)
+                  {
+                     _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
+                     _logger.LogDebug("{}", e.ToString());
+                  }
+               });
+            }
+            catch (AggregateException ae)
+            {
+               _logger.LogWarning("Encountered {} Exceptions:", ae.Flatten().InnerExceptions.Count);
+
+               foreach (var e in ae.Flatten().InnerExceptions)
                {
-                  // Add the file to the MediaLibrary.
-                  using MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
-               }
-               catch (Exception e)
-               {
-                  _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
                   _logger.LogDebug("{}", e.ToString());
-
-                  goto Skip;
                }
-
-            Skip:
-               continue;
             }
 
             _logger.LogInformation("{} Scanning Finished: {}", type, path);

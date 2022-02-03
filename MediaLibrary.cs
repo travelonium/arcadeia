@@ -1,14 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using MediaCurator.Solr;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaCurator
 {
    class MediaLibrary : MediaContainer, IMediaLibrary
    {
+      private readonly object _lock = new();
+
+      private readonly Dictionary<string, string> _ids = new();
+
       /// <summary>
       /// The supported file extensions for each media type.
       /// </summary>
@@ -42,6 +45,29 @@ namespace MediaCurator
       }
 
       #endregion // Constructors
+
+      #region Public Methods
+
+      public string GenerateUniqueId(string path, out bool reused)
+      {
+         lock (_lock)
+         {
+            if (_ids.ContainsKey(path))
+            {
+               reused = true;
+               return _ids[path];
+            }
+            else
+            {
+               reused = false;
+               _ids[path] = System.IO.Path.GetRandomFileName();
+            }
+
+            return _ids[path];
+         }
+      }
+
+      #endregion // Public Methods
 
       public MediaFile InsertMedia(string path)
       {
