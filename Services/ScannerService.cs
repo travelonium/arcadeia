@@ -379,13 +379,15 @@ namespace MediaCurator.Services
             }
             catch (AggregateException ae)
             {
-               _logger.LogWarning("Encountered {} Exceptions:", ae.Flatten().InnerExceptions.Count);
+               _logger.LogError("Encountered {} Exception(s):", ae.Flatten().InnerExceptions.Count);
 
                foreach (var e in ae.Flatten().InnerExceptions)
                {
                   _logger.LogDebug("{}", e.ToString());
                }
             }
+
+            _mediaLibrary.ClearCache();
 
             _logger.LogInformation("{} Scanning Finished: {}", type, path);
          }
@@ -454,6 +456,8 @@ namespace MediaCurator.Services
                break;
             }
          }
+
+         _mediaLibrary.ClearCache();
 
          _logger.LogInformation("Startup Update Finished.");
       }

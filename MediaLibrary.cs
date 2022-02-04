@@ -10,7 +10,10 @@ namespace MediaCurator
    {
       private readonly object _lock = new();
 
-      private readonly Dictionary<string, string> _ids = new();
+      // A simple dictionary caching the newly created Ids keyed by the FullPath of their holders.
+      // This makes parallel scanning possible as otherwise concurrency issues with updating the
+      // Solr index leads to duplicate entries. The cache should be cleared once the scanning is over.
+      private readonly Dictionary<string, string> _cache = new();
 
       /// <summary>
       /// The supported file extensions for each media type.
@@ -58,19 +61,26 @@ namespace MediaCurator
                return null;
             }
 
-            if (_ids.ContainsKey(path))
+            if (_cache.ContainsKey(path))
             {
                reused = true;
-               return _ids[path];
+               return _cache[path];
             }
             else
             {
                reused = false;
-               _ids[path] = System.IO.Path.GetRandomFileName();
+               _cache[path] = System.IO.Path.GetRandomFileName();
             }
 
-            return _ids[path];
+            return _cache[path];
          }
+      }
+
+      public void ClearCache()
+      {
+         _cache.Clear();
+
+         Logger.LogInformation("Media Library Cache Cleared!");
       }
 
       #endregion // Public Methods
