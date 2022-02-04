@@ -34,6 +34,35 @@ namespace MediaCurator.Services
       private Timer _periodicScanTimer;
 
       /// <summary>
+      /// The lists of folders to be scanned for changes.
+      /// </summary>
+      public List<string> Folders
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:Folders").Exists())
+            {
+               return _configuration.GetSection("Scanner:Folders").Get<List<string>>();
+            }
+            else
+            {
+               return new List<string>();
+            }
+         }
+      }
+
+      /// <summary>
+      /// The lists of folders to be scanned for changes that are mounted or exist.
+      /// </summary>
+      public List<string> AvailableFolders
+      {
+         get
+         {
+            return Folders.Where(folder => Directory.Exists(folder)).ToList<string>();
+         }
+      }
+
+      /// <summary>
       /// The lists of folders to be watched for changes.
       /// </summary>
       public List<string> WatchedFolders
@@ -152,6 +181,24 @@ namespace MediaCurator.Services
          }
       }
 
+      /// <summary>
+      /// The number of parallel scanner tasks while startup scanning.
+      /// </summary>
+      public int ParallelScannerTasks
+      {
+         get
+         {
+            if (_configuration.GetSection("Scanner:ParallelScannerTasks").Exists())
+            {
+               return _configuration.GetSection("Scanner:ParallelScannerTasks").Get<int>();
+            }
+            else
+            {
+               return -1;
+            }
+         }
+      }
+
       public ScannerService(ILogger<ScannerService> logger,
                             IServiceProvider services,
                             IConfiguration configuration,
@@ -221,7 +268,7 @@ namespace MediaCurator.Services
          {
             _logger.LogInformation("Starting Startup Scanning...");
 
-            foreach (var folder in WatchedFolders)
+            foreach (var folder in AvailableFolders.Concat(AvailableWatchedFolders).ToList())
             {
                // Queue the folder startup folder scan.
                _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
@@ -238,7 +285,7 @@ namespace MediaCurator.Services
 
             _periodicScanTimer = new Timer(state =>
             {
-               foreach (var folder in AvailableWatchedFolders)
+               foreach (var folder in AvailableFolders)
                {
                   // Queue the folder periodic scan.
                   _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
@@ -300,44 +347,47 @@ namespace MediaCurator.Services
          {
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
 
-            // Loop through the files in the specific MediaLocation.
-            foreach (var file in files)
+            // Loop through the files in the specific MediaLocation in parallel.
+            try
             {
-               var name = Path.GetFileName(file);
-
-               if (_cancellationToken.IsCancellationRequested)
+               Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, (file) =>
                {
-                  // Return gracefully now!
-                  return;
-               }
+                  var name = Path.GetFileName(file);
 
-               // Should the file name be ignored
-               foreach (Regex pattern in patterns)
-               {
-                  if (pattern.IsMatch(name))
+                  // Should the file name be ignored
+                  foreach (Regex pattern in patterns)
                   {
-                     _logger.LogDebug("File Ignored: {}", file);
+                     if (pattern.IsMatch(name))
+                     {
+                        _logger.LogDebug("File Ignored: {}", file);
 
-                     goto Skip;
+                        return;
+                     }
                   }
-               }
 
-               try
-               {
-                  // Add the file to the MediaLibrary.
-                  using MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
-               }
-               catch (Exception e)
-               {
-                  _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
-                  _logger.LogDebug("{}", e.ToString());
-
-                  goto Skip;
-               }
-
-            Skip:
-               continue;
+                  try
+                  {
+                     // Add the file to the MediaLibrary.
+                     using MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
+                  }
+                  catch (Exception e)
+                  {
+                     _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
+                     _logger.LogDebug("{}", e.ToString());
+                  }
+               });
             }
+            catch (AggregateException ae)
+            {
+               _logger.LogError("Encountered {} Exception(s):", ae.Flatten().InnerExceptions.Count);
+
+               foreach (var e in ae.Flatten().InnerExceptions)
+               {
+                  _logger.LogDebug("{}", e.ToString());
+               }
+            }
+
+            _mediaLibrary.ClearCache();
 
             _logger.LogInformation("{} Scanning Finished: {}", type, path);
          }
@@ -371,6 +421,8 @@ namespace MediaCurator.Services
          // whether or not any files have been physically removed and thus update the MediaLibrary.
 
          var documents = solrIndexService.Get(SolrQuery.All);
+         var folders = Folders.Concat(WatchedFolders).ToList();
+         var availableFolders = AvailableFolders.Concat(AvailableWatchedFolders).ToList();
 
          _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
 
@@ -388,8 +440,8 @@ namespace MediaCurator.Services
                if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                {
                   // Make sure if the path is located in a watched folder, that folder is available.
-                  if (!WatchedFolders.Any(folder => document.FullPath.StartsWith(folder)) ||
-                      AvailableWatchedFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                  if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
+                      availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
                   {
                      // Update the current media container.
                      using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
@@ -404,6 +456,8 @@ namespace MediaCurator.Services
                break;
             }
          }
+
+         _mediaLibrary.ClearCache();
 
          _logger.LogInformation("Startup Update Finished.");
       }

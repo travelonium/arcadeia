@@ -27,8 +27,8 @@ namespace MediaCurator
 
       #region Fields
 
-      private long _width = 0;
-      private long _height = 0;
+      private long _width  = -1;
+      private long _height = -1;
 
       /// <summary>
       /// Gets or sets the resolution of the photo file.
@@ -44,10 +44,10 @@ namespace MediaCurator
          {
             if (Resolution != value)
             {
+               Modified = ((_width >= 0) || (_height >= 0));
+
                _width = value.Width;
                _height = value.Height;
-
-               Modified = true;
             }
          }
       }
@@ -195,6 +195,7 @@ namespace MediaCurator
 
                output = image.ToByteArray();
 
+               /*
                if (output.Length > 0)
                {
                   Debug.Write(".");
@@ -203,10 +204,11 @@ namespace MediaCurator
                {
                   Debug.Write("o");
                }
+               */
             }
             catch (Exception)
             {
-               Debug.Write("x");
+               // Debug.Write("x");
             }
          }
 
@@ -232,9 +234,9 @@ namespace MediaCurator
                                          GENERATE THUMBNAILS
          ----------------------------------------------------------------------------------*/
          
-         Debug.Write("GENERATING THUMBNAILS: " + FullPath);
+         // Debug.Write("GENERATING THUMBNAILS: " + FullPath);
 
-         Debug.Write(" [");
+         // Debug.Write(" [");
 
          foreach (var item in ThumbnailsConfiguration.Value)
          {
@@ -271,7 +273,7 @@ namespace MediaCurator
             }
          }
 
-         Debug.WriteLine("]");
+         // Debug.WriteLine("]");
 
          if (total > 0)
          {

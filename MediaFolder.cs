@@ -33,7 +33,6 @@ namespace MediaCurator
             return;
          }
 
-
          try
          {
             // Acquire the common directory information.
@@ -54,12 +53,6 @@ namespace MediaCurator
             Skipped = true;
 
             return;
-         }
-
-         if (Created)
-         {
-            // Extract the Folder Name from the supplied path removing the \ and / characters.
-            Name = MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\', '/' });
          }
       }
 

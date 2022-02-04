@@ -1,14 +1,20 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using MediaCurator.Solr;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaCurator
 {
    class MediaLibrary : MediaContainer, IMediaLibrary
    {
+      private readonly object _lock = new();
+
+      // A simple dictionary caching the newly created Ids keyed by the FullPath of their holders.
+      // This makes parallel scanning possible as otherwise concurrency issues with updating the
+      // Solr index leads to duplicate entries. The cache should be cleared once the scanning is over.
+      private readonly Dictionary<string, string> _cache = new();
+
       /// <summary>
       /// The supported file extensions for each media type.
       /// </summary>
@@ -42,6 +48,42 @@ namespace MediaCurator
       }
 
       #endregion // Constructors
+
+      #region Public Methods
+
+      public string GenerateUniqueId(string path, out bool reused)
+      {
+         lock (_lock)
+         {
+            if (path == null)
+            {
+               reused = false;
+               return null;
+            }
+
+            if (_cache.ContainsKey(path))
+            {
+               reused = true;
+               return _cache[path];
+            }
+            else
+            {
+               reused = false;
+               _cache[path] = System.IO.Path.GetRandomFileName();
+            }
+
+            return _cache[path];
+         }
+      }
+
+      public void ClearCache()
+      {
+         _cache.Clear();
+
+         Logger.LogInformation("Media Library Cache Cleared!");
+      }
+
+      #endregion // Public Methods
 
       public MediaFile InsertMedia(string path)
       {

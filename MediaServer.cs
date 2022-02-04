@@ -24,12 +24,6 @@ namespace MediaCurator
          // parents and below we'll take care of its specific attributes.
 
          if (Skipped) return;
-
-         if (Created)
-         {
-            // Extract the Server Name from the supplied path removing the \ characters.
-            Name = MediaContainer.GetPathComponents(path).Child?.Trim(new Char[] { '\\' });
-         }
       }
 
       #endregion // Constructors
