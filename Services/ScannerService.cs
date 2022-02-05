@@ -357,7 +357,7 @@ namespace MediaCurator.Services
                   // Should the file name be ignored
                   foreach (Regex pattern in patterns)
                   {
-                     if (pattern.IsMatch(name))
+                     if (pattern.IsMatch(file) || pattern.IsMatch(name))
                      {
                         _logger.LogDebug("File Ignored: {}", file);
 

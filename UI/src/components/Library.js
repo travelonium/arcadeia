@@ -7,12 +7,15 @@ import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { clone, extract, size, updateBit } from './../utils';
+import { reset, setPath } from '../features/search/slice';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 import { toast } from 'react-toastify';
+import { connect } from "react-redux";
 import cx from 'classnames';
+import _ from 'lodash';
 
-export class Library extends Component {
+class Library extends Component {
 
     static displayName = Library.name;
 
@@ -25,11 +28,10 @@ export class Library extends Component {
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
         this.controller = new AbortController();
-        let path = "/" + extract("", props, "match", "params", 0) + window.location.search;
         this.state = {
+            history: false,
             loading: false,
             status: "",
-            path: path,
             items: [],
             options: {
                 videoPlayer: {
@@ -54,29 +56,31 @@ export class Library extends Component {
         // install the event handler for keydown keyboard events
         document.addEventListener('keydown', this.onKeyDown.bind(this));
         // handle the startup query parsing
-        this.props.navigation.current.resetSearchParams(() => {
-            if (this.props.navigation.current.state.query) {
-                this.search();
-            } else {
-                this.list(this.state.path);
-            }
-        });
+        let path = "/" + extract("", this.props, "match", "params", 0) + window.location.search;
+        this.props.dispatch(reset(path));
         // handles the browser history operations
         window.onpopstate = (event) => {
-            let path = extract(null, event, 'state', 'path');
-            if (path) {
-                this.props.navigation.current.resetSearchParams(() => {
-                    this.list(event.state.path, true);
-                });
-            }
+            let path = extract("", event, 'state', 'path');
+            this.setState({
+                history: true, // notify the search function that the call is coming from the history
+            }, () => {
+                this.props.dispatch(reset(path));
+            });
         };
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps) {
+        if (!_.isEqual(this.props.search, prevProps.search)) {
+            if (this.props.search.query) {
+                this.search();
+            } else {
+                this.list(this.props.search.path);
+            }
+        }
     }
 
-    list(path, history = false) {
-        this.search(path, history);
+    list(path) {
+        this.search(path);
     }
 
     /**
@@ -135,28 +139,25 @@ export class Library extends Component {
         });
     }
 
-    search(browse = null, history = false) {
-        if (browse) this.props.navigation.current.clearSearch();
-        let path = browse ?? this.state.path;
+    search(browse = null) {
+        let path = browse ?? this.props.search.path;
         if (!path) return;
-        let query = browse ? "*" : this.props.navigation.current.state.query;
+        let history = this.state.history;
+        let query = browse ? "*" : this.props.search.query;
         let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (!query && !browse) {
-            // looks like the search field has been cleared, let's call off the search
-            this.list(path.split('?')[0]);
-            return;
-        }
-        let deleted = false;
-        let favorite = this.props.navigation.current.state.favorite;
-        let recursive = this.props.navigation.current.state.recursive;
-        if (!browse) {
-            // update the recursive parameter
-            params.set("recursive", recursive);
+        if (browse) {
+            params.delete("query");
+        } else {
             // update the query parameter
             params.set("query", query);
         }
+        let deleted = false;
+        let favorite = this.props.search.favorite;
+        let recursive = this.props.search.recursive;
+        // update the recursive parameter
+        params.set("recursive", recursive);
         // update the favorite flags parameters
         flags = updateBit(flags, 1, favorite);
         values = updateBit(values, 1, favorite);
@@ -206,6 +207,7 @@ export class Library extends Component {
             items: [],
             path: path,
             loading: true,
+            history: false,
             status: "Requesting",
         }, () => {
             // change the url and the history before going any further
@@ -256,7 +258,7 @@ export class Library extends Component {
     }
 
     open(source) {
-        this.list(source.fullPath);
+        this.props.dispatch(setPath(source.fullPath));
     }
 
     view(source, index = 0, player = true) {
@@ -371,7 +373,6 @@ export class Library extends Component {
                         return;
                 }
             } else if (photoViewer) {
-                console.log(photoViewer);
                 switch (event.code) {
                     case 'KeyF':
                         if (photoViewer.fulled) {
@@ -430,12 +431,11 @@ export class Library extends Component {
 
     render() {
         let location = "/";
-        let url = "Library".concat(this.state.path);
+        let url = "Library".concat(this.props.search.path);
         let path = url.split('?')[0];
-        let params = url.split("?")[1];
         let status = this.state.status;
         let loading = this.state.loading;
-        let search = (params !== undefined) && (params.indexOf("query=") !== -1);
+        let search = this.props.search.query ? true : false;
         let components = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
         return (
             <>
@@ -459,7 +459,8 @@ export class Library extends Component {
                                     <Breadcrumb.Item key={"library-path-item-" + index} href={link} active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        this.list(event.target.getAttribute("link"));
+                                        let link = event.target.getAttribute("link");
+                                        if (link) this.props.dispatch(setPath(link));
                                     }} >{component}</Breadcrumb.Item>
                                 );
                             })
@@ -517,7 +518,7 @@ export class Library extends Component {
                     </div>
                 </div>
                 {/*
-                <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "light"} variant="dark" className="p-3">
+                <Navbar collapseOnSelect expand="sm" bg={(state.ui.theme === "dark") ? "dark" : "light"} variant="dark" className="p-3">
                     <div style={{flexGrow: 1}}>{this.files()}</div>
                     <div>{size(this.state.items.reduce((sum, item) => sum + item.size, 0))}</div>
                 </Navbar>
@@ -526,3 +527,17 @@ export class Library extends Component {
         );
     }
 }
+
+const mapStateToProps = (state) => ({
+    ui: {
+        theme: state.ui.theme,
+    },
+    search: {
+        path: state.search.path,
+        query: state.search.query,
+        favorite: state.search.favorite,
+        recursive: state.search.recursive,
+    }
+});
+
+export default connect(mapStateToProps, null, null, { forwardRef: true })(Library);

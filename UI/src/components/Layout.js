@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { NavMenu } from './NavMenu';
+import NavMenu from './NavMenu';
 
 export class Layout extends Component {
   static displayName = Layout.name;
@@ -7,7 +7,7 @@ export class Layout extends Component {
   render () {
     return (
       <div className="d-flex flex-column align-content-stretch h-100">
-        <NavMenu ref={this.props.navigation} library={this.props.library} darkMode={this.props.darkMode} />
+        <NavMenu />
         {this.props.children}
       </div>
     );
