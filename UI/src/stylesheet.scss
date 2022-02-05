@@ -4,9 +4,7 @@
 @import '~animate.css/animate.css';
 
 .light {
-    @import "~bootswatch/dist/flatly/variables";
-    @import "~bootstrap/scss/bootstrap";
-    @import "~bootswatch/dist/flatly/bootswatch";
+    @import "~bootswatch/dist/flatly/bootstrap.min.css";
 
     /* FIXME: Not working as expected. This is meant to eliminate the need for passing the darkMode.
     header {
@@ -18,37 +16,34 @@
     .media-container {
         &:hover {
             .card {
-                border: 1px solid rgba($black, 0.125);
-                box-shadow: 0 .125rem .25rem rgba($black, .075);
+                border: 1px solid rgba(#000, 0.125);
+                box-shadow: 0 .125rem .25rem rgba(#000, .075);
             }
         }
     }
 
     .editable-text {
-
         &:hover {
-            -webkit-box-shadow: inset 0px -3px 0px rgba($black, 0.1);
-            -moz-box-shadow: inset 0px -3px 0px rgba($black, 0.1);
-            box-shadow: inset 0px -3px 0px rgba($black, 0.1);
+            -webkit-box-shadow: inset 0px -3px 0px rgba(#000, 0.1);
+            -moz-box-shadow: inset 0px -3px 0px rgba(#000, 0.1);
+            box-shadow: inset 0px -3px 0px rgba(#000, 0.1);
 
             .underline {
-                background-color: rgba($black, 0.1);
+                background-color: rgba(#000, 0.1);
             }
         }
 
         &.editing {
 
             .underline {
-                background-color: rgba($info, 1.0);
+                background-color: rgba(#3498db, 1.0);
             }
         }
     }
 }
 
 .dark {
-    @import "~bootswatch/dist/darkly/variables";
-    @import "~bootstrap/scss/bootstrap";
-    @import "~bootswatch/dist/darkly/bootswatch";
+    @import "~bootswatch/dist/darkly/bootstrap.min.css";
 
     /* FIXME: Not working as expected. This is meant to eliminate the need for passing the darkMode.
     header {
@@ -62,7 +57,7 @@
         .breadcrumb-item {
             a {
                 &:hover {
-                    color: rgba($body-color, 0.7);
+                    color: rgba(#fff, 0.7);
                 }
             }
         }
@@ -71,8 +66,8 @@
     .media-container {
         &:hover {
             .card {
-                border: 1px solid rgba($white, 0.125);
-                box-shadow: 0 .125rem .75rem rgba($white, 0.050);
+                border: 1px solid rgba(#fff, 0.125);
+                box-shadow: 0 .125rem .75rem rgba(#fff, 0.050);
             }
         }
     }
@@ -80,25 +75,23 @@
     .editable-text {
 
         &:hover {
-            -webkit-box-shadow: inset 0px -3px 0px rgba($white, 0.1);
-            -moz-box-shadow: inset 0px -3px 0px rgba($white, 0.1);
-            box-shadow: inset 0px -3px 0px rgba($white, 0.1);
+            -webkit-box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
+            -moz-box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
+            box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
 
             .underline {
-                background-color: rgba($black, 0.1);
+                background-color: rgba(#000, 0.1);
             }
         }
 
         &.editing {
 
             .underline {
-                background-color: rgba($info, 1.0);
+                background-color: rgba(#3498db, 1.0);
             }
         }
     }
 }
-
-@import "~bootstrap/scss/bootstrap";
 
 @mixin flag-styles {
     -moz-osx-font-smoothing: grayscale;

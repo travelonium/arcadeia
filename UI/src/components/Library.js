@@ -465,9 +465,9 @@ class Library extends Component {
                                 );
                             })
                         }
-                        <div className="statistics d-none d-md-block ml-auto">
+                        <div className="statistics d-none d-md-block ms-auto">
                             <span className="statistics-files">{this.files()}</span>
-                            <span className="statistics-size ml-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
+                            <span className="statistics-size ms-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
