@@ -72,7 +72,7 @@ class NavMenu extends Component {
     render() {
         return (
             <header>
-                <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
+                <Navbar collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "primary"} variant="dark" className="mb-3 py-2">
                     <Navbar.Brand className="py-0" href="/">
                         <svg width="35" height="35" className="animate__animated animate__rotateIn">
                             <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
@@ -102,6 +102,9 @@ class NavMenu extends Component {
 }
 
 const mapStateToProps = (state) => ({
+    ui: {
+        theme: state.ui.theme,
+    },
     search: {
         path: state.search.path,
         query: state.search.query,

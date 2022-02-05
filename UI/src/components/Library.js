@@ -518,7 +518,7 @@ class Library extends Component {
                     </div>
                 </div>
                 {/*
-                <Navbar collapseOnSelect expand="sm" bg={this.props.darkMode ? "dark" : "light"} variant="dark" className="p-3">
+                <Navbar collapseOnSelect expand="sm" bg={(state.ui.theme === "dark") ? "dark" : "light"} variant="dark" className="p-3">
                     <div style={{flexGrow: 1}}>{this.files()}</div>
                     <div>{size(this.state.items.reduce((sum, item) => sum + item.size, 0))}</div>
                 </Navbar>
@@ -529,6 +529,9 @@ class Library extends Component {
 }
 
 const mapStateToProps = (state) => ({
+    ui: {
+        theme: state.ui.theme,
+    },
     search: {
         path: state.search.path,
         query: state.search.query,
