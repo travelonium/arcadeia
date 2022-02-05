@@ -7,7 +7,7 @@ export class Layout extends Component {
   render () {
     return (
       <div className="d-flex flex-column align-content-stretch h-100">
-        <NavMenu library={this.props.library} />
+        <NavMenu />
         {this.props.children}
       </div>
     );
