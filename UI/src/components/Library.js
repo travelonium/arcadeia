@@ -29,6 +29,7 @@ class Library extends Component {
         this.mediaViewer = React.createRef();
         this.controller = new AbortController();
         this.state = {
+            history: false,
             loading: false,
             status: "",
             items: [],
@@ -59,10 +60,12 @@ class Library extends Component {
         this.props.dispatch(reset(path));
         // handles the browser history operations
         window.onpopstate = (event) => {
-            let path = extract(null, event, 'state', 'path');
-            if (path) {
-                this.props.dispatch(setPath(path));
-            }
+            let path = extract("", event, 'state', 'path');
+            this.setState({
+                history: true, // notify the search function that the call is coming from the history
+            }, () => {
+                this.props.dispatch(reset(path));
+            });
         };
     }
 
@@ -76,8 +79,8 @@ class Library extends Component {
         }
     }
 
-    list(path, history = false) {
-        this.search(path, history);
+    list(path) {
+        this.search(path);
     }
 
     /**
@@ -136,27 +139,23 @@ class Library extends Component {
         });
     }
 
-    search(browse = null, history = false) {
+    search(browse = null) {
         let path = browse ?? this.props.search.path;
         if (!path) return;
+        let history = this.state.history;
         let query = browse ? "*" : this.props.search.query;
         let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (!query && !browse) {
-            // looks like the search field has been cleared, let's call off the search
-            this.list(path.split('?')[0]);
-            return;
-        }
-        let deleted = false;
-        let favorite = this.props.search.favorite;
-        let recursive = this.props.search.recursive;
         if (browse) {
             params.delete("query");
         } else {
             // update the query parameter
             params.set("query", query);
         }
+        let deleted = false;
+        let favorite = this.props.search.favorite;
+        let recursive = this.props.search.recursive;
         // update the recursive parameter
         params.set("recursive", recursive);
         // update the favorite flags parameters
@@ -208,6 +207,7 @@ class Library extends Component {
             items: [],
             path: path,
             loading: true,
+            history: false,
             status: "Requesting",
         }, () => {
             // change the url and the history before going any further
@@ -459,7 +459,7 @@ class Library extends Component {
                                     <Breadcrumb.Item key={"library-path-item-" + index} href={link} active={active} linkProps={{ link: link, className: "text-decoration-none" }} onClick={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        let lint = event.target.getAttribute("link");
+                                        let link = event.target.getAttribute("link");
                                         if (link) this.props.dispatch(setPath(link));
                                     }} >{component}</Breadcrumb.Item>
                                 );

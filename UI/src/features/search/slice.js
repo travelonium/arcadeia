@@ -25,25 +25,25 @@ export const searchSlice = createSlice({
             state.recursive = action.payload;
         },
         reset: (state, action) => {
-            let path = action.payload;
-            let params = new URLSearchParams(window.location.search);
+            let path = action.payload?.split('?')[0];
+            let params = new URLSearchParams(action.payload?.split('?')[1] ?? window.location.search);
             let query = params.get("query");
             let flags = parseInt(params.get("flags"));
             let values = parseInt(params.get("values"));
             let recursive = params.get("recursive");
-            if (query) {
-                state.query = query;
-            }
-            if (path) {
-                state.path = path;
-            }
+            state.query = query ?? initialState.query;
+            state.path = path ?? initialState.path;
             if (flags && values) {
                 if (flags & (1 << 1)) {
                     state.favorite = ((values & (1 << 1)) !== 0);
                 }
+            } else {
+                state.favorite = initialState.favorite;
             }
             if (recursive) {
                 state.recursive = (recursive === "true");
+            } else {
+                state.recursive = initialState.recursive;
             }
         },
     },
