@@ -1,9 +1,7 @@
 import React, { Component } from 'react';
-import { Route } from 'react-router';
+import Library from './components/Library';
 import { Layout } from './components/Layout';
-import { Library } from './components/Library';
-import { FetchData } from './components/FetchData';
-import { Counter } from './components/Counter';
+import { Route } from 'react-router';
 
 export default class App extends Component {
     static displayName = App.name;
@@ -11,7 +9,6 @@ export default class App extends Component {
     constructor(props) {
         super(props);
         this.library = React.createRef();
-        this.navigation = React.createRef();
         this.state = {
             darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches ? true : false
         };
@@ -44,11 +41,10 @@ export default class App extends Component {
 
     render() {
         return (
-            <Layout library={this.library} navigation={this.navigation} darkMode={this.state.darkMode}>
-                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} forwardedRef={this.library} navigation={this.navigation} darkMode={this.state.darkMode} /> } />
-                <Route path='/counter' component={Counter} />
-                <Route path='/fetch-data' component={FetchData} />
+            <Layout library={this.library} darkMode={this.state.darkMode}>
+                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} forwardedRef={this.library} darkMode={this.state.darkMode} /> } />
             </Layout>
         );
     }
 }
+

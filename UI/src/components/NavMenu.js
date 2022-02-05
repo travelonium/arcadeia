@@ -1,11 +1,14 @@
+import Nav from 'react-bootstrap/Nav';
+import Form from 'react-bootstrap/Form';
 import React, { Component } from 'react';
 import Navbar from 'react-bootstrap/Navbar';
-import Form from 'react-bootstrap/Form';
-import Nav from 'react-bootstrap/Nav';
+import { setQuery, setFavorite, setRecursive } from '../features/search/slice';
+import { connect } from "react-redux";
 import { Flag } from './Flag';
+import _ from 'lodash';
 import './NavMenu.css';
 
-export class NavMenu extends Component {
+class NavMenu extends Component {
     static displayName = NavMenu.name;
 
     constructor(props) {
@@ -13,40 +16,21 @@ export class NavMenu extends Component {
         this.searchTimeout = null;
         this.toggleNavbar = this.toggleNavbar.bind(this);
         this.state = {
-            query: "",
+            timeout: 0,
             collapsed: true,
-            favorite: false,
-            recursive: true,
+            query: this.props.search.query,
         };
     }
 
     componentDidMount() {
-        this.resetSearchParams();
     }
 
-    resetSearchParams(callback = () => {}) {
-        let state = Object.assign(this.state, {
-            query: "",
-            favorite: false,
-            recursive: true,
-        });
-        let params = new URLSearchParams(window.location.search);
-        let query = params.get("query");
-        let flags = parseInt(params.get("flags"));
-        let values = parseInt(params.get("values"));
-        let recursive = params.get("recursive");
-        if (query) {
-            state.query = query;
+    componentDidUpdate(prevProps) {
+        if (!_.isEqual(this.props.search, prevProps.search)) {
+            this.setState({
+                query: this.props.search.query,
+            });
         }
-        if (flags && values) {
-            if (flags & (1 << 1)) {
-                state.favorite = ((values & (1 << 1)) !== 0);
-            }
-        }
-        if (recursive) {
-            state.recursive = (recursive === "true");
-        }
-        this.setState(state, callback);
     }
 
     onChange(event) {
@@ -57,54 +41,32 @@ export class NavMenu extends Component {
         this.setState({
             query: value
         }, () => {
-            this.searchTimeout = setTimeout(() => this.onTimeout(), 700);
-        })
+            this.searchTimeout = setTimeout(() => this.onTimeout(), this.state.timeout);
+        });
     }
 
     onTimeout() {
         clearTimeout(this.searchTimeout);
-        let library = this.props.library.current;
-        library.search();
+        this.props.dispatch(setQuery(this.state.query));
     }
 
     onKeyDown(event) {
     }
 
     onToggleFavorite(value) {
-        this.setState({
-            favorite: value
-        }, () => {
-            let library = this.props.library.current;
-            if (this.state.query) {
-                clearTimeout(this.searchTimeout);
-                library.search();
-            } else {
-                library.list(library.state.path, true);
-            }
-        });
+        clearTimeout(this.searchTimeout);
+        this.props.dispatch(setFavorite(value));
     }
 
     onToggleRecursive(value) {
-        this.setState({
-            recursive: value
-        }, () => {
-            if (!this.state.query) return;
-            clearTimeout(this.searchTimeout);
-            let library = this.props.library.current;
-            library.search();
-        });
+        clearTimeout(this.searchTimeout);
+        this.props.dispatch(setRecursive(value));
     }
 
     toggleNavbar() {
         this.setState({
             collapsed: !this.state.collapsed
         });
-    }
-
-    clearSearch() {
-        this.setState({
-            query: "",
-        })
     }
 
     render() {
@@ -124,8 +86,8 @@ export class NavMenu extends Component {
                         <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
-                                    <Flag className="mr-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
-                                    <Flag className="mr-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
+                                    <Flag className="mr-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                                    <Flag className="mr-1" button name="recursive" tooltip="Recursive" value={this.props.search.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                 </div>
                             </Nav.Item>
                             <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
@@ -138,3 +100,14 @@ export class NavMenu extends Component {
         );
     }
 }
+
+const mapStateToProps = (state) => ({
+    search: {
+        path: state.search.path,
+        query: state.search.query,
+        favorite: state.search.favorite,
+        recursive: state.search.recursive,
+    }
+});
+
+export default connect(mapStateToProps, null, null)(NavMenu);
