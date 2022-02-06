@@ -95,7 +95,10 @@ namespace MediaCurator
          }
          else
          {
-            app.UseHttpsRedirection();
+            // Disabled the HTTPS as React Scripts would require the development server to use
+            // secure sockets e.g. wss://localhost:3000/ws instead of ws://... and this broke the
+            // auto refresh.
+            // app.UseHttpsRedirection();
          }
 
          app.UseAuthentication();
@@ -118,6 +121,9 @@ namespace MediaCurator
             if (env.IsDevelopment())
             {
                spa.UseReactDevelopmentServer(npmScript: "start");
+
+               // The development server can now be launched manually. Crashes after a while though.
+               // spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
             }
          });
       }
