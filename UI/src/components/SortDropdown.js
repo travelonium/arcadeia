@@ -56,17 +56,17 @@ export class SortDropdown extends Component {
             <OverlayTrigger key={this.props.name} placement="left" overlay={
                 (this.props.tooltip) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
             }>
-                <Dropdown className="d-inline" autoClose="outside" onSelect={this.onSelect.bind(this)}>
+                <Dropdown className={cx("sort-dropdown d-inline", this.props.className)} autoClose="outside" onSelect={this.onSelect.bind(this)}>
                     <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary">
                         <i className={cx("icon bi", icon, this.props.name, set)}></i>
                     </Dropdown.Toggle>
                     <Dropdown.Menu>
                     {
-                        Object.keys(this.state.fields).map((field, index) => <Dropdown.Item key={field} eventKey={field} href="#" active={this.props.value.field === field}>{this.state.fields[field]}</Dropdown.Item>)
+                        Object.keys(this.state.fields).map((field) => <Dropdown.Item key={field} eventKey={field} href="#" active={this.props.value.field === field}><span className="d-flex">{this.state.fields[field]}{(this.props.value.field === field) ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}</span></Dropdown.Item>)
                     }
                         <Dropdown.Divider />
                     {
-                        Object.keys(this.state.directions).map((direction, index) => <Dropdown.Item key={direction} eventKey={direction} href="#" disabled={this.props.value.field ? false : true} active={this.props.value.direction === direction}>{this.state.directions[direction]}</Dropdown.Item>)
+                        Object.keys(this.state.directions).map((direction) => <Dropdown.Item key={direction} eventKey={direction} href="#" disabled={this.props.value.field ? false : true} active={this.props.value.direction === direction}><span className="d-flex">{this.state.directions[direction]}{(this.props.value.direction === direction) ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}</span></Dropdown.Item>)
                     }
                     </Dropdown.Menu>
                 </Dropdown>
