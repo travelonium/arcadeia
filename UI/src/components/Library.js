@@ -186,6 +186,7 @@ class Library extends Component {
             defType: "edismax",
             qf: "name^20 description^10 path^5",
             wt: "json",
+            sort: this.sort(this.props.search.sort.field, this.props.search.sort.direction),
         };
         if (favorite) {
             input.fq.push("flags:Favorite");
@@ -307,6 +308,11 @@ class Library extends Component {
             }
         }
         return query;
+    }
+
+    sort(field, direction) {
+        if (!field || !direction) return null;
+        return field.split(' ').map((field) => field + " " + direction).join(',');
     }
 
     onMediaViewerShow() {
@@ -533,6 +539,7 @@ const mapStateToProps = (state) => ({
         theme: state.ui.theme,
     },
     search: {
+        sort: state.search.sort,
         path: state.search.path,
         query: state.search.query,
         favorite: state.search.favorite,

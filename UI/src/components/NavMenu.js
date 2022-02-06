@@ -2,7 +2,8 @@ import Nav from 'react-bootstrap/Nav';
 import Form from 'react-bootstrap/Form';
 import React, { Component } from 'react';
 import Navbar from 'react-bootstrap/Navbar';
-import { setQuery, setFavorite, setRecursive } from '../features/search/slice';
+import { SortDropdown } from './SortDropdown';
+import { setQuery, setFavorite, setRecursive, setSort } from '../features/search/slice';
 import { connect } from "react-redux";
 import { Flag } from './Flag';
 import _ from 'lodash';
@@ -63,6 +64,11 @@ class NavMenu extends Component {
         this.props.dispatch(setRecursive(value));
     }
 
+    onSortChange(value) {
+        clearTimeout(this.searchTimeout);
+        this.props.dispatch(setSort(value));
+    }
+
     toggleNavbar() {
         this.setState({
             collapsed: !this.state.collapsed
@@ -86,6 +92,7 @@ class NavMenu extends Component {
                         <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
+                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" value={this.props.search.sort} onChange={this.onSortChange.bind(this)} />
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.props.search.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                 </div>
@@ -106,6 +113,7 @@ const mapStateToProps = (state) => ({
         theme: state.ui.theme,
     },
     search: {
+        sort: state.search.sort,
         path: state.search.path,
         query: state.search.query,
         favorite: state.search.favorite,
