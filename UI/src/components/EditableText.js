@@ -33,20 +33,22 @@ export class EditableText extends Component {
         this.setState({
             editing: true
         }, () => {
-            let start = 0;
-            let end = this.state.current.length;
             this.textArea.current.focus();
-            const pattern = /(.*)\.(.*)/g;
-            let match = pattern.exec(this.state.current);
-            if (match !== null) {
-                const name = extract(null, match, 1);
-                // const extension = extract(null, match, 2);
-                if (name) {
-                    start = match.index;
-                    end = name.length;
+            if (this.state.current) {
+                let start = 0;
+                let end = this.state.current?.length;
+                const pattern = /(.*)\.(.*)/g;
+                let match = pattern.exec(this.state.current);
+                if (match !== null) {
+                    const name = extract(null, match, 1);
+                    // const extension = extract(null, match, 2);
+                    if (name) {
+                        start = match.index;
+                        end = name.length;
+                    }
                 }
+                this.textArea.current.setSelectionRange(start, end);
             }
-            this.textArea.current.setSelectionRange(start, end);
             if (this.props.onEditing) {
                 this.props.onEditing(true);
             }
