@@ -416,6 +416,12 @@
 
     .dropdown-menu {
         min-width: 13rem;
+
+        .dropdown-item {
+            &.active:not(:hover) {
+                background-color: inherit;
+            }
+        }
     }
 }
 
