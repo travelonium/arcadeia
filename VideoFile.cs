@@ -47,7 +47,7 @@ namespace MediaCurator
          {
             if (_duration != value)
             {
-               Modified = (_duration >= 0.0);
+               Modified = true;
 
                _duration = value;
             }
@@ -71,7 +71,7 @@ namespace MediaCurator
          {
             if (Resolution != value)
             {
-               Modified = ((_width >= 0) || (_height >= 0));
+               Modified = true;
 
                _width = value.Width;
                _height = value.Height;

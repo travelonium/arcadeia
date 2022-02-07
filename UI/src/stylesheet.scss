@@ -3,6 +3,8 @@
 @import "~video.js/dist/video-js.css";
 @import '~animate.css/animate.css';
 
+@use "sass:meta";
+
 .light {
     @import "~bootswatch/dist/flatly/bootstrap.min.css";
 

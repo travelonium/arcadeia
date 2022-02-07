@@ -44,7 +44,7 @@ namespace MediaCurator
          {
             if (Resolution != value)
             {
-               Modified = ((_width >= 0) || (_height >= 0));
+               Modified = true;
 
                _width = value.Width;
                _height = value.Height;
@@ -91,6 +91,8 @@ namespace MediaCurator
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
+
+         if (Skipped) return;
       }
 
       #endregion // Constructors
