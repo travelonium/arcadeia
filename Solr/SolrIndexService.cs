@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Collections.Generic;
 using System.Threading;
+using System.Xml.Linq;
 
 namespace MediaCurator.Solr
 {
@@ -283,6 +284,7 @@ namespace MediaCurator.Solr
 				{
 					{ "name", "*_ngram" },
 					{ "type", "text_ngram" },
+					{ "multiValued", false },
 					{ "indexed", true },
 					{ "stored", true },
 				}
@@ -419,13 +421,6 @@ namespace MediaCurator.Solr
          }
 		}
 
-		public async Task<bool> FieldTypeExistsAsync(string name)
-		{
-			HttpClient client = Factory.CreateClient();
-			HttpResponseMessage response = await client.GetAsync(URL + "/schema/fieldtypes/" + name);
-			return response.IsSuccessStatusCode;
-		}
-
 		public async Task<bool> AddFieldType(string name, Dictionary<string, object> definition)
 		{
 			HttpClient client = Factory.CreateClient();
@@ -470,14 +465,80 @@ namespace MediaCurator.Solr
 			return response.IsSuccessStatusCode;
 		}
 
+		public async Task<bool> FieldTypeExistsAsync(string name)
+		{
+			HttpClient client = Factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/fieldtypes/" + name);
+			return response.IsSuccessStatusCode;
+		}
+
 		public async Task<bool> FieldExistsAsync(string name)
       {
 			HttpClient client = Factory.CreateClient();
-         HttpResponseMessage response = await client.GetAsync(URL + "/schema/fields/" + name);
-			return response.IsSuccessStatusCode;
-      }
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/");
 
-      public void Initialize()
+			response.EnsureSuccessStatusCode();
+
+			string content = await response.Content.ReadAsStringAsync();
+			var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
+			var fields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["fields"].ToString());
+
+			foreach (var item in fields)
+			{
+				if (item["name"].ToString().Equals(name))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		public async Task<bool> DynamicFieldExistsAsync(string name)
+		{
+			HttpClient client = Factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/");
+
+			response.EnsureSuccessStatusCode();
+
+			string content = await response.Content.ReadAsStringAsync();
+			var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
+			var dynamicFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["dynamicFields"].ToString());
+
+			foreach (var item in dynamicFields)
+			{
+				if (item["name"].ToString().Equals(name))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		public async Task<bool> CopyFieldExistsAsync(string name)
+		{
+			HttpClient client = Factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/");
+
+			response.EnsureSuccessStatusCode();
+
+			string content = await response.Content.ReadAsStringAsync();
+			var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
+			var copyFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["copyFields"].ToString());
+
+			foreach (var item in copyFields)
+         {
+				if (item["dest"].ToString().Equals(name))
+				{
+					return true;
+				}
+         }
+
+			return false;
+		}
+
+		public void Initialize()
       {
 			uint retries = 10;
 
@@ -541,7 +602,7 @@ namespace MediaCurator.Solr
 				// Ensure the required dynamic fields are defined and define them otherwise.
 				foreach (var key in DynamicFields.Keys)
 				{
-					if (!FieldExistsAsync(key).Result)
+					if (!DynamicFieldExistsAsync(key).Result)
 					{
 						Logger.LogInformation("Dynamic Schema Field Not Found: {}", key);
 
@@ -559,7 +620,7 @@ namespace MediaCurator.Solr
 				// Ensure the required copy fields are defined and define them otherwise.
 				foreach (var key in CopyFields.Keys)
 				{
-					if (!FieldExistsAsync(key).Result)
+					if (!CopyFieldExistsAsync(key).Result)
 					{
 						Logger.LogInformation("Copy Schema Field Not Found: {}", key);
 

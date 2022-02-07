@@ -13,8 +13,8 @@ export class SortDropdown extends Component {
         super(props);
         this.state = {
             fields: {
+                "name": "Name",
                 "type extension": "Type",
-            //  "name": "Name",
                 "size": "Size",
                 "duration": "Duration",
                 "dateAdded": "Date Added",

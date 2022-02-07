@@ -184,7 +184,7 @@ class Library extends Component {
             rows: 10000,
             "q.op": "AND",
             defType: "edismax",
-            qf: "name^20 description^10 path^5",
+            qf: "name_ngram^20 description_ngram^10 path_ngram^5",
             wt: "json",
             sort: this.sort(this.props.search.sort.field, this.props.search.sort.direction),
         };
