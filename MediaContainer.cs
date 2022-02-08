@@ -80,7 +80,7 @@ namespace MediaCurator
          {
             if (_parent != value)
             {
-               Modified = (_parent != null);
+               Modified = true;
 
                _parent = value;
             }
@@ -99,7 +99,7 @@ namespace MediaCurator
          {
             if (_parentType != value)
             {
-               Modified = (_parentType != null);
+               Modified = true;
 
                _parentType = value;
             }
@@ -123,7 +123,7 @@ namespace MediaCurator
          {
             if (_id != value)
             {
-               Modified = (_id != null);
+               Modified = true;
 
                _id = value;
             }
@@ -147,7 +147,7 @@ namespace MediaCurator
          {
             if (_name != value)
             {
-               Modified = (_name != null);
+               Modified = true;
 
                _name = value;
             }
@@ -170,7 +170,7 @@ namespace MediaCurator
          {
             if (_description != value)
             {
-               Modified = (_description != null);
+               Modified = true;
 
                _description = value;
             }
@@ -193,7 +193,7 @@ namespace MediaCurator
          {
             if (_type != value)
             {
-               Modified = (_type != null);
+               Modified = true;
 
                _type = value;
             }
@@ -291,7 +291,7 @@ namespace MediaCurator
             TimeSpan difference = value - DateAdded;
             if (difference >= TimeSpan.FromSeconds(1))
             {
-               Modified = (_dateAdded != null);
+               Modified = true;
 
                _dateAdded = value.ToString(CultureInfo.InvariantCulture);
             }
@@ -315,7 +315,7 @@ namespace MediaCurator
             TimeSpan difference = value - DateCreated;
             if (difference >= TimeSpan.FromSeconds(1))
             {
-               Modified = (_dateCreated != null);
+               Modified = true;
 
                _dateCreated = value.ToString(CultureInfo.InvariantCulture);
             }
@@ -339,7 +339,7 @@ namespace MediaCurator
             TimeSpan difference = value - DateModified;
             if (difference >= TimeSpan.FromSeconds(1))
             {
-               Modified = (_dateModified != null);
+               Modified = true;
 
                _dateModified = value.ToString(CultureInfo.InvariantCulture);
             }
@@ -362,7 +362,7 @@ namespace MediaCurator
          {
             if ((_flags == null) || (!_flags.All.SetEquals(value.All)))
             {
-               Modified = (_flags != null);
+               Modified = true;
 
                _flags = value;
             }
@@ -395,16 +395,14 @@ namespace MediaCurator
             if (value == null) return;
 
             Id = value.Id;
-            ParentType = value.ParentType;
-
-            IMediaContainer parent = null;
 
             if (value.ParentType == null)
             {
                // This must be the MediaLibrary itself.
             }
-            else
+            else if (Parent == null)
             {
+               IMediaContainer parent;
                var parentType = value.ParentType.ToEnum<MediaContainerType>();
 
                if (parentType == MediaContainerType.Library)
@@ -416,11 +414,13 @@ namespace MediaCurator
                   var type = value.ParentType.ToEnum<MediaContainerType>().ToType();
 
                   // Create the parent container of the right type.
-                  parent = (MediaContainer) Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null);
+                  parent = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null);
                }
+
+               Parent = parent;
             }
 
-            Parent = parent;
+            ParentType = value.ParentType;
             Type = value.Type;
 
             // Handle a possible rename operation.

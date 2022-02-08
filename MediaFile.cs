@@ -28,7 +28,7 @@ namespace MediaCurator
          {
             if (_size != value)
             {
-               Modified = (_size >= 0);
+               Modified = true;
 
                _size = value;
             }
@@ -101,6 +101,8 @@ namespace MediaCurator
 
             Size = value.Size;
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
+
+            if ((ContentType != value.ContentType) || (Extension != value.Extension)) Modified = true;
          }
       }
 

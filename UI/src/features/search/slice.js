@@ -5,6 +5,10 @@ const initialState = {
     query: "",
     favorite: false,
     recursive: true,
+    sort: {
+        field: "",
+        direction: "asc",
+    }
 };
 
 export const searchSlice = createSlice({
@@ -23,6 +27,16 @@ export const searchSlice = createSlice({
         },
         setRecursive: (state, action) => {
             state.recursive = action.payload;
+        },
+        setSort: (state, action) => {
+            state.sort.field = action.payload?.field ? action.payload.field : initialState.sort.field;
+            state.sort.direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
+        },
+        setSortField: (state, action) => {
+            state.sort.field = action.payload ? action.payload : initialState.sort.field;
+        },
+        setSortDirection: (state, action) => {
+            state.direction = action.payload ? action.payload : initialState.sort.direction;
         },
         reset: (state, action) => {
             let path = action.payload?.split('?')[0];
@@ -50,5 +64,5 @@ export const searchSlice = createSlice({
 });
 
 const { actions, reducer } = searchSlice;
-export const { setPath, setQuery, setFavorite, setRecursive, reset } = actions;
+export const { setPath, setQuery, setFavorite, setRecursive, setSort, setSortField, setSortDirection, reset } = actions;
 export default reducer;

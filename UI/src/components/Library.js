@@ -184,8 +184,9 @@ class Library extends Component {
             rows: 10000,
             "q.op": "AND",
             defType: "edismax",
-            qf: "name^20 description^10 path^5",
+            qf: "name_ngram^20 description_ngram^10 path_ngram^5",
             wt: "json",
+            sort: this.sort(this.props.search.sort.field, this.props.search.sort.direction),
         };
         if (favorite) {
             input.fq.push("flags:Favorite");
@@ -307,6 +308,11 @@ class Library extends Component {
             }
         }
         return query;
+    }
+
+    sort(field, direction) {
+        if (!field || !direction) return null;
+        return field.split(' ').map((field) => field + " " + direction).join(',');
     }
 
     onMediaViewerShow() {
@@ -465,9 +471,9 @@ class Library extends Component {
                                 );
                             })
                         }
-                        <div className="statistics d-none d-md-block ml-auto">
+                        <div className="statistics d-none d-md-block ms-auto">
                             <span className="statistics-files">{this.files()}</span>
-                            <span className="statistics-size ml-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
+                            <span className="statistics-size ms-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
@@ -533,6 +539,7 @@ const mapStateToProps = (state) => ({
         theme: state.ui.theme,
     },
     search: {
+        sort: state.search.sort,
         path: state.search.path,
         query: state.search.query,
         favorite: state.search.favorite,

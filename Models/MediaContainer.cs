@@ -10,20 +10,20 @@ namespace MediaCurator.Models
       [SolrUniqueKey("id")]
       public string Id { get; set; }
 
+      [SolrField("name")]
+      public string Name { get; set; }
+
+      [SolrField("type")]
+      public string Type { get; set; }
+
       [SolrUniqueKey("parent")]
       public string Parent { get; set; }
 
       [SolrUniqueKey("parentType")]
       public string ParentType { get; set; }
 
-      [SolrField("name")]
-      public string Name { get; set; }
-
       [SolrField("description")]
       public string Description { get; set; }
-
-      [SolrField("type")]
-      public string Type { get; set; }
 
       [SolrField("path")]
       public string Path { get; set; }

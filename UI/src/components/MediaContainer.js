@@ -123,7 +123,7 @@ export class MediaContainer extends Component {
                         <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
-                        <div className="pl-1" style={{flexGrow: 1}}>
+                        <div className="ps-1" style={{flexGrow: 1}}>
                             <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
                         </div>
                     </div>

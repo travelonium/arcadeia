@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import Library from './components/Library';
 import { setTheme } from './features/ui/slice';
 import { Layout } from './components/Layout';
+import { Route, Routes } from 'react-router';
 import { connect } from "react-redux";
-import { Route } from 'react-router';
 
 class App extends Component {
     static displayName = App.name;
@@ -31,7 +31,9 @@ class App extends Component {
     render() {
         return (
             <Layout library={this.library}>
-                <Route exact path='/*' render={(props) => <Library {...props} ref={this.library} forwardedRef={this.library} /> } />
+                <Routes>
+                    <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} />} />
+                </Routes>
             </Layout>
         );
     }

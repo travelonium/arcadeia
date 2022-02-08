@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Collections.Generic;
 using System.Threading;
+using System.Xml.Linq;
 
 namespace MediaCurator.Solr
 {
@@ -111,6 +112,26 @@ namespace MediaCurator.Solr
 				}
 			},
 			{
+				"name", new Dictionary<string, object>
+				{
+					{ "name", "name" },
+					{ "type", "string" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{
+				"type", new Dictionary<string, object>
+				{
+					{ "name", "type" },
+					{ "type", "string" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{
 				"parent", new Dictionary<string, object>
 				{
 					{ "name", "parent" },
@@ -131,28 +152,10 @@ namespace MediaCurator.Solr
 				}
 			},
 			{
-				"name", new Dictionary<string, object>
-				{
-					{ "name", "name" },
-					{ "type", "text_ngram" },
-					{ "multiValued", false },
-					{ "indexed", true },
-					{ "stored", true },
-				}
-			},
-         {  "description", new Dictionary<string, object>
+				"description", new Dictionary<string, object>
 				{
 					{ "name", "description" },
-					{ "type", "text_ngram" },
-					{ "multiValued", false },
-					{ "indexed", true },
-					{ "stored", true },
-				}
-			},
-			{  "type", new Dictionary<string, object>
-				{
-					{ "name", "type" },
-					{ "type", "text_ngram" },
+					{ "type", "string" },
 					{ "multiValued", false },
 					{ "indexed", true },
 					{ "stored", true },
@@ -274,6 +277,46 @@ namespace MediaCurator.Solr
 			},
 		};
 
+		private readonly Dictionary<string, Dictionary<string, object>> DynamicFields = new()
+		{
+			{
+				"*_ngram", new Dictionary<string, object>
+				{
+					{ "name", "*_ngram" },
+					{ "type", "text_ngram" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+		};
+
+		private readonly Dictionary<string, Dictionary<string, object>> CopyFields = new()
+		{
+			{
+				"name_ngram", new Dictionary<string, object>
+				{
+					{ "source", "name" },
+					{ "dest", "name_ngram" },
+				}
+			},
+			{
+				"description_ngram", new Dictionary<string, object>
+				{
+					{ "source", "description" },
+					{ "dest", "description_ngram" },
+				}
+			},
+			{
+				"path_ngram", new Dictionary<string, object>
+				{
+					{ "source", "path" },
+					{ "dest", "path_ngram" },
+				}
+			},
+		};
+
+
 		/// <summary>
 		/// Returns the Solr server URL.
 		/// </summary>
@@ -378,13 +421,6 @@ namespace MediaCurator.Solr
          }
 		}
 
-		public async Task<bool> FieldTypeExistsAsync(string name)
-		{
-			HttpClient client = Factory.CreateClient();
-			HttpResponseMessage response = await client.GetAsync(URL + "/schema/fieldtypes/" + name);
-			return response.IsSuccessStatusCode;
-		}
-
 		public async Task<bool> AddFieldType(string name, Dictionary<string, object> definition)
 		{
 			HttpClient client = Factory.CreateClient();
@@ -407,14 +443,102 @@ namespace MediaCurator.Solr
 			return response.IsSuccessStatusCode;
 		}
 
+		public async Task<bool> AddDynamicField(string name, Dictionary<string, object> definition)
+		{
+			HttpClient client = Factory.CreateClient();
+			Dictionary<string, Dictionary<string, object>> data = new Dictionary<string, Dictionary<string, object>>
+			{
+				{ "add-dynamic-field",  definition }
+			};
+			HttpResponseMessage response = await client.PostAsync(URL + "/schema", new StringContent(JsonSerializer.Serialize(data)));
+			return response.IsSuccessStatusCode;
+		}
+
+		public async Task<bool> AddCopyField(string name, Dictionary<string, object> definition)
+		{
+			HttpClient client = Factory.CreateClient();
+			Dictionary<string, Dictionary<string, object>> data = new Dictionary<string, Dictionary<string, object>>
+			{
+				{ "add-copy-field",  definition }
+			};
+			HttpResponseMessage response = await client.PostAsync(URL + "/schema", new StringContent(JsonSerializer.Serialize(data)));
+			return response.IsSuccessStatusCode;
+		}
+
+		public async Task<bool> FieldTypeExistsAsync(string name)
+		{
+			HttpClient client = Factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/fieldtypes/" + name);
+			return response.IsSuccessStatusCode;
+		}
+
 		public async Task<bool> FieldExistsAsync(string name)
       {
 			HttpClient client = Factory.CreateClient();
-         HttpResponseMessage response = await client.GetAsync(URL + "/schema/fields/" + name);
-			return response.IsSuccessStatusCode;
-      }
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/");
 
-      public void Initialize()
+			response.EnsureSuccessStatusCode();
+
+			string content = await response.Content.ReadAsStringAsync();
+			var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
+			var fields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["fields"].ToString());
+
+			foreach (var item in fields)
+			{
+				if (item["name"].ToString().Equals(name))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		public async Task<bool> DynamicFieldExistsAsync(string name)
+		{
+			HttpClient client = Factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/");
+
+			response.EnsureSuccessStatusCode();
+
+			string content = await response.Content.ReadAsStringAsync();
+			var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
+			var dynamicFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["dynamicFields"].ToString());
+
+			foreach (var item in dynamicFields)
+			{
+				if (item["name"].ToString().Equals(name))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		public async Task<bool> CopyFieldExistsAsync(string name)
+		{
+			HttpClient client = Factory.CreateClient();
+			HttpResponseMessage response = await client.GetAsync(URL + "/schema/");
+
+			response.EnsureSuccessStatusCode();
+
+			string content = await response.Content.ReadAsStringAsync();
+			var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
+			var copyFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["copyFields"].ToString());
+
+			foreach (var item in copyFields)
+         {
+				if (item["dest"].ToString().Equals(name))
+				{
+					return true;
+				}
+         }
+
+			return false;
+		}
+
+		public void Initialize()
       {
 			uint retries = 10;
 
@@ -471,6 +595,42 @@ namespace MediaCurator.Solr
 						else
 						{
 							Logger.LogError("Failed To Add Schema Field: {}", key);
+						}
+					}
+				}
+
+				// Ensure the required dynamic fields are defined and define them otherwise.
+				foreach (var key in DynamicFields.Keys)
+				{
+					if (!DynamicFieldExistsAsync(key).Result)
+					{
+						Logger.LogInformation("Dynamic Schema Field Not Found: {}", key);
+
+						if (AddDynamicField(key, DynamicFields[key]).Result)
+						{
+							Logger.LogInformation("Dynamic Schema Field Added: {}", key);
+						}
+						else
+						{
+							Logger.LogError("Failed To Add Dynamic Schema Field: {}", key);
+						}
+					}
+				}
+
+				// Ensure the required copy fields are defined and define them otherwise.
+				foreach (var key in CopyFields.Keys)
+				{
+					if (!CopyFieldExistsAsync(key).Result)
+					{
+						Logger.LogInformation("Copy Schema Field Not Found: {}", key);
+
+						if (AddCopyField(key, CopyFields[key]).Result)
+						{
+							Logger.LogInformation("Copy Schema Field Added: {}", key);
+						}
+						else
+						{
+							Logger.LogError("Failed To Add Copy Schema Field: {}", key);
 						}
 					}
 				}
