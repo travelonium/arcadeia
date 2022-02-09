@@ -1,6 +1,7 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
+import Popover from 'react-bootstrap/Popover';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
@@ -92,12 +93,18 @@ export class MediaContainer extends Component {
         let name = extract(0, this.state.current, 'name');
         let width = extract(0, this.state.current, 'width');
         let height = extract(0, this.state.current, 'height');
+        let resolution = ((width > 0) && (height > 0)) ? (width + "x" + height) : "";
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
         let src = "/thumbnails/" + this.props.source.id + "/large.jpg";
         return (
-            <div className="photo-preview-overlay" {...props} >
-                <img className="preview" src={src} alt={name + ' Preview'} />
-            </div>
+            <Popover {...props} id="photo-preview">
+                <Popover.Header as="h3">
+                    <div className="d-flex"><span className="me-auto">{name}</span><span>{resolution}</span></div>
+                </Popover.Header>
+                <Popover.Body>
+                    <img className="preview" src={src} alt={name + ' Preview'} />
+                </Popover.Body>
+            </Popover>
         );
     }
 
@@ -108,7 +115,7 @@ export class MediaContainer extends Component {
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
-                    <OverlayTrigger placement="auto" delay={{ show: 500, hide: 0 }} overlay={this.preview.bind(this)}>
+                    <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                         <div className="thumbnail-container">
                             <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
                             <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>

@@ -442,9 +442,10 @@
     }
 }
 
-.photo-preview-overlay {
+.photo-preview {
+    max-width: 500px;
 
-    .preview {
+    img {
         max-width: 480px;
         max-height: 480px;
     }
