@@ -167,8 +167,7 @@ namespace MediaCurator
          }
          catch (Exception e)
          {
-            Debug.WriteLine(FullPath + " : ");
-            Debug.WriteLine(e.Message);
+            Logger.LogDebug("Failed To Retrieve Duration For: {}, Because: {}", FullPath, e.Message);
          }
 
          /*--------------------------------------------------------------------------------
@@ -183,8 +182,7 @@ namespace MediaCurator
          }
          catch (Exception e)
          {
-            Debug.WriteLine(FullPath + " : ");
-            Debug.WriteLine(e.Message);
+            Logger.LogDebug("Failed To Retrieve Resolution For: {}, Because: {}", FullPath, e.Message);
          }
       }
 

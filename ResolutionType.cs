@@ -6,7 +6,7 @@ namespace MediaCurator
    /// The type representing a photo or video file's resolution. It has a width and a height property
    /// and multiple ways of supplying them.
    /// </summary>
-   public class ResolutionType : IComparable
+   public class ResolutionType : IComparable, IEquatable<ResolutionType>
    {
       public long Width { get; set; }
       public long Height { get; set; }
@@ -89,5 +89,47 @@ namespace MediaCurator
          if ((other.Width + other.Height) > (Width + Height)) return -1;
          else return 1;
       }
+
+      public bool Equals(ResolutionType other)
+      {
+         if (other is null)
+         {
+            return false;
+         }
+
+         // Optimization for a common success case.
+         if (Object.ReferenceEquals(this, other))
+         {
+            return true;
+         }
+
+         // If run-time types are not exactly the same, return false.
+         if (this.GetType() != other.GetType())
+         {
+            return false;
+         }
+
+         // Return true if the fields match.
+         return (Width == other.Width) && (Height == other.Height);
+      }
+
+      public static bool operator ==(ResolutionType lhs, ResolutionType rhs)
+      {
+         if (lhs is null)
+         {
+            if (rhs is null)
+            {
+               return true;
+            }
+
+            // Only the left side is null.
+            return false;
+         }
+
+         // Equals handles case of null on right side.
+         return lhs.Equals(rhs);
+      }
+
+      public static bool operator !=(ResolutionType lhs, ResolutionType rhs) => !(lhs == rhs);
    }
 }

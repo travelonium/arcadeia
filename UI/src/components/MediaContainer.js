@@ -1,6 +1,7 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
+import Popover from 'react-bootstrap/Popover';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
@@ -95,9 +96,11 @@ export class MediaContainer extends Component {
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
         let src = "/thumbnails/" + this.props.source.id + "/large.jpg";
         return (
-            <div className="photo-preview-overlay" {...props} >
-                <img className="preview" src={src} alt={name + ' Preview'} />
-            </div>
+            <Popover {...props} id="popover-preview" className="photo-preview" >
+                <Popover.Body>
+                    <img src={src} alt={name + ' Preview'} />
+                </Popover.Body>
+            </Popover>
         );
     }
 
@@ -108,7 +111,7 @@ export class MediaContainer extends Component {
         return (
             <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
-                    <OverlayTrigger placement="auto" delay={{ show: 500, hide: 0 }} overlay={this.preview.bind(this)}>
+                    <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                         <div className="thumbnail-container">
                             <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
                             <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>

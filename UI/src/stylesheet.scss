@@ -3,8 +3,6 @@
 @import "~video.js/dist/video-js.css";
 @import '~animate.css/animate.css';
 
-@use "sass:meta";
-
 .light {
     @import "~bootswatch/dist/flatly/bootstrap.min.css";
 
@@ -365,7 +363,7 @@
         color: inherit;
         overflow: hidden;
         text-align: inherit;
-        background-color: var(--bs-body-bg);
+        background-color: inherit;
     }
 
     .label {
@@ -444,9 +442,11 @@
     }
 }
 
-.photo-preview-overlay {
+.photo-preview {
 
-    .preview {
+    max-width: none;
+
+    img {
         max-width: 480px;
         max-height: 480px;
     }

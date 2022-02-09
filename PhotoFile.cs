@@ -1,5 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Linq;
+using System.Globalization;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,30 @@ namespace MediaCurator
       #endregion // Constants
 
       #region Fields
+
+      protected string _dateTaken = null;
+
+      /// <summary>
+      /// Gets or sets the date the photo was originally taken.
+      /// </summary>
+      /// <value>
+      /// The original date in DateTime.
+      /// </value>
+      public DateTime DateTaken
+      {
+         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateTaken, CultureInfo.InvariantCulture), DateTimeKind.Utc);
+
+         set
+         {
+            TimeSpan difference = value - DateTaken;
+            if (difference >= TimeSpan.FromSeconds(1))
+            {
+               Modified = true;
+
+               _dateTaken = value.ToString(CultureInfo.InvariantCulture);
+            }
+         }
+      }
 
       private long _width  = -1;
       private long _height = -1;
@@ -61,6 +86,7 @@ namespace MediaCurator
          {
             var model = base.Model;
 
+            model.DateTaken = DateTaken;
             model.Width = Resolution.Width;
             model.Height = Resolution.Height;
 
@@ -73,6 +99,7 @@ namespace MediaCurator
 
             base.Model = value;
 
+            DateTaken = value.DateTaken;
             Resolution = new(value.Width, value.Height);
          }
       }
@@ -112,8 +139,29 @@ namespace MediaCurator
          }
          catch (Exception e)
          {
-            Debug.WriteLine(FullPath + " : ");
-            Debug.WriteLine(e.Message);
+            Logger.LogDebug("Failed To Retrieve Information For: {}, Because: {}", path, e.Message);
+         }
+
+         return null;
+      }
+
+      public IExifProfile GetImageExifProfile(string path = null)
+      {
+         if (path == null)
+         {
+            path = FullPath;
+         }
+
+         using (var image = new MagickImage(path))
+         {
+            try
+            {
+               return image.GetExifProfile();
+            }
+            catch (Exception e)
+            {
+               Logger.LogDebug("Failed To Retrieve Exif Profile For: {}, Because: {}", path, e.Message);
+            }
          }
 
          return null;
@@ -123,13 +171,34 @@ namespace MediaCurator
       {
          var info = GetImageInfo(path);
 
+         /*--------------------------------------------------------------------------------
+                                             RESOLUTION
+         --------------------------------------------------------------------------------*/
+
          if (info != null)
          {
-            /*--------------------------------------------------------------------------------
-                                                RESOLUTION
-            --------------------------------------------------------------------------------*/
 
             Resolution = new ResolutionType(info.Width, info.Height);
+         }
+
+         /*--------------------------------------------------------------------------------
+                                            EXIF PROFILE
+         --------------------------------------------------------------------------------*/
+
+         var profile = GetImageExifProfile(path);
+
+         if (profile != null)
+         {
+            IExifValue value = profile.Values.FirstOrDefault(val => val.Tag == ExifTag.DateTimeOriginal) ??
+                               profile.Values.FirstOrDefault(val => val.Tag == ExifTag.DateTimeDigitized);
+
+            if (value != null)
+            {
+               if (DateTime.TryParseExact(value.ToString(), "yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+               {
+                  DateTaken = date;
+               }
+            }
          }
       }
 
@@ -162,8 +231,8 @@ namespace MediaCurator
             }
             catch (Exception e)
             {
-               Debug.WriteLine("Failed To Resize: " + FullPath);
-               Debug.WriteLine(e.Message);
+               Logger.LogWarning("Failed To Resize: {}, Because: {}", FullPath, e.Message);
+               Logger.LogDebug("{}", e.ToString());
             }
          }
 
