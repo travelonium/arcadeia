@@ -20,6 +20,7 @@ export class SortDropdown extends Component {
                 "dateAdded": "Date Added",
                 "dateCreated": "Date Created",
                 "dateModified": "Date Modified",
+                "dateTaken": "Date Taken",
             },
             directions: {
                 "asc": "Ascending",
