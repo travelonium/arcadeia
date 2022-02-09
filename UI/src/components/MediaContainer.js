@@ -93,16 +93,12 @@ export class MediaContainer extends Component {
         let name = extract(0, this.state.current, 'name');
         let width = extract(0, this.state.current, 'width');
         let height = extract(0, this.state.current, 'height');
-        let resolution = ((width > 0) && (height > 0)) ? (width + "x" + height) : "";
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
         let src = "/thumbnails/" + this.props.source.id + "/large.jpg";
         return (
-            <Popover {...props} id="photo-preview">
-                <Popover.Header as="h3">
-                    <div className="d-flex"><span className="me-auto">{name}</span><span>{resolution}</span></div>
-                </Popover.Header>
+            <Popover {...props} id="popover-preview" className="photo-preview" >
                 <Popover.Body>
-                    <img className="preview" src={src} alt={name + ' Preview'} />
+                    <img src={src} alt={name + ' Preview'} />
                 </Popover.Body>
             </Popover>
         );
