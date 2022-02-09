@@ -10,6 +10,7 @@ import { clone, extract, size, updateBit } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { connect } from "react-redux";
 import cx from 'classnames';
@@ -57,7 +58,7 @@ class Library extends Component {
         // install the event handler for keydown keyboard events
         document.addEventListener('keydown', this.onKeyDown.bind(this));
         // handle the startup query parsing
-        let path = "/" + extract("", this.props, "match", "params", 0) + window.location.search;
+        let path = "/" + extract("", this.props, "match", "params", "*") + window.location.search;
         this.props.dispatch(reset(path));
         // handles the browser history operations
         window.onpopstate = (event) => {
@@ -560,4 +561,6 @@ const mapStateToProps = (state) => ({
     }
 });
 
-export default connect(mapStateToProps, null, null, { forwardRef: true })(Library);
+export default connect(mapStateToProps, null, null, { forwardRef: true })(React.forwardRef((props, ref) => (
+    <Library ref={ref} {...props} match={{ params: useParams() }} />
+)));
