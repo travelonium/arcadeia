@@ -339,9 +339,12 @@ namespace MediaCurator.Services
 
       private void Scan(string path, string type)
       {
+         var watch = new Stopwatch();
          var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          _logger.LogInformation("{} Scanning Started: {}", type, path);
+
+         watch.Start();
 
          try
          {
@@ -389,7 +392,13 @@ namespace MediaCurator.Services
 
             _mediaLibrary.ClearCache();
 
+            watch.Stop();
+            TimeSpan ts = new();
+            ts = watch.Elapsed;
+
             _logger.LogInformation("{} Scanning Finished: {}", type, path);
+            _logger.LogInformation("Took {} Days, {} Hours, {} Minutes, {} Seconds.",
+                                   ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
          }
          catch (System.IO.DirectoryNotFoundException)
          {
@@ -409,9 +418,13 @@ namespace MediaCurator.Services
 
       private void Update(CancellationToken cancellationToken)
       {
+         var watch = new Stopwatch();
+
          _logger.LogInformation("Startup Update Started.");
 
          // It's now time to go through the MediaLibrary itself and check for changes on the disk. 
+
+         watch.Start();
 
          // Consume the scoped Solr Index Service.
          using IServiceScope scope = _services.CreateScope();
@@ -463,7 +476,12 @@ namespace MediaCurator.Services
 
          _mediaLibrary.ClearCache();
 
-         _logger.LogInformation("Startup Update Finished.");
+         watch.Stop();
+         TimeSpan ts = new();
+         ts = watch.Elapsed;
+
+         _logger.LogInformation("Startup Update Finished After {} Days, {} Hours, {} Minutes, {} Seconds.",
+                                ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
       }
 
       private void AddFile(string file)
