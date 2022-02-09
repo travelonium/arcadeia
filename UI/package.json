@@ -26,6 +26,7 @@
     "react-virtualized-auto-sizer": "^1.0.6",
     "react-visibility-sensor": "^5.1.1",
     "react-window": "^1.8.6",
+    "redux-persist": "^6.0.0",
     "rimraf": "^3.0.2",
     "video.js": "^7.17.0",
     "viewerjs": "^1.10.3"
