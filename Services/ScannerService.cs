@@ -426,34 +426,38 @@ namespace MediaCurator.Services
 
          _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
 
-         // Loop through the mediaFiles.
-         foreach (var document in documents)
+         try
          {
-            if (cancellationToken.IsCancellationRequested)
+            // Loop through the documents in the index in parallel.
+            Parallel.ForEach(documents, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, (document) =>
             {
-               // Return gracefully now!
-               return;
-            }
-
-            try
-            {
-               if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
+               try
                {
-                  // Make sure if the path is located in a watched folder, that folder is available.
-                  if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
-                      availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                  if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                   {
-                     // Update the current media container.
-                     using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                     // Make sure if the path is located in a watched folder, that folder is available.
+                     if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
+                         availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                     {
+                        // Update the current media container.
+                        using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                     }
                   }
                }
-            }
-            catch (Exception e)
-            {
-               _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
-               _logger.LogDebug("{}", e.ToString());
+               catch (Exception e)
+               {
+                  _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
+                  _logger.LogDebug("{}", e.ToString());
+               }
+            });
+         }
+         catch (AggregateException ae)
+         {
+            _logger.LogError("Encountered {} Exception(s):", ae.Flatten().InnerExceptions.Count);
 
-               break;
+            foreach (var e in ae.Flatten().InnerExceptions)
+            {
+               _logger.LogDebug("{}", e.ToString());
             }
          }
 
