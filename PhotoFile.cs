@@ -139,8 +139,7 @@ namespace MediaCurator
          }
          catch (Exception e)
          {
-            Logger.LogWarning("Failed To Retrieve Information For: {}, Because: {}", path, e.Message);
-            Logger.LogDebug("{}", e.ToString());
+            Logger.LogDebug("Failed To Retrieve Information For: {}, Because: {}", path, e.Message);
          }
 
          return null;
@@ -161,8 +160,7 @@ namespace MediaCurator
             }
             catch (Exception e)
             {
-               Logger.LogWarning("Failed To Retrieve Exif Profile For: {}, Because: {}", path, e.Message);
-               Logger.LogDebug("{}", e.ToString());
+               Logger.LogDebug("Failed To Retrieve Exif Profile For: {}, Because: {}", path, e.Message);
             }
          }
 

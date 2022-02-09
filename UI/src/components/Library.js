@@ -21,6 +21,7 @@ class Library extends Component {
 
     constructor(props) {
         super(props);
+        this.items = [];        // temporary storage for the state.items while the full results are being retrieved
         this.current = -1;      // the current item index being viewed in the MediaViewer
         this.viewing = false;   // indicates that a media is being viewed in the MediaViewer
         this.editing = false;   // indicates that text editing is in progress and should inhibit low level keyboard input capturing
@@ -139,7 +140,8 @@ class Library extends Component {
         });
     }
 
-    search(browse = null) {
+    search(browse = null, start = 0) {
+        const rows = 10000;
         let path = browse ?? this.props.search.path;
         if (!path) return;
         let history = this.state.history;
@@ -181,7 +183,8 @@ class Library extends Component {
         const input = {
             q: query,
             fq: [],
-            rows: 10000,
+            rows: rows,
+            start: start,
             "q.op": "AND",
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
@@ -204,6 +207,7 @@ class Library extends Component {
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
         this.controller.abort();
         this.controller = new AbortController();
+        if (!start) this.items = [];
         this.setState({
             items: [],
             path: path,
@@ -212,7 +216,7 @@ class Library extends Component {
             status: "Requesting",
         }, () => {
             // change the url and the history before going any further
-            if (!history) window.history.pushState({path: path}, "", path);
+            if (!history && !start) window.history.pushState({path: path}, "", path);
             fetch(solr + "?" + this.querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
@@ -234,21 +238,30 @@ class Library extends Component {
                 } else {
                     this.setState({
                         status: "Loading",
-                        items: []
                     });
                 }
                 return response.json();
             })
             .then((result) => {
+                const numFound = extract(0, result, "response", "numFound");
                 const docs = extract([], result, "response", "docs");
+                const more = numFound > (rows + start);
+                this.items = this.items.concat(docs);
                 this.setState({
-                    loading: false,
+                    loading: more,
                     status: docs.length ? "" : "No Results",
-                    items: docs
+                    items: more ? this.state.items : this.items
+                }, () => {
+                    if (more) {
+                        this.search(browse, start + rows);
+                    } else {
+                        this.items = [];
+                    }
                 });
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
+                this.items = [];
                 this.setState({
                     loading: false,
                     status: error.message,

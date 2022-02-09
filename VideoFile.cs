@@ -167,8 +167,7 @@ namespace MediaCurator
          }
          catch (Exception e)
          {
-            Logger.LogWarning("Failed To Retrieve Duration For: {}, Because: {}", FullPath, e.Message);
-            Logger.LogDebug("{}", e.ToString());
+            Logger.LogDebug("Failed To Retrieve Duration For: {}, Because: {}", FullPath, e.Message);
          }
 
          /*--------------------------------------------------------------------------------
@@ -183,8 +182,7 @@ namespace MediaCurator
          }
          catch (Exception e)
          {
-            Logger.LogWarning("Failed To Retrieve Resolution For: {}, Because: {}", FullPath, e.Message);
-            Logger.LogDebug("{}", e.ToString());
+            Logger.LogDebug("Failed To Retrieve Resolution For: {}, Because: {}", FullPath, e.Message);
          }
       }
 
