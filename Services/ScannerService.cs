@@ -339,9 +339,12 @@ namespace MediaCurator.Services
 
       private void Scan(string path, string type)
       {
+         var watch = new Stopwatch();
          var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          _logger.LogInformation("{} Scanning Started: {}", type, path);
+
+         watch.Start();
 
          try
          {
@@ -389,7 +392,13 @@ namespace MediaCurator.Services
 
             _mediaLibrary.ClearCache();
 
+            watch.Stop();
+            TimeSpan ts = new();
+            ts = watch.Elapsed;
+
             _logger.LogInformation("{} Scanning Finished: {}", type, path);
+            _logger.LogInformation("Took {} Days, {} Hours, {} Minutes, {} Seconds.",
+                                   ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
          }
          catch (System.IO.DirectoryNotFoundException)
          {
@@ -409,9 +418,13 @@ namespace MediaCurator.Services
 
       private void Update(CancellationToken cancellationToken)
       {
+         var watch = new Stopwatch();
+
          _logger.LogInformation("Startup Update Started.");
 
          // It's now time to go through the MediaLibrary itself and check for changes on the disk. 
+
+         watch.Start();
 
          // Consume the scoped Solr Index Service.
          using IServiceScope scope = _services.CreateScope();
@@ -426,40 +439,49 @@ namespace MediaCurator.Services
 
          _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
 
-         // Loop through the mediaFiles.
-         foreach (var document in documents)
+         try
          {
-            if (cancellationToken.IsCancellationRequested)
+            // Loop through the documents in the index in parallel.
+            Parallel.ForEach(documents, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, (document) =>
             {
-               // Return gracefully now!
-               return;
-            }
-
-            try
-            {
-               if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
+               try
                {
-                  // Make sure if the path is located in a watched folder, that folder is available.
-                  if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
-                      availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                  if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                   {
-                     // Update the current media container.
-                     using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                     // Make sure if the path is located in a watched folder, that folder is available.
+                     if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
+                         availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                     {
+                        // Update the current media container.
+                        using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                     }
                   }
                }
-            }
-            catch (Exception e)
-            {
-               _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
-               _logger.LogDebug("{}", e.ToString());
+               catch (Exception e)
+               {
+                  _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
+                  _logger.LogDebug("{}", e.ToString());
+               }
+            });
+         }
+         catch (AggregateException ae)
+         {
+            _logger.LogError("Encountered {} Exception(s):", ae.Flatten().InnerExceptions.Count);
 
-               break;
+            foreach (var e in ae.Flatten().InnerExceptions)
+            {
+               _logger.LogDebug("{}", e.ToString());
             }
          }
 
          _mediaLibrary.ClearCache();
 
-         _logger.LogInformation("Startup Update Finished.");
+         watch.Stop();
+         TimeSpan ts = new();
+         ts = watch.Elapsed;
+
+         _logger.LogInformation("Startup Update Finished After {} Days, {} Hours, {} Minutes, {} Seconds.",
+                                ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
       }
 
       private void AddFile(string file)
