@@ -131,5 +131,15 @@ namespace MediaCurator
       }
 
       public static bool operator !=(ResolutionType lhs, ResolutionType rhs) => !(lhs == rhs);
+
+      public override bool Equals(object obj)
+      {
+         return Equals(obj as ResolutionType);
+      }
+
+      public override int GetHashCode()
+      {
+         throw new NotImplementedException();
+      }
    }
 }
