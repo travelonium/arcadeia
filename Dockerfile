@@ -1,4 +1,4 @@
-ARG VERSION=5.0
+ARG VERSION=6.0
 ARG DISTRO=bullseye-slim
 
 FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
