@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Data.SQLite;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.Data.Sqlite;
 
 namespace MediaCurator
 {
@@ -21,7 +21,7 @@ namespace MediaCurator
       int GetThumbnailsCount(string id);
       void SetThumbnail(string id, int index, ref byte[] data);
       void SetThumbnail(string id, string label, ref byte[] data);
-      void SetJournalMode(SQLiteJournalModeEnum mode);
+      void SetJournalMode(string mode);
       void Checkpoint(string argument = "TRUNCATE");
       void Vacuum();
    }
