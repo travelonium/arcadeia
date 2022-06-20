@@ -26,16 +26,18 @@ export class MediaContainer extends Component {
         // console.log(prevProps);
     }
 
-    update(source) {
+    update(source, virtual = false) {
         this.setState({
             current: source,
         }, () => {
-            this.props.onUpdate(source, false, (source, succeeded) => {
-                this.setState({
-                    current: succeeded ? clone(source) : clone(this.state.previous),
-                    previous: succeeded ? clone(source) : clone(this.state.previous),
+            if (!virtual) {
+                this.props.onUpdate(source, false, (source, succeeded) => {
+                    this.setState({
+                        current: succeeded ? clone(source) : clone(this.state.previous),
+                        previous: succeeded ? clone(source) : clone(this.state.previous),
+                    });
                 });
-            });
+            }
         });
     }
 
@@ -70,6 +72,11 @@ export class MediaContainer extends Component {
         } else {
             let player = !(event.shiftKey || event.metaKey || (event.button === 1));
             this.props.onView(this.state.current, this.props.index, player);
+            // virtually update the views count but the server will do the real work if all goes well
+            this.update({
+                ...this.state.current,
+                views: this.state.current.views + 1,
+            }, true);
         }
     }
 
@@ -78,6 +85,11 @@ export class MediaContainer extends Component {
             event.preventDefault();
             event.stopPropagation();
             this.props.onView(this.state.current, this.props.index, false);
+            // virtually update the views count but the server will do the real work if all goes well
+            this.update({
+                ...this.state.current,
+                views: this.state.current.views + 1,
+            }, true);
         }
     }
 
@@ -126,7 +138,15 @@ export class MediaContainer extends Component {
                         <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
                     </Card.Body>
                     <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
-                        <div className="ps-1" style={{flexGrow: 1}}>
+                        <div className="d-flex align-items-center ps-1" style={{flexGrow: 1}}>
+                        {
+                            ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
+                            <i className="bi bi-eye-fill me-1"></i>
+                            <small>{source.views}</small>
+                            </> : <></>
+                        }
+                        </div>
+                        <div className="d-flex align-items-center pe-1">
                             <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
                         </div>
                     </div>

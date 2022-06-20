@@ -38,6 +38,9 @@ namespace MediaCurator.Models
       [SolrField("extension")]
       public string Extension { get; set; }
 
+      [SolrField("views")]
+      public long Views { get; set; }
+
       [SolrField("dateAdded")]
       public DateTime DateAdded { get; set; }
 
