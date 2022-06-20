@@ -17,6 +17,7 @@ export class SortDropdown extends Component {
                 "name": "Name",
                 "type extension": "Type",
                 "size": "Size",
+                "views": "Views",
                 "duration": "Duration",
                 "dateAdded": "Date Added",
                 "dateCreated": "Date Created",
