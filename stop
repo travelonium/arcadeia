@@ -2,4 +2,4 @@
 #
 # Stop the docker compose application.
 
-docker-compose down
+docker compose down

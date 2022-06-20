@@ -211,7 +211,7 @@ namespace MediaCurator
                ffmpeg.StartInfo.Arguments += String.Format(",crop=iw:'min({0},ih)'", (height > 0) ? height.ToString() : "iw/16*9");
             }
 
-            ffmpeg.StartInfo.Arguments += "\" -vframes 1 -f singlejpeg -";
+            ffmpeg.StartInfo.Arguments += "\" -vframes 1 -f image2 -";
 
             ffmpeg.StartInfo.CreateNoWindow = true;
             ffmpeg.StartInfo.UseShellExecute = false;
@@ -230,7 +230,7 @@ namespace MediaCurator
 
             if (ffmpeg.HasExited)
             {
-               FileStream baseStream = ffmpeg.StandardOutput.BaseStream as FileStream;
+               Stream baseStream = ffmpeg.StandardOutput.BaseStream;
 
                using (var memoryStream = new MemoryStream())
                {

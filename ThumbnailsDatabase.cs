@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
-using System.Data.SQLite;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 
 namespace MediaCurator
@@ -22,12 +22,11 @@ namespace MediaCurator
 
       private Dictionary<string, string> _columns = new();
 
-      private Lazy<string> _connectionString => new(new SQLiteConnectionStringBuilder
+      private Lazy<string> _connectionString => new(new SqliteConnectionStringBuilder
       {
-         Version = 3,
          Pooling = true,
          DataSource = FullPath,
-         BusyTimeout = 5000
+         Cache = SqliteCacheMode.Shared,
       }.ToString());
 
       private Lazy<int> _maximum => new(() =>
@@ -103,7 +102,8 @@ namespace MediaCurator
                Directory.CreateDirectory(Path);
 
                // Create the new database file
-               SQLiteConnection.CreateFile(FullPath);
+               using SqliteConnection connection = new(_connectionString.Value);
+               connection.Open();
 
                _logger.LogInformation("Thumbnails Database Created: {}", FullPath);
             }
@@ -152,11 +152,11 @@ namespace MediaCurator
          string column = "T" + index.ToString();
          string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE ID='" + id + "'";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
-         command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
+         using SqliteCommand command = new(sql, connection);
+         command.Parameters.Add("@" + column, SqliteType.Blob).Value = data;
          command.ExecuteNonQuery();
       }
 
@@ -170,11 +170,11 @@ namespace MediaCurator
          string column = label.ToUpper();
          string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE ID='" + id + "'";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
-         command.Parameters.Add("@" + column, System.Data.DbType.Binary).Value = data;
+         using SqliteCommand command = new(sql, connection);
+         command.Parameters.Add("@" + column, SqliteType.Blob).Value = data;
          command.ExecuteNonQuery();
       }
 
@@ -186,11 +186,11 @@ namespace MediaCurator
 
          if (!_columns.ContainsKey(column)) return thumbnail;
 
-         using (SQLiteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new(sql, connection);
+            using SqliteCommand command = new(sql, connection);
             using var reader = command.ExecuteReader();
 
             while (reader.Read())
@@ -222,11 +222,11 @@ namespace MediaCurator
 
          if (!_columns.ContainsKey(column)) return thumbnail;
 
-         using (SQLiteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(_connectionString.Value))
          {
             await connection.OpenAsync(cancellationToken);
 
-            using SQLiteCommand command = new(sql, connection);
+            using SqliteCommand command = new(sql, connection);
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
             while (await reader.ReadAsync(cancellationToken))
@@ -260,11 +260,11 @@ namespace MediaCurator
          int count = 0;
          string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
 
-         using (SQLiteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new(sql, connection);
+            using SqliteCommand command = new(sql, connection);
             using var reader = command.ExecuteReader();
 
             while (reader.Read())
@@ -292,40 +292,39 @@ namespace MediaCurator
          return count;
       }
 
-      public void SetJournalMode(SQLiteJournalModeEnum mode)
+      public void SetJournalMode(string mode)
       {
          string sql = "PRAGMA journal_mode=";
 
-         switch (mode)
+         switch (mode.ToUpper())
          {
-            case SQLiteJournalModeEnum.Delete:
+            case "DELETE":
                sql += "DELETE;";
                break;
-            case SQLiteJournalModeEnum.Truncate:
+            case "TRUNCATE":
                sql += "TRUNCATE;";
                break;
-            case SQLiteJournalModeEnum.Persist:
+            case "PERSIST":
                sql += "PERSIST;";
                break;
-            case SQLiteJournalModeEnum.Memory:
+            case "MEMORY":
                sql += "MEMORY;";
                break;
-            case SQLiteJournalModeEnum.Wal:
+            case "WAL":
                sql += "WAL;";
                break;
-            case SQLiteJournalModeEnum.Off:
+            case "OFF":
                sql += "OFF;";
                break;
-            case SQLiteJournalModeEnum.Default:
             default:
-               return;
+               throw new ArgumentException(String.Format("The {0} is an invalid journal mode!", mode));
          }
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
 
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
 
          command.ExecuteNonQuery();
       }
@@ -334,11 +333,11 @@ namespace MediaCurator
       {
          string sql = String.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
 
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
 
          command.ExecuteNonQuery();
       }
@@ -347,11 +346,11 @@ namespace MediaCurator
       {
          string sql = "VACUUM;";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
 
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
 
          command.ExecuteNonQuery();
       }
@@ -366,7 +365,7 @@ namespace MediaCurator
       private void UpdateDatabaseLayout()
       {
          // Enable the WAL (Write-Ahead Logging) journaling mode
-         SetJournalMode(SQLiteJournalModeEnum.Wal);
+         SetJournalMode("WAL");
 
          // Create the Thumbnails table
          if (!TableExists("Thumbnails"))
@@ -424,16 +423,14 @@ namespace MediaCurator
       {
          string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '" + table + "'";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
 
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
-         using SQLiteDataReader reader = command.ExecuteReader();
+         using SqliteCommand command = new(sql, connection);
+         using SqliteDataReader reader = command.ExecuteReader();
 
-         bool result = ((reader.StepCount > 0));
-
-         return result;
+         return reader.HasRows;
       }
 
       /// <summary>
@@ -446,12 +443,12 @@ namespace MediaCurator
       {
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using (SQLiteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new(sql, connection);
-            using SQLiteDataReader reader = command.ExecuteReader();
+            using SqliteCommand command = new(sql, connection);
+            using SqliteDataReader reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -476,10 +473,10 @@ namespace MediaCurator
       {
          string sql = "SELECT COUNT(*) FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
          bool result = (Convert.ToInt32(command.ExecuteScalar()) > 0);
 
          return result;
@@ -495,12 +492,12 @@ namespace MediaCurator
          Dictionary<string, string> columns = new();
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using (SQLiteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(_connectionString.Value))
          {
             connection.Open();
 
-            using SQLiteCommand command = new(sql, connection);
-            using SQLiteDataReader reader = command.ExecuteReader();
+            using SqliteCommand command = new(sql, connection);
+            using SqliteDataReader reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -518,10 +515,10 @@ namespace MediaCurator
       {
          string sql = "CREATE TABLE Thumbnails (ID text primary key not null)";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
          command.ExecuteNonQuery();
       }
 
@@ -535,10 +532,10 @@ namespace MediaCurator
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
          command.ExecuteNonQuery();
       }
 
@@ -546,12 +543,12 @@ namespace MediaCurator
       {
          string sql = "INSERT INTO " + table + " (" + column + ") VALUES (@" + column + ")";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
 
-         command.Parameters.Add("@" + column, System.Data.DbType.StringFixedLength).Value = value;
+         command.Parameters.Add("@" + column, SqliteType.Text).Value = value;
 
          return command.ExecuteNonQuery();
       }
@@ -560,10 +557,10 @@ namespace MediaCurator
       {
          string sql = "DELETE FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using SQLiteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(_connectionString.Value);
          connection.Open();
 
-         using SQLiteCommand command = new(sql, connection);
+         using SqliteCommand command = new(sql, connection);
 
          return command.ExecuteNonQuery();
       }
