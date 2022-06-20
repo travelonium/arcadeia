@@ -188,7 +188,18 @@ namespace MediaCurator.Solr
 					{ "stored", true },
 				}
 			},
-			{  "size", new Dictionary<string, object>
+			{
+				"views", new Dictionary<string, object>
+				{
+					{ "name", "views" },
+					{ "type", "plong" },
+					{ "multiValued", false },
+					{ "indexed", true },
+					{ "stored", true },
+				}
+			},
+			{
+				"size", new Dictionary<string, object>
 				{
 					{ "name", "size" },
 					{ "type", "plong" },

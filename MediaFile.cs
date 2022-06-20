@@ -18,7 +18,7 @@ namespace MediaCurator
       /// Gets or sets the size of the file.
       /// </summary>
       /// <value>
-      /// The file size in UInt64.
+      /// The file size in Int64.
       /// </value>
       public long Size
       {
@@ -76,6 +76,29 @@ namespace MediaCurator
          }
       }
 
+      private long _views = 0;
+
+      /// <summary>
+      /// Gets or sets the views count of the file.
+      /// </summary>
+      /// <value>
+      /// The views count in Int64.
+      /// </value>
+      public long Views
+      {
+         get => _views;
+
+         set
+         {
+            if (_views != value)
+            {
+               Modified = true;
+
+               _views = value;
+            }
+         }
+      }
+
       /// <summary>
       /// Gets a tailored MediaContainer model describing a media file.
       /// </summary>
@@ -89,6 +112,7 @@ namespace MediaCurator
             model.Thumbnails = Thumbnails.Count;
             model.ContentType = ContentType;
             model.Extension = Extension;
+            model.Views = Views;
 
             return model;
          }
@@ -100,6 +124,7 @@ namespace MediaCurator
             base.Model = value;
 
             Size = value.Size;
+            Views = value.Views;
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
 
             if ((ContentType != value.ContentType) || (Extension != value.Extension)) Modified = true;
