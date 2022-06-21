@@ -26,18 +26,16 @@ export class MediaContainer extends Component {
         // console.log(prevProps);
     }
 
-    update(source, virtual = false) {
+    update(source) {
         this.setState({
             current: source,
         }, () => {
-            if (!virtual) {
-                this.props.onUpdate(source, false, (source, succeeded) => {
-                    this.setState({
-                        current: succeeded ? clone(source) : clone(this.state.previous),
-                        previous: succeeded ? clone(source) : clone(this.state.previous),
-                    });
+            this.props.onUpdate(source, false, (source, succeeded) => {
+                this.setState({
+                    current: succeeded ? clone(source) : clone(this.state.previous),
+                    previous: succeeded ? clone(source) : clone(this.state.previous),
                 });
-            }
+            });
         });
     }
 
@@ -72,11 +70,11 @@ export class MediaContainer extends Component {
         } else {
             let player = !(event.shiftKey || event.metaKey || (event.button === 1));
             this.props.onView(this.state.current, this.props.index, player);
-            // virtually update the views count but the server will do the real work if all goes well
+            // update the views count asynchronously
             this.update({
                 ...this.state.current,
                 views: this.state.current.views + 1,
-            }, true);
+            });
         }
     }
 
@@ -85,11 +83,11 @@ export class MediaContainer extends Component {
             event.preventDefault();
             event.stopPropagation();
             this.props.onView(this.state.current, this.props.index, false);
-            // virtually update the views count but the server will do the real work if all goes well
+            // update the views count asynchronously
             this.update({
                 ...this.state.current,
                 views: this.state.current.views + 1,
-            }, true);
+            });
         }
     }
 

@@ -35,14 +35,12 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{name}")]
       public IActionResult Video(string id, string name)
       {
-         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((videoFile.Name != name) || (!videoFile.Exists()))
          {
             return NotFound();
          }
-
-         videoFile.Views += 1;
 
          return PhysicalFile(videoFile.FullPath, "application/octet-stream", true);
       }
@@ -52,14 +50,12 @@ namespace MediaCurator.Controllers
       [Route("photo/{id}/{name}")]
       public IActionResult Photo(string id, string name, [FromQuery] int width = 0, [FromQuery] int height = 0)
       {
-         using PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((photoFile.Name != name) || (!photoFile.Exists()))
          {
             return NotFound();
          }
-
-         photoFile.Views += 1;
 
          return photoFile.Extension switch
          {
