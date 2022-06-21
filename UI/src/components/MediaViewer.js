@@ -3,7 +3,7 @@ import Modal from 'react-bootstrap/Modal';
 import { EditableText } from './EditableText';
 import { VideoPlayer } from './VideoPlayer';
 import { PhotoViewer } from './PhotoViewer';
-import { extract } from './../utils';
+import { extract, clone } from './../utils';
 import { Flag } from './Flag';
 
 export class MediaViewer extends Component {
@@ -93,19 +93,12 @@ export class MediaViewer extends Component {
     update(source) {
         let index = this.state.index;
         let sources = this.state.sources;
-        sources[index] = {
-            ...source,
-            // do not update the name until the possible rename operation is through
-            name: sources[index].name,
-        };
-        this.setState({
-            sources: sources
-        }, () => {
-            this.props.onUpdate(source, true, (source) => {
-                sources[this.state.index] = source;
-                this.setState({
-                    sources: sources
-                });
+        let original = extract(undefined, sources, index);
+        this.props.onUpdate(source, true, (source, succeeded) => {
+            if (!original) return;
+            sources[index] = succeeded ? clone(source) : clone(original);
+            this.setState({
+                sources: sources
             });
         });
     }
@@ -124,7 +117,7 @@ export class MediaViewer extends Component {
     }
 
     rename(name) {
-        let source = Object.assign({}, extract({}, this.state.sources, this.state.index));
+        let source = clone(extract({}, this.state.sources, this.state.index));
         source.name = name;
         this.update(source);
     }
