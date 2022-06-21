@@ -59,7 +59,8 @@ export class SortDropdown extends Component {
     }
 
     render() {
-        let set = (this.props.value.field && this.props.value.direction) ? "set" : "";
+        let fields = this.props.value.fields.filter(field => field.active);
+        let set = ((fields.length > 0) && this.props.value.direction) ? "set" : "";
         let icon = (this.props.value.direction === "desc") ? "bi-sort-down" : "bi-sort-down-alt";
         return (
             <Dropdown className={cx("sort-dropdown d-inline", this.props.className)} autoClose="outside" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)}>
@@ -76,8 +77,8 @@ export class SortDropdown extends Component {
                         this.props.value.fields.map((field) => {
                             return (
                                 <Dropdown.Item key={field.id} eventKey={field.id} href="#" active={field.active}>
-                                    <span className="d-flex">
-                                        {field.name}{field.active ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}
+                                    <span className="d-flex align-items-center">
+                                    <i className="bi bi-grip-horizontal pe-3"></i>{field.name}{field.active ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}
                                     </span>
                                 </Dropdown.Item>
                             )
@@ -88,8 +89,8 @@ export class SortDropdown extends Component {
                 {
                     Object.keys(this.state.directions).map((direction) => {
                         return (
-                            <Dropdown.Item key={direction} eventKey={direction} href="#" disabled={this.props.value.fields.filter(field => field.active).length === 0} active={this.props.value.direction === direction}>
-                                <span className="d-flex">
+                            <Dropdown.Item key={direction} eventKey={direction} href="#" disabled={fields.length === 0} active={this.props.value.direction === direction}>
+                                <span className="d-flex align-items-center">
                                     {this.state.directions[direction]}{(this.props.value.direction === direction) ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}
                                 </span>
                             </Dropdown.Item>
