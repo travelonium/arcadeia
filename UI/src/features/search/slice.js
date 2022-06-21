@@ -6,7 +6,17 @@ const initialState = {
     favorite: false,
     recursive: true,
     sort: {
-        field: "",
+        fields: [
+            { id: "1", name: "Name",            value: "name",              active: false },
+            { id: "2", name: "Type",            value: "type extension",    active: false },
+            { id: "3", name: "Size",            value: "size",              active: false },
+            { id: "4", name: "Views",           value: "views",             active: false },
+            { id: "5", name: "Duration",        value: "duration",          active: false },
+            { id: "6", name: "Date Added",      value: "dateAdded",         active: false },
+            { id: "7", name: "Date Created",    value: "dateCreated",       active: false },
+            { id: "8", name: "Date Modified",   value: "dateModified",      active: false },
+            { id: "9", name: "Date Taken",      value: "dateTaken",         active: false },
+        ],
         direction: "asc",
     }
 };
@@ -29,11 +39,11 @@ export const searchSlice = createSlice({
             state.recursive = action.payload;
         },
         setSort: (state, action) => {
-            state.sort.field = action.payload?.field ? action.payload.field : initialState.sort.field;
+            state.sort.fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
             state.sort.direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
         },
-        setSortField: (state, action) => {
-            state.sort.field = action.payload ? action.payload : initialState.sort.field;
+        setSortFields: (state, action) => {
+            state.sort.fields = action.payload ? action.payload : initialState.sort.fields;
         },
         setSortDirection: (state, action) => {
             state.direction = action.payload ? action.payload : initialState.sort.direction;
@@ -64,5 +74,5 @@ export const searchSlice = createSlice({
 });
 
 const { actions, reducer } = searchSlice;
-export const { setPath, setQuery, setFavorite, setRecursive, setSort, setSortField, setSortDirection, reset } = actions;
+export const { setPath, setQuery, setFavorite, setRecursive, setSort, setSortFields, setSortDirection, reset } = actions;
 export default reducer;

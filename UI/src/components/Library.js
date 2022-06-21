@@ -190,7 +190,7 @@ class Library extends Component {
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
             wt: "json",
-            sort: this.sort(this.props.search.sort.field, this.props.search.sort.direction),
+            sort: this.sort(this.props.search.sort.fields, this.props.search.sort.direction),
         };
         if (favorite) {
             input.fq.push("flags:Favorite");
@@ -324,9 +324,10 @@ class Library extends Component {
         return query;
     }
 
-    sort(field, direction) {
-        if (!field || !direction) return null;
-        return field.split(' ').map((field) => field + " " + direction).join(',');
+    sort(fields, direction) {
+        if (!fields || !direction) return null;
+        let items = fields.filter(item => item.active).map(item => item.value);
+        return items.map((item) => item.split(' ').map((field) => field + " " + direction)).join(',');
     }
 
     onMediaViewerShow() {

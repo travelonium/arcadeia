@@ -1,7 +1,9 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import { ReactSortable } from "react-sortablejs";
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import React, { Component } from 'react';
+import { clone } from './../utils';
 import cx from 'classnames';
 import _ from 'lodash';
 
@@ -13,17 +15,6 @@ export class SortDropdown extends Component {
         super(props);
         this.state = {
             open: false,
-            fields: {
-                "name": "Name",
-                "type extension": "Type",
-                "size": "Size",
-                "views": "Views",
-                "duration": "Duration",
-                "dateAdded": "Date Added",
-                "dateCreated": "Date Created",
-                "dateModified": "Date Modified",
-                "dateTaken": "Date Taken",
-            },
             directions: {
                 "asc": "Ascending",
                 "desc": "Descending",
@@ -38,17 +29,27 @@ export class SortDropdown extends Component {
     }
 
     onSelect(eventKey, event) {
-        let value = {
-            ...this.props.value,
-        };
-        if (this.state.directions[eventKey] !== undefined) {
-            value['direction'] = eventKey;
+        let value = clone(this.props.value);
+        const index = value.fields.findIndex(field => field.id === eventKey);
+        if (index !== -1) {
+            let field = value.fields[index];
+            field.active = (field.active !== undefined) ? !field.active : true;
         }
-        if (this.state.fields[eventKey] !== undefined) {
-            value['field'] = (this.props.value.field === eventKey) ? "" : eventKey;
+        if (this.state.directions[eventKey] !== undefined) {
+            value.direction = eventKey;
         }
         if (this.props.onChange && !_.isEqual(this.props.value, value)) {
             this.props.onChange(value, event);
+        }
+    }
+
+    onSetList(newState) {
+        if (this.props.onChange && !_.isEqual(this.props.value, newState)) {
+            let value = clone({
+                ...this.props.value,
+                fields: newState
+            });
+            this.props.onChange(value);
         }
     }
 
@@ -58,7 +59,8 @@ export class SortDropdown extends Component {
     }
 
     render() {
-        let set = (this.props.value.field && this.props.value.direction) ? "set" : "";
+        let fields = this.props.value.fields.filter(field => field.active);
+        let set = ((fields.length > 0) && this.props.value.direction) ? "set" : "";
         let icon = (this.props.value.direction === "desc") ? "bi-sort-down" : "bi-sort-down-alt";
         return (
             <Dropdown className={cx("sort-dropdown d-inline", this.props.className)} autoClose="outside" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)}>
@@ -70,12 +72,30 @@ export class SortDropdown extends Component {
                     </Dropdown.Toggle>
                 </OverlayTrigger>
                 <Dropdown.Menu>
-                {
-                    Object.keys(this.state.fields).map((field) => <Dropdown.Item key={field} eventKey={field} href="#" active={this.props.value.field === field}><span className="d-flex">{this.state.fields[field]}{(this.props.value.field === field) ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}</span></Dropdown.Item>)
-                }
+                    <ReactSortable list={clone(this.props.value.fields)} setList={this.onSetList.bind(this)}>
+                    {
+                        this.props.value.fields.map((field) => {
+                            return (
+                                <Dropdown.Item key={field.id} eventKey={field.id} href="#" active={field.active}>
+                                    <span className="d-flex align-items-center">
+                                    <i className="bi bi-grip-horizontal pe-3"></i>{field.name}{field.active ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}
+                                    </span>
+                                </Dropdown.Item>
+                            )
+                        })
+                    }
+                    </ReactSortable>
                     <Dropdown.Divider />
                 {
-                    Object.keys(this.state.directions).map((direction) => <Dropdown.Item key={direction} eventKey={direction} href="#" disabled={this.props.value.field ? false : true} active={this.props.value.direction === direction}><span className="d-flex">{this.state.directions[direction]}{(this.props.value.direction === direction) ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}</span></Dropdown.Item>)
+                    Object.keys(this.state.directions).map((direction) => {
+                        return (
+                            <Dropdown.Item key={direction} eventKey={direction} href="#" disabled={fields.length === 0} active={this.props.value.direction === direction}>
+                                <span className="d-flex align-items-center">
+                                    {this.state.directions[direction]}{(this.props.value.direction === direction) ? <i className={cx("icon bi bi-check ms-auto set")}></i> : <></>}
+                                </span>
+                            </Dropdown.Item>
+                        )
+                    })
                 }
                 </Dropdown.Menu>
             </Dropdown>
