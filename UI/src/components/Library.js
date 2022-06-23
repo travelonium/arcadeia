@@ -8,6 +8,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { clone, extract, size, updateBit } from './../utils';
 import { reset, setPath } from '../features/search/slice';
+import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
 import { useParams } from "react-router-dom";
@@ -30,6 +31,8 @@ class Library extends Component {
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
         this.controller = new AbortController();
+        this.storeScrollPositionTimeout = null;
+        this.ignoreScrollUpdateWasRequested = false;
         this.state = {
             history: false,
             loading: false,
@@ -69,6 +72,11 @@ class Library extends Component {
                 this.props.dispatch(reset(path));
             });
         };
+    }
+
+    shouldComponentUpdate(nextProps, nextState) {
+        if (!_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) return false;
+        return (!_.isEqual(this.props, nextProps) || (!_.isEqual(this.state, nextState)));
     }
 
     componentDidUpdate(prevProps) {
@@ -208,6 +216,8 @@ class Library extends Component {
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
         this.controller.abort();
         this.controller = new AbortController();
+        // clear the update scroll position timeout, it's too late to do that
+        if (this.storeScrollPositionTimeout !== null) clearTimeout(this.storeScrollPositionTimeout);
         if (!start) this.items = [];
         this.setState({
             items: [],
@@ -256,6 +266,8 @@ class Library extends Component {
                     if (more) {
                         this.search(browse, start + rows);
                     } else {
+                        let index = extract(0, this.props.ui.scrollPosition, this.props.search.path);
+                        this.scrollToItem(index);
                         this.items = [];
                     }
                 });
@@ -424,22 +436,22 @@ class Library extends Component {
             let currentRow = Math.floor(grid.state.scrollTop / rowHeight);
             switch (event.code) {
                 case 'Home':
-                    grid.scrollToItem({ align: "start", rowIndex: 0 });
+                    this.scrollToItem(null, true, "start", 0);
                     break;
                 case 'End':
-                    grid.scrollToItem({ align: "end", rowIndex: rowCount });
+                    this.scrollToItem(null, true, "end", rowCount);
                     break;
                 case 'PageUp':
-                    grid.scrollToItem({ align: "start", rowIndex: (currentRow - pageRows) });
+                    this.scrollToItem(null, true, "start", (currentRow - pageRows));
                     break;
                 case 'PageDown':
-                    grid.scrollToItem({ align: "start", rowIndex: (currentRow + pageRows) });
+                    this.scrollToItem(null, true, "start", (currentRow + pageRows));
                     break;
                 case 'ArrowUp':
-                    grid.scrollToItem({ align: "start", rowIndex: (currentRow - 1) });
+                    this.scrollToItem(null, true, "start", (currentRow - 1));
                     break;
                 case 'ArrowDown':
-                    grid.scrollToItem({ align: "start", rowIndex: (currentRow + 1) });
+                    this.scrollToItem(null, true, "start", (currentRow + 1));
                     break;
                 default:
                     return;
@@ -448,6 +460,43 @@ class Library extends Component {
         // it appears that the key has been handled, let's ensure no one else gets it
         event.preventDefault();
         event.stopPropagation();
+    }
+
+    async scrollToItem(index, store=false, align="start", rowIndex=undefined, columnIndex=undefined) {
+        if (!this.grid.current) return;
+        let grid = this.grid.current;
+        let columnCount = grid.props.columnCount;
+        rowIndex = rowIndex ?? Math.floor(index / columnCount);
+        this.ignoreScrollUpdateWasRequested = store;
+        grid.scrollToItem({ align: align, rowIndex: rowIndex, columnIndex: columnIndex });
+    }
+
+    async storeScrollPosition(horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection, timeout=500) {
+        // make sure the user has stopped scrolling for now
+        if (this.storeScrollPositionTimeout !== null) clearTimeout(this.storeScrollPositionTimeout);
+        this.storeScrollPositionTimeout = setTimeout(() => {
+            if (!this.grid.current) return;
+            let grid = this.grid.current;
+            let rowHeight = grid.props.rowHeight;
+            let columnCount = grid.props.columnCount;
+            let firstVisibleRowIndex = Math.floor(scrollTop / rowHeight);
+            let firstVisibleItemIndex = (firstVisibleRowIndex * columnCount);
+            if (!this.props.search.query && (extract(null, this.props.ui.scrollPosition, this.props.search.path) !== firstVisibleItemIndex)) {
+                this.props.dispatch(setScrollPosition({
+                    path: this.props.search.path,
+                    index: firstVisibleItemIndex,
+                }));
+            }
+        }, timeout);
+    }
+
+    onScroll({horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection}) {
+        // make sure the scroll update is the result of a user interaction
+        if (scrollUpdateWasRequested && !this.ignoreScrollUpdateWasRequested) return;
+        // reset the ignoreScrollUpdateWasRequested flag
+        this.ignoreScrollUpdateWasRequested = false;
+        // queue saving of the scroll position so the UI is not blocked by the work it entails
+        this.storeScrollPosition(horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection)
     }
 
     render() {
@@ -501,7 +550,7 @@ class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset}>
+                                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
                                     {
                                         ({ columnIndex, rowIndex, style }) => {
                                             let index = (rowIndex * columnCount) + columnIndex;
@@ -552,6 +601,7 @@ class Library extends Component {
 const mapStateToProps = (state) => ({
     ui: {
         theme: state.ui.theme,
+        scrollPosition: state.ui.scrollPosition,
     },
     search: {
         sort: state.search.sort,
