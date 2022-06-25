@@ -19,7 +19,13 @@ export const uiSlice = createSlice({
             }
         },
         setScrollPosition: (state, action) => {
-            state.scrollPosition[action.payload.path] = action.payload.index;
+            let path = action.payload.path;
+            let index = action.payload.index;
+            if (index) {
+                state.scrollPosition[path] = index;
+            } else if (state.scrollPosition.hasOwnProperty(path)) {
+                delete state.scrollPosition[path];
+            }
         },
     },
 });
