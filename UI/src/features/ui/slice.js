@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
     theme: "light",
+    scrollPosition: {},
 };
 
 export const uiSlice = createSlice({
@@ -17,9 +18,18 @@ export const uiSlice = createSlice({
                 document.documentElement.className += ` ${state.theme}`;
             }
         },
+        setScrollPosition: (state, action) => {
+            let path = action.payload.path;
+            let index = action.payload.index;
+            if (index) {
+                state.scrollPosition[path] = index;
+            } else if (state.scrollPosition.hasOwnProperty(path)) {
+                delete state.scrollPosition[path];
+            }
+        },
     },
 });
 
 const { actions, reducer } = uiSlice;
-export const { setTheme } = actions;
+export const { setTheme, setScrollPosition } = actions;
 export default reducer;
