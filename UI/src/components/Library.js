@@ -268,8 +268,9 @@ class Library extends Component {
                     if (more) {
                         this.search(browse, start + rows);
                     } else {
-                        let index = extract(0, this.props.ui.scrollPosition, this.props.search.path);
-                        this.showScrollToTop((index && !this.props.search.query) ? true : false);
+                        let searching = this.props.search.query ? true : false;
+                        let index = searching ? 0 : extract(0, this.props.ui.scrollPosition, this.props.search.path);
+                        this.showScrollToTop((index && !searching) ? true : false);
                         this.scrollToItem(index);
                         this.items = [];
                     }
@@ -475,6 +476,8 @@ class Library extends Component {
     }
 
     async storeScrollPosition(horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection, timeout=500) {
+        // don't store the position when searching
+        if (this.props.search.query) return;
         // hide the scroll to top button
         this.showScrollToTop(false);
         // make sure the user has stopped scrolling for now
@@ -486,7 +489,7 @@ class Library extends Component {
             let columnCount = grid.props.columnCount;
             let firstVisibleRowIndex = Math.floor(scrollTop / rowHeight);
             let firstVisibleItemIndex = (firstVisibleRowIndex * columnCount);
-            if (!this.props.search.query && (extract(null, this.props.ui.scrollPosition, this.props.search.path) !== firstVisibleItemIndex)) {
+            if (extract(null, this.props.ui.scrollPosition, this.props.search.path) !== firstVisibleItemIndex) {
                 this.props.dispatch(setScrollPosition({
                     path: this.props.search.path,
                     index: firstVisibleItemIndex,
