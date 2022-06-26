@@ -1,6 +1,7 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import React, { Component } from 'react';
+import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
@@ -31,8 +32,9 @@ class Library extends Component {
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
         this.controller = new AbortController();
-        this.storeScrollPositionTimeout = null;
+        this.scrollToTopButton = React.createRef();
         this.ignoreScrollUpdateWasRequested = false;
+        this.storeScrollPositionTimeout = null;
         this.state = {
             history: false,
             loading: false,
@@ -267,6 +269,7 @@ class Library extends Component {
                         this.search(browse, start + rows);
                     } else {
                         let index = extract(0, this.props.ui.scrollPosition, this.props.search.path);
+                        this.showScrollToTop((index && !this.props.search.query) ? true : false);
                         this.scrollToItem(index);
                         this.items = [];
                     }
@@ -472,6 +475,8 @@ class Library extends Component {
     }
 
     async storeScrollPosition(horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection, timeout=500) {
+        // hide the scroll to top button
+        this.showScrollToTop(false);
         // make sure the user has stopped scrolling for now
         if (this.storeScrollPositionTimeout !== null) clearTimeout(this.storeScrollPositionTimeout);
         this.storeScrollPositionTimeout = setTimeout(() => {
@@ -499,6 +504,30 @@ class Library extends Component {
         this.storeScrollPosition(horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection)
     }
 
+    showScrollToTop(show) {
+        let self = this.scrollToTopButton.current;
+        let parent = self.parentElement;
+        if (show) {
+            self.classList.remove("animate__fadeOutUp");
+            parent.classList.remove("animate__fadeOut");
+            self.classList.add("animate__fadeInDown");
+            parent.classList.add("animate__fadeIn");
+            parent.classList.remove("pe-none");
+        } else {
+            if (self.classList.contains("animate__fadeInDown")) {
+                self.classList.remove("animate__fadeInDown");
+                parent.classList.remove("animate__fadeIn");
+                self.classList.add("animate__fadeOutUp");
+                parent.classList.add("animate__fadeOut");
+                parent.classList.add("pe-none");
+            }
+        }
+    }
+
+    onScrollToTop() {
+        this.scrollToItem(0, true);
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
@@ -510,7 +539,7 @@ class Library extends Component {
         return (
             <>
                 <div className="library d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                    <Breadcrumb className="mx-3" listProps={{ className: "py-2 px-3" }}>
+                    <Breadcrumb className="path mx-3" listProps={{ className: "py-2 px-3" }}>
                         {
                             components.filter((component) => component).map((component, index, array) => {
                                 let link = location;
@@ -572,6 +601,11 @@ class Library extends Component {
                                 )}
                             }
                         </AutoSizer>
+                        <Container fluid className="scroll-to-top animate__animated animate__faster position-absolute d-flex justify-content-center pe-none pb-5">
+                            <Button ref={this.scrollToTopButton} className="animate__animated animate__fast px-3" variant="info" onClick={this.onScrollToTop.bind(this)}>
+                                <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
+                            </Button>
+                        </Container>
                         <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
