@@ -1,3 +1,4 @@
+import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import { EditableText } from './EditableText';
@@ -92,15 +93,26 @@ export class MediaViewer extends Component {
 
     update(source) {
         let index = this.state.index;
-        let sources = this.state.sources;
-        let original = extract(undefined, sources, index);
-        this.props.onUpdate(source, true, (source, succeeded) => {
-            if (!original) return;
-            sources[index] = succeeded ? clone(source) : clone(original);
+        let original = extract(undefined, this.state.sources, index);
+        if (original) {
+            // preliminarily update the state with the new value until we receive the response
             this.setState({
-                sources: sources
-            });
-        });
+                sources: update(this.state.sources, {
+                    [index]: {$set: source}
+                })
+            }, () => {
+                this.props.onUpdate(source, true, (source, succeeded) => {
+                    // now that we have the response we override the preliminary value
+                    this.setState({
+                        sources: update(this.state.sources, {
+                            [index]: {$set: (succeeded ? clone(source) : clone(original))}
+                        })
+                    });
+                });
+            })
+        } else {
+            console.error("Invalid source index!");
+        }
     }
 
     toggle(flag) {

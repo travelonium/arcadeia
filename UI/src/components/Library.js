@@ -1,5 +1,6 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner';
@@ -127,16 +128,19 @@ class Library extends Component {
         })
         .then((response) => {
             // update the state and the virtual copies of the source
-            this.state.items[index] = Object.assign(this.state.items[index], response);
+            const items = update(this.state.items, {
+                [index]: {$merge: response}
+            });
             if (refresh) {
                 this.setState({
-                    items: this.state.items
+                    items: items
                 }, () => {
                     if (callback !== undefined) {
                         callback(this.state.items[index], true);
                     }
                 });
             } else {
+                this.state.items = items;
                 if (callback !== undefined) {
                     callback(this.state.items[index], true);
                 }
