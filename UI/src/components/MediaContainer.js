@@ -26,14 +26,18 @@ export class MediaContainer extends Component {
         // console.log(prevProps);
     }
 
-    update(source) {
+    update(source, callback = undefined) {
         this.setState({
             current: source,
         }, () => {
             this.props.onUpdate(source, false, (source, succeeded) => {
                 this.setState({
                     current: succeeded ? clone(source) : clone(this.state.previous),
-                    previous: succeeded ? clone(source) : clone(this.state.previous),
+                    previous: succeeded ? clone(this.state.current) : clone(this.state.previous),
+                }, () => {
+                    if (callback !== undefined) {
+                        callback(this.state.current);
+                    }
                 });
             });
         });
@@ -65,15 +69,16 @@ export class MediaContainer extends Component {
     }
 
     onClick(event) {
+        let player = !(event.shiftKey || event.metaKey || (event.button === 1));
         if (this.state.current.type === "Folder") {
             this.props.onOpen(this.state.current, false);
         } else {
-            let player = !(event.shiftKey || event.metaKey || (event.button === 1));
-            this.props.onView(this.state.current, this.props.index, player);
-            // update the views count asynchronously
+            // update the views count before opening the viewer
             this.update({
                 ...this.state.current,
                 views: extract(0, this.state.current, 'views') + 1,
+            }, (_) => {
+                this.props.onView(this.state.current, this.props.index, player);
             });
         }
     }
@@ -82,11 +87,12 @@ export class MediaContainer extends Component {
         if ((this.state.current.type !== "Folder") && (event.button === 1)) {
             event.preventDefault();
             event.stopPropagation();
-            this.props.onView(this.state.current, this.props.index, false);
-            // update the views count asynchronously
+            // update the views count before viewing the media
             this.update({
                 ...this.state.current,
                 views: extract(0, this.state.current, 'views') + 1,
+            }, (_) => {
+                this.props.onView(this.state.current, this.props.index, false);
             });
         }
     }
