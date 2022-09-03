@@ -73,13 +73,7 @@ export class MediaContainer extends Component {
         if (this.state.current.type === "Folder") {
             this.props.onOpen(this.state.current, false);
         } else {
-            // update the views count before opening the viewer
-            this.update({
-                ...this.state.current,
-                views: extract(0, this.state.current, 'views') + 1,
-            }, (_) => {
-                this.props.onView(this.state.current, this.props.index, player);
-            });
+            this.props.onView(this.state.current, this.props.index, player);
         }
     }
 
@@ -87,13 +81,7 @@ export class MediaContainer extends Component {
         if ((this.state.current.type !== "Folder") && (event.button === 1)) {
             event.preventDefault();
             event.stopPropagation();
-            // update the views count before viewing the media
-            this.update({
-                ...this.state.current,
-                views: extract(0, this.state.current, 'views') + 1,
-            }, (_) => {
-                this.props.onView(this.state.current, this.props.index, false);
-            });
+            this.props.onView(this.state.current, this.props.index, false);
         }
     }
 

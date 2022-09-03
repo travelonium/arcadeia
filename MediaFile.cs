@@ -124,7 +124,7 @@ namespace MediaCurator
             base.Model = value;
 
             Size = value.Size;
-            Views = value.Views;
+            // Views = value.Views; // This will be incremented by the PreviewController
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
 
             if ((ContentType != value.ContentType) || (Extension != value.Extension)) Modified = true;
