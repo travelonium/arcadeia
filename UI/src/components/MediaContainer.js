@@ -73,7 +73,7 @@ export class MediaContainer extends Component {
             // update the views count asynchronously
             this.update({
                 ...this.state.current,
-                views: this.state.current.views + 1,
+                views: extract(0, this.state.current, 'views') + 1,
             });
         }
     }
@@ -86,7 +86,7 @@ export class MediaContainer extends Component {
             // update the views count asynchronously
             this.update({
                 ...this.state.current,
-                views: this.state.current.views + 1,
+                views: extract(0, this.state.current, 'views') + 1,
             });
         }
     }
