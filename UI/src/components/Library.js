@@ -74,6 +74,7 @@ class Library extends Component {
                 history: true, // notify the search function that the call is coming from the history
             }, () => {
                 this.props.dispatch(reset(path));
+                this.mediaViewer.current.hide();
             });
         };
     }
@@ -86,15 +87,36 @@ class Library extends Component {
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.search, prevProps.search)) {
             if (this.props.search.query) {
-                this.search();
+                this.search(null, 0, (succeeded, name) => {
+                    if (succeeded && name) {
+                        const index = this.state.items.findIndex(x => x.name === name);
+                        if (index !== -1) {
+                            this.view(this.state.items[index], index, true);
+                        }
+                    }
+                });
             } else {
-                this.list(this.props.search.path);
+                const components = this.props.search.path.match(/(.*\/)(.*)?/);
+                if (components) {
+                    const path = components[1];
+                    const name = components[2];
+                    this.list(path, (succeeded, _) => {
+                        if (name && succeeded) {
+                            const index = this.state.items.findIndex(x => x.name === name);
+                            if (index !== -1) {
+                                this.view(this.state.items[index], index, true);
+                            }
+                        }
+                    });
+                } else {
+                    this.list(this.props.search.path);
+                }
             }
         }
     }
 
-    list(path) {
-        this.search(path);
+    list(path, callback = undefined) {
+        this.search(path, 0, callback);
     }
 
     set(source, refresh = true, callback = undefined) {
@@ -164,9 +186,17 @@ class Library extends Component {
         });
     }
 
-    search(browse = null, start = 0) {
+    search(browse = null, start = 0, callback = undefined) {
         const rows = 10000;
-        let path = browse ?? this.props.search.path;
+        let path = browse;
+        let name = null;
+        if (!path) {
+            const components = this.props.search.path.match(/(.*\/)(.*)?/);
+            if (components) {
+                path = components[1];
+                name = components[2];
+            }
+        }
         if (!path) return;
         let history = this.state.history;
         let query = browse ? "*" : this.props.search.query;
@@ -289,6 +319,9 @@ class Library extends Component {
                         this.showScrollToTop((index && !searching) ? true : false);
                         this.scrollToItem(index);
                         this.items = [];
+                        if (callback !== undefined) {
+                            callback(true, name);
+                        }
                     }
                 });
             })
@@ -300,6 +333,10 @@ class Library extends Component {
                     loading: false,
                     status: error.message,
                     items: []
+                }, () => {
+                    if (callback !== undefined) {
+                        callback(false);
+                    }
                 });
             });
         });
@@ -364,6 +401,11 @@ class Library extends Component {
 
     view(source, index = 0, player = true) {
         this.current = index;
+        let params = new URLSearchParams(window.location.search);
+        // if (params.has('query')) params.delete('query');
+        const path = window.location.pathname + source.name + '?' + params.toString();
+        if (!this.viewing) window.history.pushState({path: path}, "", path);
+        else window.history.replaceState({path: path}, "", path);
         this.mediaViewer.current.view([source], 0, player);
     }
 
@@ -606,6 +648,7 @@ class Library extends Component {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
         let path = url.split('?')[0];
+        if (path.includes('/')) path = path.match(/.*\//g)[0]; // exclude the file name from the path used for the breadcrumb
         let status = this.state.status;
         let loading = this.state.loading;
         let search = this.props.search.query ? true : false;

@@ -35,13 +35,14 @@ export class MediaViewer extends Component {
         };
     }
 
+    onShow() {}
+
     onHide() {
         this.setState({
             sources: [],
         }, () => {
-            if (this.props.onHide !== undefined) {
-                this.props.onHide();
-            }
+            if (this.props.onHide !== undefined) this.props.onHide();
+            window.history.back();
         });
     }
 
@@ -56,6 +57,10 @@ export class MediaViewer extends Component {
     view(sources, index, player = true) {
         let source = sources[index];
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
+        let params = new URLSearchParams(window.location.search);
+        // if (params.has('query')) params.delete('query');
+        const path = window.location.pathname.match(/.*\//g)[0] + source.name + '?' + params.toString();
+        window.history.replaceState({path: path}, "", path);
         if (player) {
             this.setState({
                 index: index,
@@ -77,6 +82,14 @@ export class MediaViewer extends Component {
                     break;
             }
         }
+    }
+
+    hide() {
+        this.setState({
+            sources: [],
+        }, () => {
+            if (this.props.onHide !== undefined) this.props.onHide();
+        });
     }
 
     viewer(source) {
@@ -141,7 +154,7 @@ export class MediaViewer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <>
-                <Modal className="media-viewer" show={this.state.sources.length > 0} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
+                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
                     <Modal.Header className="flex-row align-items-center me-3" closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                             <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
