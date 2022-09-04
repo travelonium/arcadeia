@@ -25,10 +25,11 @@ class Library extends Component {
 
     constructor(props) {
         super(props);
-        this.items = [];        // temporary storage for the state.items while the full results are being retrieved
-        this.current = -1;      // the current item index being viewed in the MediaViewer
-        this.viewing = false;   // indicates that a media is being viewed in the MediaViewer
-        this.editing = false;   // indicates that text editing is in progress and should inhibit low level keyboard input capturing
+        this.items = [];            // temporary storage for the state.items while the full results are being retrieved
+        this.current = -1;          // the current item index being viewed in the MediaViewer
+        this.viewing = false;       // indicates that a media is being viewed in the MediaViewer
+        this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
+        this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
         this.grid = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
@@ -96,6 +97,31 @@ class Library extends Component {
         this.search(path);
     }
 
+    set(source, refresh = true, callback = undefined) {
+        const index = this.state.items.findIndex(x => x.id === source.id);
+        if (index === -1) return;
+        // update the state and the virtual copies of the source
+        const items = update(this.state.items, {
+            [index]: {$merge: source}
+        });
+        if (refresh) {
+            this.setState({
+                items: items
+            }, () => {
+                if (callback !== undefined) {
+                    callback(this.state.items[index], true);
+                }
+            });
+        } else {
+            this.state.items = items;
+            this.mediaContainers[index].current.set(source, (_) => {
+                if (callback !== undefined) {
+                    callback(this.state.items[index], true);
+                }
+            });
+        }
+    }
+
     /**
      * Update a MediaContainer with new attributes.
      * @param {*} source The modified MediaContainer to update.
@@ -127,24 +153,7 @@ class Library extends Component {
             }
         })
         .then((response) => {
-            // update the state and the virtual copies of the source
-            const items = update(this.state.items, {
-                [index]: {$merge: response}
-            });
-            if (refresh) {
-                this.setState({
-                    items: items
-                }, () => {
-                    if (callback !== undefined) {
-                        callback(this.state.items[index], true);
-                    }
-                });
-            } else {
-                this.state.items = items;
-                if (callback !== undefined) {
-                    callback(this.state.items[index], true);
-                }
-            }
+            this.set(response, refresh, callback);
         })
         .catch((error) => {
             console.error(error);
@@ -224,7 +233,10 @@ class Library extends Component {
         this.controller = new AbortController();
         // clear the update scroll position timeout, it's too late to do that
         if (this.storeScrollPositionTimeout !== null) clearTimeout(this.storeScrollPositionTimeout);
-        if (!start) this.items = [];
+        if (!start) {
+            this.items = [];
+            this.mediaContainers = {};
+        }
         this.setState({
             items: [],
             path: path,
@@ -282,6 +294,7 @@ class Library extends Component {
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
+                this.mediaContainers = {};
                 this.items = [];
                 this.setState({
                     loading: false,
@@ -289,6 +302,59 @@ class Library extends Component {
                     items: []
                 });
             });
+        });
+    }
+
+    reload(id) {
+        if (!id) return;
+        let query = "*";
+        let solr = "/search";
+        if (process.env.NODE_ENV !== "production") {
+            solr = "http://localhost:8983/solr/Library/select";
+        }
+        const input = {
+            q: query,
+            fq: [
+                "id:\"" + id + "\""
+            ],
+            wt: "json",
+        };
+        this.controller.abort();
+        this.controller = new AbortController();
+        fetch(solr + "?" + this.querify(input).toString(), {
+            signal: this.controller.signal,
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+            },
+        })
+        .then((response) => {
+            if (!response.ok) {
+                let message = "Error querying the Solr index!";
+                return response.text().then((data) => {
+                    try {
+                        let json = JSON.parse(data);
+                        let exception = extract(null, json, "error", "msg");
+                        if (exception) message = exception;
+                    } catch (error) {}
+                    throw Error(message);
+                });
+            }
+            return response.json();
+        })
+        .then((result) => {
+            const numFound = extract(0, result, "response", "numFound");
+            const source = extract(null, result, "response", "docs", 0);
+            if (numFound == 1) {
+                this.set(source, false);
+            } else {
+                throw Error("Reload request for " + id + " received duplicate results!");
+            }
+        })
+        .catch(error => {
+            if (error.name === 'AbortError') return;
+            toast.error(error.message);
+            console.error(error);
         });
     }
 
@@ -356,6 +422,7 @@ class Library extends Component {
 
     onMediaViewerHide() {
         this.viewing = false;
+        this.reload(extract(null, this.state.items, this.current, 'id'));
     }
 
     onKeyDown(event) {
@@ -592,9 +659,10 @@ class Library extends Component {
                                             let index = (rowIndex * columnCount) + columnIndex;
                                             let source = this.state.items[index];
                                             if (source !== undefined) {
+                                                this.mediaContainers[index] = React.createRef();
                                                 return (
                                                     <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                                     </div>
                                                 );
                                             } else {

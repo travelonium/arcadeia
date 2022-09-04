@@ -26,6 +26,16 @@ export class MediaContainer extends Component {
         // console.log(prevProps);
     }
 
+    set(source, callback = undefined) {
+        this.setState({
+            current: source,
+        }, () => {
+            if (callback !== undefined) {
+                callback(this.state.current);
+            }
+        });
+    }
+
     update(source, callback = undefined) {
         this.setState({
             current: source,

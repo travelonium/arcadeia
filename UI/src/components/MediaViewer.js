@@ -101,7 +101,7 @@ export class MediaViewer extends Component {
                     [index]: {$set: source}
                 })
             }, () => {
-                this.props.onUpdate(source, true, (source, succeeded) => {
+                this.props.onUpdate(source, false, (source, succeeded) => {
                     // now that we have the response we override the preliminary value
                     this.setState({
                         sources: update(this.state.sources, {
