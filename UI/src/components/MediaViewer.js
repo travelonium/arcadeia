@@ -87,8 +87,6 @@ export class MediaViewer extends Component {
     hide() {
         this.setState({
             sources: [],
-        }, () => {
-            if (this.props.onHide !== undefined) this.props.onHide();
         });
     }
 
