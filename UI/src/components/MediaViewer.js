@@ -1,3 +1,4 @@
+import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import { EditableText } from './EditableText';
@@ -34,13 +35,14 @@ export class MediaViewer extends Component {
         };
     }
 
+    onShow() {}
+
     onHide() {
         this.setState({
             sources: [],
         }, () => {
-            if (this.props.onHide !== undefined) {
-                this.props.onHide();
-            }
+            if (this.props.onHide !== undefined) this.props.onHide();
+            window.history.back();
         });
     }
 
@@ -55,6 +57,10 @@ export class MediaViewer extends Component {
     view(sources, index, player = true) {
         let source = sources[index];
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
+        let params = new URLSearchParams(window.location.search);
+        // if (params.has('query')) params.delete('query');
+        const path = window.location.pathname.match(/.*\//g)[0] + source.name + '?' + params.toString();
+        window.history.replaceState({path: path}, "", path);
         if (player) {
             this.setState({
                 index: index,
@@ -78,6 +84,12 @@ export class MediaViewer extends Component {
         }
     }
 
+    hide() {
+        this.setState({
+            sources: [],
+        });
+    }
+
     viewer(source) {
         const type = extract(null, source, 'type');
         switch (type) {
@@ -92,15 +104,26 @@ export class MediaViewer extends Component {
 
     update(source) {
         let index = this.state.index;
-        let sources = this.state.sources;
-        let original = extract(undefined, sources, index);
-        this.props.onUpdate(source, true, (source, succeeded) => {
-            if (!original) return;
-            sources[index] = succeeded ? clone(source) : clone(original);
+        let original = extract(undefined, this.state.sources, index);
+        if (original) {
+            // preliminarily update the state with the new value until we receive the response
             this.setState({
-                sources: sources
-            });
-        });
+                sources: update(this.state.sources, {
+                    [index]: {$set: source}
+                })
+            }, () => {
+                this.props.onUpdate(source, false, (source, succeeded) => {
+                    // now that we have the response we override the preliminary value
+                    this.setState({
+                        sources: update(this.state.sources, {
+                            [index]: {$set: (succeeded ? clone(source) : clone(original))}
+                        })
+                    });
+                });
+            })
+        } else {
+            console.error("Invalid source index!");
+        }
     }
 
     toggle(flag) {
@@ -129,7 +152,7 @@ export class MediaViewer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <>
-                <Modal className="media-viewer" show={this.state.sources.length > 0} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
+                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
                     <Modal.Header className="flex-row align-items-center me-3" closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                             <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />

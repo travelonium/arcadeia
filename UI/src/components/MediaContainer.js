@@ -26,14 +26,28 @@ export class MediaContainer extends Component {
         // console.log(prevProps);
     }
 
-    update(source) {
+    set(source, callback = undefined) {
+        this.setState({
+            current: source,
+        }, () => {
+            if (callback !== undefined) {
+                callback(this.state.current);
+            }
+        });
+    }
+
+    update(source, callback = undefined) {
         this.setState({
             current: source,
         }, () => {
             this.props.onUpdate(source, false, (source, succeeded) => {
                 this.setState({
                     current: succeeded ? clone(source) : clone(this.state.previous),
-                    previous: succeeded ? clone(source) : clone(this.state.previous),
+                    previous: succeeded ? clone(this.state.current) : clone(this.state.previous),
+                }, () => {
+                    if (callback !== undefined) {
+                        callback(this.state.current);
+                    }
                 });
             });
         });
@@ -65,16 +79,11 @@ export class MediaContainer extends Component {
     }
 
     onClick(event) {
+        let player = !(event.shiftKey || event.metaKey || (event.button === 1));
         if (this.state.current.type === "Folder") {
             this.props.onOpen(this.state.current, false);
         } else {
-            let player = !(event.shiftKey || event.metaKey || (event.button === 1));
             this.props.onView(this.state.current, this.props.index, player);
-            // update the views count asynchronously
-            this.update({
-                ...this.state.current,
-                views: this.state.current.views + 1,
-            });
         }
     }
 
@@ -83,11 +92,6 @@ export class MediaContainer extends Component {
             event.preventDefault();
             event.stopPropagation();
             this.props.onView(this.state.current, this.props.index, false);
-            // update the views count asynchronously
-            this.update({
-                ...this.state.current,
-                views: this.state.current.views + 1,
-            });
         }
     }
 
@@ -116,10 +120,20 @@ export class MediaContainer extends Component {
 
     render() {
         const source = this.state.current;
-        const flags = extract([], source, "flags");
+        const type = extract(null, source, 'type');
+        const flags = extract([], source, 'flags');
         const favorite = flags.includes('Favorite');
+        let href = source.fullPath;
+        switch (type) {
+            case "Photo":
+                href = "/preview/photo/" + source.id + "/" + source.name;
+                break;
+            case "Video":
+                href = "/preview/video/" + source.id + "/" + source.name;
+                break;
+        }
         return (
-            <a href={source.fullPath} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
+            <a href={href} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
                 <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                     <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                         <div className="thumbnail-container">

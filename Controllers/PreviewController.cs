@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -35,7 +36,23 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{name}")]
       public IActionResult Video(string id, string name)
       {
-         VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         // Increment the Views only if this is the first ranged request or not ranged at all
+         if (Request.Headers.TryGetValue("Range", out var range))
+         {
+            // Does the range header contain bytes=0- or similar?
+            Regex pattern = new Regex(@"(?:\w.*)=0-(?:\d*)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+            if (pattern.IsMatch(range))
+            {
+               videoFile.Views += 1;
+            }
+         }
+         else
+         {
+            videoFile.Views += 1;
+         }
 
          if ((videoFile.Name != name) || (!videoFile.Exists()))
          {
@@ -50,12 +67,14 @@ namespace MediaCurator.Controllers
       [Route("photo/{id}/{name}")]
       public IActionResult Photo(string id, string name, [FromQuery] int width = 0, [FromQuery] int height = 0)
       {
-         PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((photoFile.Name != name) || (!photoFile.Exists()))
          {
             return NotFound();
          }
+
+         photoFile.Views += 1;
 
          return photoFile.Extension switch
          {

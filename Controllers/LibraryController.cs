@@ -52,6 +52,10 @@ namespace MediaCurator.Controllers
             // Create the parent container of the right type.
             using IMediaContainer mediaContainer = (MediaContainer) Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null);
 
+            // Reset the Views to its currently stored value as the UI is not allowed to update it.
+            modified.Views = mediaContainer.Model.Views;
+
+            // Update the container with the modified version.
             mediaContainer.Model = modified;
 
             return Ok(mediaContainer.Model);

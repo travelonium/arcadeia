@@ -1,5 +1,6 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner';
@@ -24,10 +25,11 @@ class Library extends Component {
 
     constructor(props) {
         super(props);
-        this.items = [];        // temporary storage for the state.items while the full results are being retrieved
-        this.current = -1;      // the current item index being viewed in the MediaViewer
-        this.viewing = false;   // indicates that a media is being viewed in the MediaViewer
-        this.editing = false;   // indicates that text editing is in progress and should inhibit low level keyboard input capturing
+        this.items = [];            // temporary storage for the state.items while the full results are being retrieved
+        this.current = -1;          // the current item index being viewed in the MediaViewer
+        this.viewing = false;       // indicates that a media is being viewed in the MediaViewer
+        this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
+        this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
         this.grid = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
@@ -72,6 +74,7 @@ class Library extends Component {
                 history: true, // notify the search function that the call is coming from the history
             }, () => {
                 this.props.dispatch(reset(path));
+                this.mediaViewer.current.hide();
             });
         };
     }
@@ -84,15 +87,61 @@ class Library extends Component {
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.search, prevProps.search)) {
             if (this.props.search.query) {
-                this.search();
+                this.search(null, 0, (succeeded, name) => {
+                    if (succeeded && name) {
+                        const index = this.state.items.findIndex(x => x.name === name);
+                        if (index !== -1) {
+                            this.view(this.state.items[index], index, true);
+                        }
+                    }
+                });
             } else {
-                this.list(this.props.search.path);
+                const components = this.props.search.path.match(/(.*\/)(.*)?/);
+                if (components) {
+                    const path = components[1];
+                    const name = components[2];
+                    this.list(path, (succeeded, _) => {
+                        if (name && succeeded) {
+                            const index = this.state.items.findIndex(x => x.name === name);
+                            if (index !== -1) {
+                                this.view(this.state.items[index], index, true);
+                            }
+                        }
+                    });
+                } else {
+                    this.list(this.props.search.path);
+                }
             }
         }
     }
 
-    list(path) {
-        this.search(path);
+    list(path, callback = undefined) {
+        this.search(path, 0, callback);
+    }
+
+    set(source, refresh = true, callback = undefined) {
+        const index = this.state.items.findIndex(x => x.id === source.id);
+        if (index === -1) return;
+        // update the state and the virtual copies of the source
+        const items = update(this.state.items, {
+            [index]: {$merge: source}
+        });
+        if (refresh) {
+            this.setState({
+                items: items
+            }, () => {
+                if (callback !== undefined) {
+                    callback(this.state.items[index], true);
+                }
+            });
+        } else {
+            this.state.items = items;
+            this.mediaContainers[index].current.set(source, (_) => {
+                if (callback !== undefined) {
+                    callback(this.state.items[index], true);
+                }
+            });
+        }
     }
 
     /**
@@ -126,21 +175,7 @@ class Library extends Component {
             }
         })
         .then((response) => {
-            // update the state and the virtual copies of the source
-            this.state.items[index] = Object.assign(this.state.items[index], response);
-            if (refresh) {
-                this.setState({
-                    items: this.state.items
-                }, () => {
-                    if (callback !== undefined) {
-                        callback(this.state.items[index], true);
-                    }
-                });
-            } else {
-                if (callback !== undefined) {
-                    callback(this.state.items[index], true);
-                }
-            }
+            this.set(response, refresh, callback);
         })
         .catch((error) => {
             console.error(error);
@@ -151,9 +186,17 @@ class Library extends Component {
         });
     }
 
-    search(browse = null, start = 0) {
+    search(browse = null, start = 0, callback = undefined) {
         const rows = 10000;
-        let path = browse ?? this.props.search.path;
+        let path = browse;
+        let name = null;
+        if (!path) {
+            const components = this.props.search.path.match(/(.*\/)(.*)?/);
+            if (components) {
+                path = components[1];
+                name = components[2];
+            }
+        }
         if (!path) return;
         let history = this.state.history;
         let query = browse ? "*" : this.props.search.query;
@@ -220,7 +263,10 @@ class Library extends Component {
         this.controller = new AbortController();
         // clear the update scroll position timeout, it's too late to do that
         if (this.storeScrollPositionTimeout !== null) clearTimeout(this.storeScrollPositionTimeout);
-        if (!start) this.items = [];
+        if (!start) {
+            this.items = [];
+            this.mediaContainers = {};
+        }
         this.setState({
             items: [],
             path: path,
@@ -273,18 +319,79 @@ class Library extends Component {
                         this.showScrollToTop((index && !searching) ? true : false);
                         this.scrollToItem(index);
                         this.items = [];
+                        if (callback !== undefined) {
+                            callback(true, name);
+                        }
                     }
                 });
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
+                this.mediaContainers = {};
                 this.items = [];
                 this.setState({
                     loading: false,
                     status: error.message,
                     items: []
+                }, () => {
+                    if (callback !== undefined) {
+                        callback(false);
+                    }
                 });
             });
+        });
+    }
+
+    reload(id) {
+        if (!id) return;
+        let query = "*";
+        let solr = "/search";
+        if (process.env.NODE_ENV !== "production") {
+            solr = "http://localhost:8983/solr/Library/select";
+        }
+        const input = {
+            q: query,
+            fq: [
+                "id:\"" + id + "\""
+            ],
+            wt: "json",
+        };
+        this.controller.abort();
+        this.controller = new AbortController();
+        fetch(solr + "?" + this.querify(input).toString(), {
+            signal: this.controller.signal,
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+            },
+        })
+        .then((response) => {
+            if (!response.ok) {
+                let message = "Error querying the Solr index!";
+                return response.text().then((data) => {
+                    try {
+                        let json = JSON.parse(data);
+                        let exception = extract(null, json, "error", "msg");
+                        if (exception) message = exception;
+                    } catch (error) {}
+                    throw Error(message);
+                });
+            }
+            return response.json();
+        })
+        .then((result) => {
+            const numFound = extract(0, result, "response", "numFound");
+            const source = extract(null, result, "response", "docs", 0);
+            if (numFound == 1) {
+                this.set(source, false);
+            } else {
+                throw Error("Reload request for " + id + " received duplicate results!");
+            }
+        })
+        .catch(error => {
+            if (error.name === 'AbortError') return;
+            toast.error(error.message);
+            console.error(error);
         });
     }
 
@@ -294,6 +401,11 @@ class Library extends Component {
 
     view(source, index = 0, player = true) {
         this.current = index;
+        let params = new URLSearchParams(window.location.search);
+        // if (params.has('query')) params.delete('query');
+        const path = window.location.pathname + source.name + '?' + params.toString();
+        if (!this.viewing) window.history.pushState({path: path}, "", path);
+        else window.history.replaceState({path: path}, "", path);
         this.mediaViewer.current.view([source], 0, player);
     }
 
@@ -352,6 +464,7 @@ class Library extends Component {
 
     onMediaViewerHide() {
         this.viewing = false;
+        this.reload(extract(null, this.state.items, this.current, 'id'));
     }
 
     onKeyDown(event) {
@@ -535,6 +648,7 @@ class Library extends Component {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
         let path = url.split('?')[0];
+        if (path.includes('/')) path = path.match(/.*\//g)[0]; // exclude the file name from the path used for the breadcrumb
         let status = this.state.status;
         let loading = this.state.loading;
         let search = this.props.search.query ? true : false;
@@ -588,9 +702,10 @@ class Library extends Component {
                                             let index = (rowIndex * columnCount) + columnIndex;
                                             let source = this.state.items[index];
                                             if (source !== undefined) {
+                                                this.mediaContainers[index] = React.createRef();
                                                 return (
                                                     <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                                     </div>
                                                 );
                                             } else {
