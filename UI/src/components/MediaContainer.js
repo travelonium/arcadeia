@@ -131,6 +131,8 @@ export class MediaContainer extends Component {
             case "Video":
                 href = "/preview/video/" + source.id + "/" + source.name;
                 break;
+            default:
+                break
         }
         return (
             <a href={href} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >

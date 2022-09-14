@@ -382,7 +382,7 @@ class Library extends Component {
         .then((result) => {
             const numFound = extract(0, result, "response", "numFound");
             const source = extract(null, result, "response", "docs", 0);
-            if (numFound == 1) {
+            if (numFound === 1) {
                 this.set(source, false);
             } else {
                 throw Error("Reload request for " + id + " received duplicate results!");
