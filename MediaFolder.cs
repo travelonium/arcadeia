@@ -71,6 +71,26 @@ namespace MediaCurator
          return Directory.Exists(FullPath);
       }
 
+      /// <summary>
+      /// Moves (or Renames) the MediaFolder from one location or name to another.
+      /// </summary>
+      /// <param name="source">The fullpath of the original name and location.</param>
+      /// <param name="destination">The fullpath of the new name and location.</param>
+      public override void Move(string source, string destination)
+      {
+         // TODO: Moving folders need a bit more work:
+         //       - Check whether the destination files and folders already exist on disk or in the
+         //         library and throw one or severals exceptions if so.
+         //       - All the child MediaContainers and their children need to move to the new location.
+         //       - Focus solely on the MediaContainers and leave the other files be as it would get
+         //         so much more complicated otherwise.
+         //       - When moving, remove the moved folder if it is empty of other files.
+         //
+         // Directory.Move(source, destination);
+
+         base.Move(source, destination);
+      }
+
       #endregion
    }
 }

@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
+using SolrNet;
+using System.Xml.Linq;
 
 namespace MediaCurator
 {
@@ -289,6 +291,16 @@ namespace MediaCurator
                }
             }
          }
+      }
+
+      /// <summary>
+      /// Moves (or Renames) the MediaFile from one location or name to another.
+      /// </summary>
+      /// <param name="source">The fullpath of the original name and location.</param>
+      /// <param name="destination">The fullpath of the new name and location.</param>
+      public override void Move(string source, string destination)
+      {
+         File.Move(source, destination);
       }
 
       #endregion // Overrides

@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace MediaCurator
 {
    public interface IMediaContainer : IDisposable
    {
       IMediaContainer Root { get; }
-      public IMediaContainer Parent { get; set; }
+      IMediaContainer Parent { get; set; }
+      IEnumerable<MediaContainer> Children { get; }
       string Id { get; set; }
       string Name { get; set; }
       string Type { get; }
