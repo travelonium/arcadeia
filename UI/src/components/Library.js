@@ -119,9 +119,7 @@ class Library extends Component {
         this.search(path, 0, callback);
     }
 
-    set(source, refresh = true, callback = undefined) {
-        const index = this.state.items.findIndex(x => x.id === source.id);
-        if (index === -1) return;
+    set(index, source, refresh = true, callback = undefined) {
         // update the state and the virtual copies of the source
         const items = update(this.state.items, {
             [index]: {$merge: source}
@@ -175,7 +173,7 @@ class Library extends Component {
             }
         })
         .then((response) => {
-            this.set(response, refresh, callback);
+            this.set(index, response, refresh, callback);
         })
         .catch((error) => {
             console.error(error);
@@ -343,7 +341,15 @@ class Library extends Component {
     }
 
     reload(id) {
-        if (!id) return;
+        if (!id) {
+            console.error("Invalid id was supplied to the reload() function!");
+            return;
+        }
+        const index = this.state.items.findIndex(x => x.id === id);
+        if (index === -1) {
+            console.error("Unable to find the index for %s in the items!", id);
+            return;
+        }
         let query = "*";
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
@@ -383,7 +389,7 @@ class Library extends Component {
             const numFound = extract(0, result, "response", "numFound");
             const source = extract(null, result, "response", "docs", 0);
             if (numFound === 1) {
-                this.set(source, false);
+                this.set(index, source, false);
             } else {
                 throw Error("Reload request for " + id + " received duplicate results!");
             }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
 using SolrNet;
 using System.Xml.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace MediaCurator
 {
@@ -296,11 +297,57 @@ namespace MediaCurator
       /// <summary>
       /// Moves (or Renames) the MediaFile from one location or name to another.
       /// </summary>
-      /// <param name="source">The fullpath of the original name and location.</param>
       /// <param name="destination">The fullpath of the new name and location.</param>
-      public override void Move(string source, string destination)
+      public override void Move(string destination)
       {
-         File.Move(source, destination);
+         // Split the path in parent, child components.
+         var pathComponents = GetPathComponents(destination);
+
+         try
+         {
+            if (pathComponents.Parent != null)
+            {
+               Directory.CreateDirectory(pathComponents.Parent);
+            }
+
+            File.Move(FullPath, destination);
+
+            // Update the MediaFile's Name.
+            Name = pathComponents.Child;
+
+            // Now that the MediFile has succesfully been moved, update its Parent if needed.
+            if (pathComponents.Parent != null)
+            {
+               // Determine whether the Parent needs to be updated.
+               if (pathComponents.Parent != Path)
+               {
+                  // Yes, we need to update the Parent, let's infer the new Parent's type.
+                  Type parentType = GetMediaContainerType(GetPathComponents(pathComponents.Parent).Child);
+
+                  if (parentType != null)
+                  {
+                     // Now let's instantiate the new Parent.
+                     Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent);
+                     ParentType = Parent.Type;
+                  }
+               }
+            }
+            else
+            {
+               if (MediaLibrary.Path != Path)
+               {
+                  // The path supplied refers to the root of the MediaLibrary i.e. the "/". We simply set
+                  // the parent to the MediaLibrary instance itself.
+
+                  Parent = MediaLibrary;
+                  ParentType = Parent.Type;
+               }
+            }
+         }
+         catch
+         {
+            throw;
+         }
       }
 
       #endregion // Overrides
