@@ -1,0 +1,18 @@
+#upload-zone-form {
+    label {
+        .upload-zone-overlay.dragging {
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            position: absolute;
+            border: 1px dashed;
+            pointer-events: none;
+            height: calc(100% - 1rem);
+            background-color: rgba(255, 255, 255, .15);
+        }
+
+        .upload-zone-content.dragging {
+            opacity: .3;
+        }
+    }
+}

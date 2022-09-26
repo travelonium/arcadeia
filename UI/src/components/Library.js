@@ -13,6 +13,7 @@ import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import { UploadZone } from './UploadZone';
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { connect } from "react-redux";
@@ -702,26 +703,28 @@ class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
-                                    {
-                                        ({ columnIndex, rowIndex, style }) => {
-                                            let index = (rowIndex * columnCount) + columnIndex;
-                                            let source = this.state.items[index];
-                                            if (source !== undefined) {
-                                                this.mediaContainers[index] = React.createRef();
-                                                return (
-                                                    <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
-                                                    </div>
-                                                );
-                                            } else {
-                                                return (
-                                                    <div style={style}></div>
-                                                );
+                                    <UploadZone>
+                                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
+                                        {
+                                            ({ columnIndex, rowIndex, style }) => {
+                                                let index = (rowIndex * columnCount) + columnIndex;
+                                                let source = this.state.items[index];
+                                                if (source !== undefined) {
+                                                    this.mediaContainers[index] = React.createRef();
+                                                    return (
+                                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
+                                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <div style={style}></div>
+                                                    );
+                                                }
                                             }
                                         }
-                                    }
-                                    </Grid>
+                                        </Grid>
+                                    </UploadZone>
                                 )}
                             }
                         </AutoSizer>
