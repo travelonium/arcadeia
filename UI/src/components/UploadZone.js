@@ -62,7 +62,7 @@ export class UploadZone extends Component {
                 <input type="file" id="upload-zone-input" className="d-none" multiple={true} onChange={this.onChange.bind(this)} />
                 <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex" onClick={(event) => event.preventDefault()}>
                     <div className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")}>
-                        <p className="h3">Drop To Upload</p>
+                        <p className="font-weight-light h5 text-uppercase">Drop Here To Upload</p>
                     </div>
                     <div className={cx("upload-zone-content", this.state.dragging ? "dragging" : "")}>
                         {this.props.children}

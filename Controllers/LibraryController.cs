@@ -31,9 +31,9 @@ namespace MediaCurator.Controllers
          _thumbnailsDatabase = thumbnailsDatabase;
       }
 
-      [HttpPut]
+      [HttpPatch]
       [Produces("application/json")]
-      public IActionResult Put([FromBody] Models.MediaContainer modified, string path = "")
+      public IActionResult Patch([FromBody] Models.MediaContainer modified, string path = "")
       {
          path = Platform.Separator.Path + path;
 

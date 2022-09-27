@@ -157,7 +157,7 @@ class Library extends Component {
             return;
         }
         fetch("/library" + item.fullPath, {
-            method: "PUT",
+            method: "PATCH",
             headers: {
                 accept: "application/json",
                 "Content-Type": "application/json",
