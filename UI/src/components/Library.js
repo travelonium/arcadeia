@@ -18,6 +18,7 @@ import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { connect } from "react-redux";
 import cx from 'classnames';
+import axios from 'axios';
 import _ from 'lodash';
 
 class Library extends Component {
@@ -43,6 +44,11 @@ class Library extends Component {
             loading: false,
             status: "",
             items: [],
+            uploads: {
+                queue: [],
+                active: {},
+                failed: {},
+            },
             options: {
                 videoPlayer: {
                     seekStep: {
@@ -116,7 +122,9 @@ class Library extends Component {
         }
     }
 
-    list(path, callback = undefined) {
+    list(path = undefined, callback = undefined) {
+        const components = this.props.search.path.match(/(.*\/)(.*)?/);
+        if (!path && components) path = components[1];
         this.search(path, 0, callback);
     }
 
@@ -189,13 +197,6 @@ class Library extends Component {
         const rows = 10000;
         let path = browse;
         let name = null;
-        if (!path) {
-            const components = this.props.search.path.match(/(.*\/)(.*)?/);
-            if (components) {
-                path = components[1];
-                name = components[2];
-            }
-        }
         if (!path) return;
         let history = this.state.history;
         let query = browse ? "*" : this.props.search.query;
@@ -402,6 +403,164 @@ class Library extends Component {
         });
     }
 
+    upload(files = null) {
+        if (files) {
+            let queue = [];
+            files.forEach(file => {
+                if (!file.type && file.size % 4096 == 0) {
+                    // it's a folder, ignore it for now
+                } else {
+                    // it's a file, queue it
+                    queue.push(file);
+                }
+            });
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    uploads: update(prevState.uploads, {
+                        $merge: {
+                            queue: update(prevState.uploads.queue, {
+                                $push: queue
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.upload();
+            });
+            return;
+        }
+        // do we already have the maximum simultaneous number of active uploads?
+        if (Object.keys(this.state.uploads.active).length >= 3) return;
+        // nope, do we have any files in the queue?
+        if (this.state.uploads.queue.length === 0) return;
+        // yes, we can start one more
+        let file = this.state.uploads.queue[0];
+        // dequeue the first file and start uploading it
+        this.setState(prevState => {
+            return {
+                ...prevState,
+                uploads: update(prevState.uploads, {
+                    $merge: {
+                        queue: update(prevState.uploads.queue, {
+                            $splice: [[0, 1]]
+                        })
+                    }
+                })
+            }
+        }, () => {
+            let config =  {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+                validateStatus: (status) => {
+                    return (status === 200);
+                },
+                onUploadProgress: this.onUploadProgress.bind(this, file),
+            };
+            let data = new FormData();
+            data.append('files', file);
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    uploads: update(prevState.uploads, {
+                        $merge: {
+                            active: update(prevState.uploads.active, {
+                                $merge: {
+                                    [file.name]: {
+                                        file: file,
+                                        toast: toast.info(this.renderUploadToast("Uploading...", file.name),
+                                        {
+                                            progress: 0,
+                                            theme: 'dark',
+                                            icon: <div className="Toastify__spinner"></div>
+                                        }),
+                                    }
+                                }
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                axios.post("/library" + this.props.search.path, data, config)
+                .then((response) => {
+                    toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
+                        progress: 1,
+                        theme: null,
+                        render: this.renderUploadToast.bind(this, "Upload Completed!", file.name),
+                        type: toast.TYPE.SUCCESS,
+                        icon: null,
+                    });
+                    // remove the successfully uploaded file from the list of active uploads
+                    this.setState(prevState => {
+                        return {
+                            ...prevState,
+                            uploads: update(prevState.uploads, {
+                                $merge: {
+                                    active: update(prevState.uploads.active, {
+                                        $unset: [file.name]
+                                    })
+                                }
+                            })
+                        }
+                    }, () => {
+                        this.upload();
+                        this.list(undefined, () => {
+                            const index = this.state.items.findIndex(x => x.name === file.name);
+                            if (index !== -1) this.scrollToItem(index, true);
+                        });
+                    })
+                })
+                .catch((error) => {
+                    console.error(error);
+                    let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
+                    toast.update(toastId, {
+                        progress: 0,
+                        theme: null,
+                        render: this.renderUploadToast.bind(this, "Upload Failed", file.name),
+                        type: toast.TYPE.ERROR,
+                        icon: null,
+                    });
+                    let failed = extract(null, this.state.uploads.active, file.name);
+                    // remove the failed upload from the list of active uploads
+                    this.setState(prevState => {
+                        return {
+                            ...prevState,
+                            uploads: update(prevState.uploads, {
+                                $merge: {
+                                    active: update(prevState.uploads.active, {
+                                        $unset: [file.name]
+                                    })
+                                }
+                            })
+                        }
+                    }, () => {
+                        // add the failed upload to the list of failed uploads
+                        this.setState(prevState => {
+                            return {
+                                ...prevState,
+                                uploads: update(prevState.uploads, {
+                                    $merge: {
+                                        failed: update(prevState.uploads.failed, {
+                                            $merge: {
+                                                [file.name]: failed
+                                            }
+                                        })
+                                    }
+                                })
+                            }
+                        }, () => {
+                            // process any remaining queued files
+                            this.upload();
+                        });
+                    });
+                });
+            });
+            // process any remaining queued files
+            this.upload();
+        });
+    }
+
     open(source) {
         this.props.dispatch(setPath(source.fullPath));
     }
@@ -586,6 +745,15 @@ class Library extends Component {
         event.stopPropagation();
     }
 
+    onUploadProgress(file, progressEvent) {
+        var progress = progressEvent.loaded / progressEvent.total;
+        let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
+        toast.update(toastId, {
+            progress: Math.min(progress, 0.99),
+            render: this.renderUploadToast.bind(this, (progress < 1) ? "Uploading..." : "Scanning...", file.name),
+        });
+    }
+
     async scrollToItem(index, store=false, align="start", rowIndex=undefined, columnIndex=undefined) {
         if (!this.grid.current) return;
         let grid = this.grid.current;
@@ -651,6 +819,17 @@ class Library extends Component {
         this.scrollToItem(0, true);
     }
 
+    renderUploadToast(title, subtitle) {
+        return (
+            <div>
+                <div>
+                    <strong>{title}</strong>
+                </div>
+                <small>{subtitle}</small>
+            </div>
+        );
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
@@ -703,7 +882,7 @@ class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <UploadZone>
+                                    <UploadZone onUpload={this.upload.bind(this)}>
                                         <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
                                         {
                                             ({ columnIndex, rowIndex, style }) => {

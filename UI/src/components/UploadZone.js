@@ -43,23 +43,15 @@ export class UploadZone extends Component {
         this.setState({
             dragging: false
         }, () => {
-            var files = event.dataTransfer.files;
-            for (var i = 0, item; item = files[i]; i++) {
-                if (!item.type && item.size % 4096 == 0) {
-                    // it's a folder
-                    console.log("Folder", item);
-                } else {
-                    // it's a file
-                    console.log("File", item);
-                }
-            }
+            let files = Array.from(event.dataTransfer.files);
+            if (this.props.onUpload !== undefined) this.props.onUpload(files);
         });
     }
 
     render() {
         return (
             <form id="upload-zone-form" className="d-flex" onDragEnter={this.onDrag.bind(this)} onDragOver={this.onDrag.bind(this)} onDragExit={this.onDrag.bind(this)} onDrop={this.onDrop.bind(this)} onSubmit={(event) => event.preventDefault()}>
-                <input type="file" id="upload-zone-input" className="d-none" multiple={true} onChange={this.onChange.bind(this)} />
+                <input type="file" id="upload-zone-input" className="d-none" name="files" multiple={true} onChange={this.onChange.bind(this)} />
                 <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex" onClick={(event) => event.preventDefault()}>
                     <div className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")}>
                         <p className="font-weight-light h5 text-uppercase">Drop Here To Upload</p>
