@@ -431,7 +431,7 @@ class Library extends Component {
             return;
         }
         // do we already have the maximum simultaneous number of active uploads?
-        if (Object.keys(this.state.uploads.active).length >= 3) return;
+        if (Object.keys(this.state.uploads.active).length >= this.props.ui.simultaneousUploads) return;
         // nope, do we have any files in the queue?
         if (this.state.uploads.queue.length === 0) return;
         // yes, we can start one more
@@ -555,9 +555,9 @@ class Library extends Component {
                         });
                     });
                 });
+                // process any remaining queued files
+                this.upload();
             });
-            // process any remaining queued files
-            this.upload();
         });
     }
 
@@ -942,6 +942,7 @@ const mapStateToProps = (state) => ({
     ui: {
         theme: state.ui.theme,
         scrollPosition: state.ui.scrollPosition,
+        simultaneousUploads: state.ui.simultaneousUploads,
     },
     search: {
         sort: state.search.sort,

@@ -3,6 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
     theme: "light",
     scrollPosition: {},
+    simultaneousUploads: 4,
 };
 
 export const uiSlice = createSlice({
@@ -27,9 +28,12 @@ export const uiSlice = createSlice({
                 delete state.scrollPosition[path];
             }
         },
+        setSimultaneousUploads: (state, action) => {
+            state.simultaneousUploads = action.payload;
+        },
     },
 });
 
 const { actions, reducer } = uiSlice;
-export const { setTheme, setScrollPosition } = actions;
+export const { setTheme, setScrollPosition, setSimultaneousUploads } = actions;
 export default reducer;
