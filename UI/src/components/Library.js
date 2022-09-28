@@ -750,7 +750,7 @@ class Library extends Component {
         let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
         toast.update(toastId, {
             progress: Math.min(progress, 0.99),
-            render: this.renderUploadToast.bind(this, (progress < 1) ? "Uploading..." : "Scanning...", file.name),
+            render: this.renderUploadToast.bind(this, (progress < 1) ? "Uploading..." : "Processing...", file.name),
         });
     }
 
