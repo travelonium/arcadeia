@@ -431,7 +431,7 @@ class Library extends Component {
             return;
         }
         // do we already have the maximum simultaneous number of active uploads?
-        if (Object.keys(this.state.uploads.active).length >= this.props.ui.simultaneousUploads) return;
+        if (Object.keys(this.state.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
         // nope, do we have any files in the queue?
         if (this.state.uploads.queue.length === 0) return;
         // yes, we can start one more
@@ -483,8 +483,8 @@ class Library extends Component {
                 }
             }, () => {
                 let params = new URLSearchParams();
-                // params.set('overwrite', true);
-                params.set('duplicate', true);
+                params.set('overwrite', this.props.ui.uploads.overwrite);
+                params.set('duplicate', this.props.ui.uploads.duplicate);
                 axios.post("/library" + this.props.search.path + "?" + params.toString(), data, config)
                 .then((response) => {
                     toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
@@ -955,7 +955,7 @@ const mapStateToProps = (state) => ({
     ui: {
         theme: state.ui.theme,
         scrollPosition: state.ui.scrollPosition,
-        simultaneousUploads: state.ui.simultaneousUploads,
+        uploads: state.ui.uploads,
     },
     search: {
         sort: state.search.sort,
