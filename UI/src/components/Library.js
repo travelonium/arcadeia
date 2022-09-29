@@ -433,7 +433,10 @@ class Library extends Component {
         // do we already have the maximum simultaneous number of active uploads?
         if (Object.keys(this.state.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
         // nope, do we have any files in the queue?
-        if (this.state.uploads.queue.length === 0) return;
+        if (this.state.uploads.queue.length === 0) {
+            console.log(this.state.uploads.failed);
+            return;
+        }
         // yes, we can start one more
         let file = this.state.uploads.queue[0];
         // dequeue the first file and start uploading it
