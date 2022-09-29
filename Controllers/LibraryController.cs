@@ -102,8 +102,8 @@ namespace MediaCurator.Controllers
       /// <returns></returns>
       [HttpPost]
       [Produces("application/json")]
-      [RequestSizeLimit(1 * 1024 * 1024 * 1024)]
-      [RequestFormLimits(MultipartBodyLengthLimit = 1 * 1024 * 1024 * 1024)]
+      [RequestSizeLimit(10L * 1024 * 1024 * 1024)]
+      [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
       public async Task<IActionResult> Post(List<IFormFile> files, string path = "")
       {
          path = Platform.Separator.Path + path;
