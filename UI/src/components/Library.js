@@ -482,7 +482,10 @@ class Library extends Component {
                     })
                 }
             }, () => {
-                axios.post("/library" + this.props.search.path, data, config)
+                let params = new URLSearchParams();
+                // params.set('overwrite', true);
+                params.set('duplicate', true);
+                axios.post("/library" + this.props.search.path + "?" + params.toString(), data, config)
                 .then((response) => {
                     toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
                         progress: 1,
@@ -513,11 +516,21 @@ class Library extends Component {
                 })
                 .catch((error) => {
                     console.error(error);
+                    let message = "Upload Failed";
                     let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
+                    if (error.response) {
+                        // the client was given an error response (5xx, 4xx)
+                        let title = extract(null, error.response, 'data', 'title');
+                        if (title) message += " (" + title + ")";
+                    } else if (error.request) {
+                        // the client never received a response, and the request was never left
+                    } else {
+                        // well, something else must've happened
+                    }
                     toast.update(toastId, {
                         progress: 0,
                         theme: null,
-                        render: this.renderUploadToast.bind(this, "Upload Failed", file.name),
+                        render: this.renderUploadToast.bind(this, message, file.name),
                         type: toast.TYPE.ERROR,
                         icon: null,
                     });

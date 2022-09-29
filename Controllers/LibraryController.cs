@@ -104,68 +104,133 @@ namespace MediaCurator.Controllers
       [Produces("application/json")]
       [RequestSizeLimit(10L * 1024 * 1024 * 1024)]
       [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
-      public async Task<IActionResult> Post(List<IFormFile> files, string path = "")
+      public async Task<IActionResult> Post(List<IFormFile> files, string path = "", [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
       {
          path = Platform.Separator.Path + path;
          long size = files.Sum(file => file.Length);
+         var result = new List<Models.MediaContainer>();
+
+         if (overwrite && duplicate)
+         {
+            return Problem(title: "Bad Request", detail: "Either overwrite or duplicate must be false.", statusCode: 400);
+         }
 
          if (!System.IO.Directory.Exists(path))
          {
-            return NotFound(new
-            {
-               message = "Destination folder not found."
-            });
+            return Problem(title: "Folder Not Found",detail: "Destination folder not found.", statusCode: 404);
          }
 
          foreach (var file in files)
          {
+            var name = Path.GetFileName(file.FileName);
             var fullPath = Path.Combine(path, file.FileName);
+            var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
             if (System.IO.File.Exists(fullPath))
             {
-               return Conflict(new
+               if (overwrite)
                {
-                  message = "Destination file already exists."
-               });
-            }
-
-            if (file.Length > 0)
-            {
-               using (var stream = System.IO.File.Create(fullPath))
-               {
-                  await file.CopyToAsync(stream);
-
-                  _logger.LogInformation("File Uploaded: {}", fullPath);
+                  // It shall be overwritten then.
                }
-
-               var name = Path.GetFileName(file.FileName);
-               var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
-
-               // Shouldn't the file name be ignored?
-               if (!patterns.Any(pattern => (pattern.IsMatch(fullPath) || pattern.IsMatch(name))))
+               else if (duplicate)
                {
-                  try
+                  Regex pattern = new Regex(@"(.*)(?: +)?(\(\d+\))");
+                  var extension = Path.GetExtension(file.FileName);
+                  var fileName = Path.GetFileNameWithoutExtension(file.FileName);
+                  var match = pattern.Match(fileName);
+
+                  if (match.Success)
                   {
-                     // Add the file to the MediaLibrary.
-                     using MediaFile newMediaFile = _mediaLibrary.InsertMedia(fullPath);
+                     // The file name already has an (x) index in the end.
+                     fileName = match.Groups[1].Value;
                   }
-                  catch (Exception e)
+
+                  // Try to find an index that is unique.
+                  for (int i = 1; i < Int32.MaxValue; i++)
                   {
-                     _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
-                     _logger.LogDebug("{}", e.ToString());
+                     if (!System.IO.File.Exists(Path.Combine(path, fileName + "(" + i + ")" + extension)) &&
+                         !System.IO.File.Exists(Path.Combine(path, fileName + " (" + i + ")" + extension)))
+                     {
+                        fullPath = Path.Combine(path, fileName + " (" + i + ")" + extension);
+                        break;
+                     }
                   }
                }
                else
                {
-                  _logger.LogDebug("File Ignored: {}", fullPath);
+                  if (files.Count == 1)
+                  {
+                     return Problem(title: "Already Exists", detail: "Destination file already exists.", statusCode: 409);
+                  }
+                  else continue;
+               }
+            }
+
+            // Shouldn't the file name be ignored?
+            if ((file.Length <= 0) || patterns.Any(pattern => (pattern.IsMatch(fullPath) || pattern.IsMatch(name))))
+            {
+               _logger.LogDebug("File Ignored: {}", fullPath);
+
+               if (files.Count == 1)
+               {
+                  return Problem(title: "Unsupported Media Type", detail: "Media file type is unsupported.", statusCode: 415);
+               }
+               else continue;
+            }
+
+            // Is the file a recognized media file?
+            if (_mediaLibrary.GetMediaType(fullPath) == MediaContainerType.Unknown)
+            {
+               _logger.LogDebug("Unrecognized Media File Ignored: {}", fullPath);
+
+               if (files.Count == 1)
+               {
+                  return Problem(title: "Unsupported Media Type", detail: "Media file type is unsupported.", statusCode: 415);
+               }
+               else continue;
+            }
+
+            try
+            {
+               using var stream = System.IO.File.Create(fullPath);
+               await file.CopyToAsync(stream);
+
+               _logger.LogInformation("File Uploaded: {}", fullPath);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Copy: {}, Because: {}", file, e.Message);
+               _logger.LogDebug("{}", e.ToString());
+
+               if (files.Count == 1)
+               {
+                  return Problem(title: "Write Error", detail: "Error writing the file to the disk or network location.", statusCode: 403);
+               }
+               else continue;
+            }
+
+            // Process uploaded file...
+            // FIXME: Don't rely on or trust the FileName property without validation.
+
+            try
+            {
+               // Add the file to the MediaLibrary.
+               using MediaFile newMediaFile = _mediaLibrary.InsertMedia(fullPath);
+               result.Add(newMediaFile.Model);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
+               _logger.LogDebug("{}", e.ToString());
+
+               if (files.Count == 1)
+               {
+                  return Problem(detail: e.Message, statusCode: 500);
                }
             }
          }
 
-         // Process uploaded files
-         // Don't rely on or trust the FileName property without validation.
-
-         return Ok();
+         return Ok(result);
       }
 
       [HttpPut]
