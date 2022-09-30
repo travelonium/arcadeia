@@ -433,8 +433,11 @@ class Library extends Component {
                 if (!file.type && file.size % 4096 == 0) {
                     // it's a folder, ignore it for now
                 } else {
-                    // it's a file, queue it
-                    queued.push(file);
+                    // it's a file, queue the file object and its destination path
+                    queued.push({
+                        file: file,
+                        path: this.props.search.path
+                    });
                 }
             });
             this.setState(prevState => {
@@ -478,7 +481,8 @@ class Library extends Component {
             return;
         }
         // yes, we can start one more
-        let file = this.state.uploads.queued[0];
+        const file = this.state.uploads.queued[0].file;
+        const path = this.state.uploads.queued[0].path;
         // dequeue the first file and start uploading it
         this.setState(prevState => {
             return {
@@ -529,7 +533,7 @@ class Library extends Component {
                 let params = new URLSearchParams();
                 params.set('overwrite', this.props.ui.uploads.overwrite);
                 params.set('duplicate', this.props.ui.uploads.duplicate);
-                axios.post("/library" + this.props.search.path + "?" + params.toString(), data, config)
+                axios.post("/library" + path + "?" + params.toString(), data, config)
                 .then((response) => {
                     toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
                         progress: 1,
