@@ -88,8 +88,16 @@ class Library extends Component {
     }
 
     shouldComponentUpdate(nextProps, nextState) {
+        let selectedNextProps = nextProps;
+        let selectedCurrentProps = this.props;
+        let selectedNextState = clone(nextState);
+        let selectedCurrentState = clone(this.state);
+        // ignore the uploads key as its changes shouldn't cause a reload
+        selectedNextState = _.omit(selectedNextState, ['uploads']);
+        selectedCurrentState = _.omit(selectedCurrentState, ['uploads']);
+        // ignore the scrollPosition key as its changes shouldn't cause a reload
         if (!_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) return false;
-        return (!_.isEqual(this.props, nextProps) || (!_.isEqual(this.state, nextState)));
+        return (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
     }
 
     componentDidUpdate(prevProps) {
@@ -556,10 +564,13 @@ class Library extends Component {
                         }
                     }, () => {
                         this.upload();
-                        this.list(undefined, () => {
-                            const index = this.state.items.findIndex(x => x.name === file.name);
-                            if (index !== -1) this.scrollToItem(index, true);
-                        });
+                        // reload the grid items if the uploaded file's path is the current path
+                        if (path === this.props.search.path) {
+                            this.list(undefined, () => {
+                                const index = this.state.items.findIndex(x => x.name === file.name);
+                                if (index !== -1) this.scrollToItem(index, true);
+                            });
+                        }
                     })
                 })
                 .catch((error) => {
