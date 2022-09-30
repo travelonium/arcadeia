@@ -441,11 +441,13 @@ class Library extends Component {
                 if (!file.type && file.size % 4096 == 0) {
                     // it's a folder, ignore it for now
                 } else {
-                    // it's a file, queue the file object and its destination path
-                    queued.push({
-                        file: file,
-                        path: this.props.search.path
-                    });
+                    // it's a file, queue the file object and its destination path if not already queued or active
+                    if (!this.state.uploads.active.hasOwnProperty(file.name) && (this.state.uploads.queued.findIndex(x => x.file.name == file.name) === -1)) {
+                        queued.push({
+                            file: file,
+                            path: this.props.search.path
+                        });
+                    }
                 }
             });
             this.setState(prevState => {
