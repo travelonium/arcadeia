@@ -211,15 +211,19 @@ class Library extends Component {
         const rows = 10000;
         let path = browse;
         let name = null;
+        const components = this.props.search.path.match(/(.*\/)(.*)?/);
+        if (!browse && components) {
+            // this seems to be a search with a query, extract the required details
+            path = components[1];
+            name = components[2];
+        }
         if (!path) return;
         let history = this.state.history;
+        let params = new URLSearchParams();
         let query = browse ? "*" : this.props.search.query;
-        let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (browse) {
-            params.delete("query");
-        } else {
+        if (!browse) {
             // update the query parameter
             params.set("query", query);
         }
@@ -236,13 +240,9 @@ class Library extends Component {
         values = updateBit(values, 0, deleted);
         if (flags) {
             params.set("flags", flags);
-        } else {
-            params.delete("flags");
         }
         if (values) {
             params.set("values", values);
-        } else {
-            params.delete("values");
         }
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
