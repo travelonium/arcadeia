@@ -151,6 +151,20 @@ class Library extends Component {
         }
     }
 
+    unset(index, callback = undefined) {
+        // update the state and the virtual copies of the source
+        const items = update(this.state.items, {
+            $unset: [index]
+        });
+        this.setState({
+            items: items
+        }, () => {
+            if (callback !== undefined) {
+                callback();
+            }
+        });
+    }
+
     /**
      * Update a MediaContainer with new attributes.
      * @param {*} source The modified MediaContainer to update.
@@ -390,7 +404,15 @@ class Library extends Component {
         .then((result) => {
             const numFound = extract(0, result, "response", "numFound");
             const source = extract(null, result, "response", "docs", 0);
-            if (numFound === 1) {
+            if (numFound === 0) {
+                // looks like the file has been deleted, remove the item from the grid
+                this.unset(index, () => {
+                    if (this.state.items.length > 0) {
+                        // scroll to the previous item
+                        this.scrollToItem(Math.max(0, index - 1), true);
+                    }
+                });
+            } else if (numFound === 1) {
                 this.set(index, source, false);
             } else {
                 throw Error("Reload request for " + id + " received duplicate results!");
@@ -432,9 +454,11 @@ class Library extends Component {
         }
         // do we already have the maximum simultaneous number of active uploads?
         if (Object.keys(this.state.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
-        // nope, do we have any files in the queue?
+        // nope, do we have any files in the queue? if not, log the list failed uploads if any
         if (this.state.uploads.queue.length === 0) {
-            console.log(this.state.uploads.failed);
+            if (Object.keys(this.state.uploads.failed).length > 0) {
+                console.log(this.state.uploads.failed);
+            }
             return;
         }
         // yes, we can start one more
