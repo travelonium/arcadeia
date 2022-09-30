@@ -45,7 +45,8 @@ class Library extends Component {
             status: "",
             items: [],
             uploads: {
-                queue: [],
+                total: 0,
+                queued: [],
                 active: {},
                 failed: {},
             },
@@ -427,13 +428,13 @@ class Library extends Component {
 
     upload(files = null) {
         if (files) {
-            let queue = [];
+            let queued = [];
             files.forEach(file => {
                 if (!file.type && file.size % 4096 == 0) {
                     // it's a folder, ignore it for now
                 } else {
                     // it's a file, queue it
-                    queue.push(file);
+                    queued.push(file);
                 }
             });
             this.setState(prevState => {
@@ -441,8 +442,9 @@ class Library extends Component {
                     ...prevState,
                     uploads: update(prevState.uploads, {
                         $merge: {
-                            queue: update(prevState.uploads.queue, {
-                                $push: queue
+                            total: prevState.uploads.total + queued.length,
+                            queued: update(prevState.uploads.queued, {
+                                $push: queued
                             })
                         }
                     })
@@ -455,21 +457,35 @@ class Library extends Component {
         // do we already have the maximum simultaneous number of active uploads?
         if (Object.keys(this.state.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
         // nope, do we have any files in the queue? if not, log the list failed uploads if any
-        if (this.state.uploads.queue.length === 0) {
-            if (Object.keys(this.state.uploads.failed).length > 0) {
-                console.log(this.state.uploads.failed);
+        if (!this.state.uploads.queued.length) {
+            // if no uploads are currently active either, reset the total
+            if (!Object.keys(this.state.uploads.active).length) {
+                this.setState(prevState => {
+                    return {
+                        ...prevState,
+                        uploads: update(prevState.uploads, {
+                            $merge: {
+                                total: 0,
+                            }
+                        })
+                    }
+                }, () => {
+                    if (Object.keys(this.state.uploads.failed).length > 0) {
+                        console.log(this.state.uploads.failed);
+                    }
+                });
             }
             return;
         }
         // yes, we can start one more
-        let file = this.state.uploads.queue[0];
+        let file = this.state.uploads.queued[0];
         // dequeue the first file and start uploading it
         this.setState(prevState => {
             return {
                 ...prevState,
                 uploads: update(prevState.uploads, {
                     $merge: {
-                        queue: update(prevState.uploads.queue, {
+                        queued: update(prevState.uploads.queued, {
                             $splice: [[0, 1]]
                         })
                     }
@@ -483,10 +499,11 @@ class Library extends Component {
                 validateStatus: (status) => {
                     return (status === 200);
                 },
-                onUploadProgress: this.onUploadProgress.bind(this, file),
+                onUploadProgress: this.onUploadProgress.bind(this, file, this.state.uploads.total - this.state.uploads.queued.length),
             };
             let data = new FormData();
             data.append('files', file);
+            const prefix = "[" + (this.state.uploads.total - this.state.uploads.queued.length) + " / " + this.state.uploads.total + "] ";
             this.setState(prevState => {
                 return {
                     ...prevState,
@@ -496,7 +513,7 @@ class Library extends Component {
                                 $merge: {
                                     [file.name]: {
                                         file: file,
-                                        toast: toast.info(this.renderUploadToast("Uploading...", file.name),
+                                        toast: toast.info(this.renderUploadToast(prefix + "Uploading...", file.name),
                                         {
                                             progress: 0,
                                             theme: 'dark',
@@ -517,7 +534,7 @@ class Library extends Component {
                     toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
                         progress: 1,
                         theme: null,
-                        render: this.renderUploadToast.bind(this, "Upload Completed!", file.name),
+                        render: this.renderUploadToast.bind(this, prefix + "Complete", file.name),
                         type: toast.TYPE.SUCCESS,
                         icon: null,
                     });
@@ -785,12 +802,13 @@ class Library extends Component {
         event.stopPropagation();
     }
 
-    onUploadProgress(file, progressEvent) {
+    onUploadProgress(file, index, progressEvent) {
         var progress = progressEvent.loaded / progressEvent.total;
         let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
+        const prefix = "[" + index + " / " + this.state.uploads.total + "] ";
         toast.update(toastId, {
             progress: Math.min(progress, 0.99),
-            render: this.renderUploadToast.bind(this, (progress < 1) ? "Uploading..." : "Processing...", file.name),
+            render: this.renderUploadToast.bind(this, prefix + ((progress < 1) ? "Uploading" : "Processing") + "...", file.name),
         });
     }
 
@@ -861,12 +879,12 @@ class Library extends Component {
 
     renderUploadToast(title, subtitle) {
         return (
-            <div>
+            <>
                 <div>
                     <strong>{title}</strong>
                 </div>
                 <small>{subtitle}</small>
-            </div>
+            </>
         );
     }
 
