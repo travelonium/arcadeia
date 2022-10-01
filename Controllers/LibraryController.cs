@@ -134,7 +134,7 @@ namespace MediaCurator.Controllers
                }
                else if (duplicate)
                {
-                  Regex pattern = new Regex(@"(.*)(?: +)?(\(\d+\))");
+                  Regex pattern = new Regex(@"(.*)(\s+\(\d+\))");
                   var extension = Path.GetExtension(file.FileName);
                   var fileName = Path.GetFileNameWithoutExtension(file.FileName);
                   var match = pattern.Match(fileName);
