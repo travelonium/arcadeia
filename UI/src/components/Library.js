@@ -549,7 +549,7 @@ class Library extends Component {
             }, () => {
                 let params = new URLSearchParams();
                 params.set('overwrite', this.props.ui.uploads.overwrite);
-                params.set('duplicate', false/*this.props.ui.uploads.duplicate*/);
+                params.set('duplicate', this.props.ui.uploads.duplicate);
                 axios.post("/library" + path + "?" + params.toString(), data, config)
                 .then((response) => {
                     toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
