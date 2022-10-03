@@ -102,39 +102,15 @@ class Library extends Component {
 
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.search, prevProps.search)) {
-            if (this.props.search.query) {
-                this.search(null, 0, (succeeded, name) => {
-                    if (succeeded && name) {
-                        const index = this.state.items.findIndex(x => x.name === name);
-                        if (index !== -1) {
-                            this.view(this.state.items[index], index, true);
-                        }
+            this.refresh((succeeded, name) => {
+                if (succeeded && name) {
+                    const index = this.state.items.findIndex(x => x.name === name);
+                    if (index !== -1) {
+                        this.view(this.state.items[index], index, true);
                     }
-                });
-            } else {
-                const components = this.props.search.path.match(/(.*\/)(.*)?/);
-                if (components) {
-                    const path = components[1];
-                    const name = components[2];
-                    this.list(path, (succeeded, _) => {
-                        if (name && succeeded) {
-                            const index = this.state.items.findIndex(x => x.name === name);
-                            if (index !== -1) {
-                                this.view(this.state.items[index], index, true);
-                            }
-                        }
-                    });
-                } else {
-                    this.list(this.props.search.path);
                 }
-            }
+            })
         }
-    }
-
-    list(path = undefined, callback = undefined) {
-        const components = this.props.search.path.match(/(.*\/)(.*)?/);
-        if (!path && components) path = components[1];
-        this.search(path, 0, callback);
     }
 
     set(index, source, refresh = true, callback = undefined) {
@@ -172,6 +148,37 @@ class Library extends Component {
                 callback();
             }
         });
+    }
+
+
+    list(path = undefined, callback = undefined) {
+        const components = this.props.search.path.match(/(.*\/)(.*)?/);
+        if (!path && components) path = components[1];
+        this.search(path, 0, callback);
+    }
+
+    refresh(callback = undefined) {
+        if (this.props.search.query) {
+            this.search(null, 0, (succeeded, name) => {
+                if (callback !== undefined) {
+                    callback(succeeded, name);
+                }
+
+            });
+        } else {
+            const components = this.props.search.path.match(/(.*\/)(.*)?/);
+            if (components) {
+                const path = components[1];
+                const name = components[2];
+                this.list(path, (succeeded, _) => {
+                    if (callback !== undefined) {
+                        callback(succeeded, name);
+                    }
+                });
+            } else {
+                this.list(this.props.search.path);
+            }
+        }
     }
 
     /**
@@ -414,13 +421,13 @@ class Library extends Component {
             const numFound = extract(0, result, "response", "numFound");
             const source = extract(null, result, "response", "docs", 0);
             if (numFound === 0) {
-                // looks like the file has been deleted, remove the item from the grid
-                this.unset(index, () => {
-                    if (this.state.items.length > 0) {
+                // looks like the file has been deleted, refresh the grid and scroll to the previous item
+                this.refresh((succeeded) => {
+                    if (succeeded && this.state.items.length > 0) {
                         // scroll to the previous item
                         this.scrollToItem(Math.max(0, index - 1), true);
                     }
-                });
+                })
             } else if (numFound === 1) {
                 this.set(index, source, false);
             } else {
