@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -69,6 +70,72 @@ namespace MediaCurator
       public override bool Exists()
       {
          return Directory.Exists(FullPath);
+      }
+
+      /// <summary>
+      /// Moves (or Renames) the MediaFolder from one location or name to another.
+      /// </summary>
+      /// <param name="destination">The fullpath of the new name and location.</param>
+      public override void Move(string destination)
+      {
+         // TODO: Moving folders need a bit more work:
+         //       - Check whether the destination files and folders already exist on disk or in the
+         //         library and throw one or severals exceptions if so.
+         //       - All the child MediaContainers and their children need to move to the new location.
+         //       - Focus solely on the MediaContainers and leave the other files be as it would get
+         //         so much more complicated otherwise.
+         //       - When moving, remove the moved folder if it is empty of other files.
+
+         // Split the path in parent, child components.
+         var pathComponents = GetPathComponents(destination);
+
+         Directory.CreateDirectory(destination);
+
+         // Update the Name if necessary.
+         Name = pathComponents.Child;
+
+         foreach (var child in Children)
+         {
+            child.Move(System.IO.Path.Combine(destination, child.Name));
+            child.Save();
+         }
+
+         if (!Children.Any())
+         {
+            try
+            {
+               // Attempt to delete the folder in its old location if it is empty now.
+               Directory.Delete(FullPath);
+            }
+            catch (IOException e)
+            {
+               Logger.LogDebug("Folder Not Deleted: {}, Beacuse: {}", FullPath, e.ToString());
+            };
+
+            // Flag the old MediaFolder as Deleted to be removed from the index since it lacks any children.
+            Deleted = true;
+
+            /*
+            // Save the old MediaFolder before replacing it with its new model.
+            Save();
+
+            // Reload the MediaFolder so the returned response is current.
+            var path = destination.EndsWith(Platform.Separator.Path) ? destination : destination + Platform.Separator.Path;
+            var model = Load(id: null, path: path);
+
+            if (model != null)
+            {
+               Moved = true;
+               Deleted = false;
+
+               Model = model;
+            }
+            */
+         }
+         else
+         {
+            Logger.LogError("Folder Has Children After Move: {}", FullPath);
+         }
       }
 
       #endregion

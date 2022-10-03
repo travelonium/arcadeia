@@ -434,7 +434,6 @@ namespace MediaCurator.Services
          // whether or not any files have been physically removed and thus update the MediaLibrary.
 
          var documents = solrIndexService.Get(SolrQuery.All);
-         var folders = Folders.Concat(WatchedFolders).ToList();
          var availableFolders = AvailableFolders.Concat(AvailableWatchedFolders).ToList();
 
          _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
@@ -448,9 +447,8 @@ namespace MediaCurator.Services
                {
                   if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                   {
-                     // Make sure if the path is located in a watched folder, that folder is available.
-                     if (!folders.Any(folder => document.FullPath.StartsWith(folder)) ||
-                         availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                     // Make sure the path is located in a watched folder and that folder is available.
+                     if (availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
                      {
                         // Update the current media container.
                         using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);

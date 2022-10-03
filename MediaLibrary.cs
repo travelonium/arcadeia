@@ -83,8 +83,6 @@ namespace MediaCurator
          Logger.LogInformation("Media Library Cache Cleared!");
       }
 
-      #endregion // Public Methods
-
       public MediaFile InsertMedia(string path)
       {
          MediaFile mediaFile = null;
@@ -191,7 +189,7 @@ namespace MediaCurator
          return mediaContainer;
       }
 
-      private MediaContainerType GetMediaType(string path)
+      public MediaContainerType GetMediaType(string path)
       {
          // Extract the file extension including the '.' character.
          string fileExtension = System.IO.Path.GetExtension(path).ToLower();
@@ -228,5 +226,7 @@ namespace MediaCurator
          // Unrecognized file format.
          return MediaContainerType.Unknown;
       }
+
+      #endregion // Public Methods
    }
 }

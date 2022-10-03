@@ -6,6 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MediaCurator.Solr;
 using System.Globalization;
+using System.Collections.Generic;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
 
 namespace MediaCurator
 {
@@ -48,6 +51,11 @@ namespace MediaCurator
       /// the index but should be skipped.
       /// </summary>
       public bool Skipped = false;
+
+      /// <summary>
+      /// A flag indicating that the MediaContainer based entity is has been moved or renamed.
+      /// </summary>
+      public bool Moved = false;
 
       /// <summary>
       /// Gets the root MediaContainer of this particular MediaContainer descendant.
@@ -103,6 +111,49 @@ namespace MediaCurator
 
                _parentType = value;
             }
+         }
+      }
+
+      /// <summary>
+      /// Gets a list of the direct MediaContainer children of this MediaContainer instance.
+      /// </summary>
+      public IEnumerable<MediaContainer> Children
+      {
+         get
+         {
+            var result = new List<MediaContainer>();
+
+            switch (GetType().ToMediaContainerType())
+            {
+               case MediaContainerType.Library:
+               case MediaContainerType.Folder:
+               case MediaContainerType.Server:
+               case MediaContainerType.Drive:
+                  break;
+               default:
+                  return result;
+            }
+
+            using IServiceScope scope = Services.CreateScope();
+            ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+
+            var field = "parent";
+            var value = Id;
+
+            var children = solrIndexService.Get(field, value);
+
+            foreach (var item in children)
+            {
+               if (!String.IsNullOrEmpty(item.Id) && !String.IsNullOrEmpty(item.Type))
+               {
+                  var id = item.Id;
+                  var type = item.Type.ToEnum<MediaContainerType>().ToType();
+                  using MediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id, null);
+                  result.Add(mediaContainer);
+               }
+            }
+
+            return result;
          }
       }
 
@@ -396,6 +447,17 @@ namespace MediaCurator
 
             Id = value.Id;
 
+            // Handle a possible rename or move operation.
+            if (!Moved && ((Name != null && value.Name != Name) || (Path != null && value.Path != Path)))
+            {
+               Move(System.IO.Path.Combine(value.Path, value.Name));
+            }
+            else
+            {
+               Name = value.Name;
+               ParentType = value.ParentType;
+            }
+
             if (value.ParentType == null)
             {
                // This must be the MediaLibrary itself.
@@ -420,16 +482,7 @@ namespace MediaCurator
                Parent = parent;
             }
 
-            ParentType = value.ParentType;
             Type = value.Type;
-
-            // Handle a possible rename operation.
-            if ((Name != null) && (value.Name != Name))
-            {
-               Move(FullPath, value.Path + value.Name);
-            }
-
-            Name = value.Name;
             Description = value.Description;
 
             DateAdded = value.DateAdded;
@@ -437,11 +490,6 @@ namespace MediaCurator
             DateModified = value.DateModified;
 
             Flags = new MediaContainerFlags(value.Flags);
-
-            if (value.Path != Path)
-            {
-               throw new NotSupportedException("Moving media containers is currently not supported.");
-            }
          }
       }
 
@@ -458,13 +506,11 @@ namespace MediaCurator
                             string id = null, string path = null
       )
       {
-         bool reused = false;
-
          Logger = logger;
          Services = services;
          Configuration = configuration;
          ThumbnailsDatabase = thumbnailsDatabase;
-         MediaLibrary = mediaLibrary ?? (IMediaLibrary) this;
+         MediaLibrary = mediaLibrary ?? (IMediaLibrary)this;
 
          // The Solr service needs to be initialized only once when the MediaLibrary is instantiated
          // but before the Load() is called and therefore we do it here.
@@ -492,7 +538,7 @@ namespace MediaCurator
          // We couldn't find an entry in the Solr index corresponding to either the container's Id
          // or its Path. Let's create a new entry then.
 
-         Id = MediaLibrary.GenerateUniqueId(path, out reused) ?? System.IO.Path.GetRandomFileName();
+         Id = MediaLibrary.GenerateUniqueId(path, out bool reused) ?? System.IO.Path.GetRandomFileName();
 
          if ((id != null) || (path != null))
          {
@@ -639,6 +685,73 @@ namespace MediaCurator
          return Type.ToEnum<MediaContainerType>();
       }
 
+      public Type GetMediaContainerType(string container)
+      {
+         if ((container != null) && (container.Length > 1))
+         {
+            if ((container.Length >= 2) &&
+                (container.Count(c => c == ':') == 1) &&
+                (container[1] == ':'))
+            {
+               // It's a drive name.
+               return typeof(MediaDrive);
+            }
+
+            if ((container.Length > 2) &&
+                (container.Count(c => c == '\\') >= 2) &&
+                (container[0] == '\\') &&
+                (container[1] == '\\'))
+            {
+               // It's a server name.
+               return typeof(MediaServer);
+            }
+
+            if ((container.Length > 1) &&
+                (container.Count(c => (c == '\\') || (c == '/')) == 1) &&
+                ((container[^1] == '\\') || (container[^1] == '/')))
+            {
+               // It's a folder.
+               return typeof(MediaFolder);
+            }
+
+            // It's probably a file then, let's find its type.
+            var supportedExtensions = new SupportedExtensions(Configuration);
+
+            // Extract the file extension including the '.' character.
+            string extension = System.IO.Path.GetExtension(container).ToLower();
+
+            if ((extension != null) && (extension.Length != 0))
+            {
+               // It appears that the file does have an extension. We may proceed.
+
+               // Check if it's a recognized video format.
+               if (supportedExtensions[MediaContainerType.Video].Contains(extension))
+               {
+                  // Looks like the file is a recognized video format.
+                  return typeof(VideoFile);
+               }
+
+               // Check if it's a recognized photo format.
+               if (supportedExtensions[MediaContainerType.Photo].Contains(extension))
+               {
+                  // Looks like the file is a recognized photo format.
+                  return typeof(PhotoFile);
+               }
+
+               // Check if it's a recognized audio format.
+               if (supportedExtensions[MediaContainerType.Audio].Contains(extension))
+               {
+                  // Looks like the file is a recognized audio format.
+                  throw new NotImplementedException("Audio files cannot yet be handled!");
+               }
+            }
+
+            throw new NotSupportedException("The supplied child is of an invalid type!");
+         }
+
+         return null;
+      }
+
       /// <summary>
       /// Saves the MediaContainer and its parents to the MediaLibrary if necessary.
       /// </summary>
@@ -769,29 +882,10 @@ namespace MediaCurator
       /// Moves (or Renames) the MediaContainer from one location or name to another. Each MediaContainer type
       /// can if needed override and implement its own Move method.
       /// </summary>
-      /// <param name="source">The fullpath of the original name and location.</param>
       /// <param name="destination">The fullpath of the new name and location.</param>
-      public virtual void Move(string source, string destination)
+      public virtual void Move(string destination)
       {
-         switch (Type)
-         {
-            case "Drive":
-            case "Server":
-               throw new InvalidOperationException("This media container does not support a Move() operation!");
-            case "Folder":
-               throw new InvalidOperationException("This media container does not support a Move() operation!");
-               // TODO: Moving folders need a bit more work namely to check whether the destination files and
-               //       folders already exist on disk or in the library and throw an exception if so.
-               // Directory.Move(source, destination);
-               // break;
-            case "Audio":
-            case "Video":
-            case "Photo":
-               File.Move(source, destination);
-               break;
-            default:
-               throw new InvalidOperationException("This media container does not support a Move() operation!");
-         }
+         throw new InvalidOperationException("This MediaContainer does not support a Move() operation!");
       }
 
       #endregion // Overridables
@@ -821,73 +915,6 @@ namespace MediaCurator
       #endregion // Protected Methods
 
       #region Private Methods
-
-      private Type GetMediaContainerType(string container)
-      {
-         if ((container != null) && (container.Length > 1))
-         {
-            if ((container.Length >= 2) &&
-                (container.Count(c => c == ':') == 1) &&
-                (container[1] == ':'))
-            {
-               // It's a drive name.
-               return typeof(MediaDrive);
-            }
-
-            if ((container.Length > 2) &&
-                (container.Count(c => c == '\\') >= 2) &&
-                (container[0] == '\\') &&
-                (container[1] == '\\'))
-            {
-               // It's a server name.
-               return typeof(MediaServer);
-            }
-
-            if ((container.Length > 1) &&
-                (container.Count(c => (c == '\\') || (c == '/')) == 1) &&
-                ((container[^1] == '\\') || (container[^1] == '/')))
-            {
-               // It's a folder.
-               return typeof(MediaFolder);
-            }
-
-            // It's probably a file then, let's find its type.
-            var supportedExtensions = new SupportedExtensions(Configuration);
-
-            // Extract the file extension including the '.' character.
-            string extension = System.IO.Path.GetExtension(container).ToLower();
-
-            if ((extension != null) && (extension.Length != 0))
-            {
-               // It appears that the file does have an extension. We may proceed.
-
-               // Check if it's a recognized video format.
-               if (supportedExtensions[MediaContainerType.Video].Contains(extension))
-               {
-                  // Looks like the file is a recognized video format.
-                  return typeof(VideoFile);
-               }
-
-               // Check if it's a recognized photo format.
-               if (supportedExtensions[MediaContainerType.Photo].Contains(extension))
-               {
-                  // Looks like the file is a recognized photo format.
-                  return typeof(PhotoFile);
-               }
-
-               // Check if it's a recognized audio format.
-               if (supportedExtensions[MediaContainerType.Audio].Contains(extension))
-               {
-                  // Looks like the file is a recognized audio format.
-                  throw new NotImplementedException("Audio files cannot yet be handled!");
-               }
-            }
-
-            throw new NotSupportedException("The supplied child is of an invalid type!");
-         }
-
-         return null;
-      }
 
       protected virtual void Dispose(bool disposing)
       {

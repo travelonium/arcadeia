@@ -3,6 +3,11 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
     theme: "light",
     scrollPosition: {},
+    uploads: {
+        simultaneous: 4,
+        duplicate: true,
+        overwrite: false,
+    }
 };
 
 export const uiSlice = createSlice({
@@ -27,9 +32,23 @@ export const uiSlice = createSlice({
                 delete state.scrollPosition[path];
             }
         },
+        setUploads: (state, action) => {
+            state.uploads.simultaneous = action.payload?.simultaneous ? action.payload.simultaneous : initialState.uploads.simultaneous;
+            state.uploads.duplicate = action.payload?.duplicate ? action.payload.duplicate : initialState.uploads.duplicate;
+            state.uploads.overwrite = action.payload?.overwrite ? action.payload.overwrite : initialState.uploads.overwrite;
+        },
+        setSimultaneousUploads: (state, action) => {
+            state.uploads.simultaneous = action.payload ? action.payload : initialState.uploads.simultaneous;
+        },
+        setDuplicateUploads: (state, action) => {
+            state.uploads.duplicate = action.payload ? action.payload : initialState.uploads.duplicate;
+        },
+        setOverwriteUploads: (state, action) => {
+            state.uploads.overwrite = action.payload ? action.payload : initialState.uploads.overwrite;
+        },
     },
 });
 
 const { actions, reducer } = uiSlice;
-export const { setTheme, setScrollPosition } = actions;
+export const { setTheme, setScrollPosition, setSimultaneousUploads } = actions;
 export default reducer;

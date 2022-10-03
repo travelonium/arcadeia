@@ -13,10 +13,12 @@ import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { MediaViewer } from './MediaViewer';
+import { UploadZone } from './UploadZone';
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { connect } from "react-redux";
 import cx from 'classnames';
+import axios from 'axios';
 import _ from 'lodash';
 
 class Library extends Component {
@@ -42,6 +44,12 @@ class Library extends Component {
             loading: false,
             status: "",
             items: [],
+            uploads: {
+                total: 0,
+                queued: [],
+                active: {},
+                failed: [],
+            },
             options: {
                 videoPlayer: {
                     seekStep: {
@@ -80,48 +88,32 @@ class Library extends Component {
     }
 
     shouldComponentUpdate(nextProps, nextState) {
+        let selectedNextProps = nextProps;
+        let selectedCurrentProps = this.props;
+        let selectedNextState = clone(nextState);
+        let selectedCurrentState = clone(this.state);
+        // ignore the uploads key as its changes shouldn't cause a reload
+        selectedNextState = _.omit(selectedNextState, ['uploads']);
+        selectedCurrentState = _.omit(selectedCurrentState, ['uploads']);
+        // ignore the scrollPosition key as its changes shouldn't cause a reload
         if (!_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) return false;
-        return (!_.isEqual(this.props, nextProps) || (!_.isEqual(this.state, nextState)));
+        return (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
     }
 
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.search, prevProps.search)) {
-            if (this.props.search.query) {
-                this.search(null, 0, (succeeded, name) => {
-                    if (succeeded && name) {
-                        const index = this.state.items.findIndex(x => x.name === name);
-                        if (index !== -1) {
-                            this.view(this.state.items[index], index, true);
-                        }
+            this.refresh((succeeded, name) => {
+                if (succeeded && name) {
+                    const index = this.state.items.findIndex(x => x.name === name);
+                    if (index !== -1) {
+                        this.view(this.state.items[index], index, true);
                     }
-                });
-            } else {
-                const components = this.props.search.path.match(/(.*\/)(.*)?/);
-                if (components) {
-                    const path = components[1];
-                    const name = components[2];
-                    this.list(path, (succeeded, _) => {
-                        if (name && succeeded) {
-                            const index = this.state.items.findIndex(x => x.name === name);
-                            if (index !== -1) {
-                                this.view(this.state.items[index], index, true);
-                            }
-                        }
-                    });
-                } else {
-                    this.list(this.props.search.path);
                 }
-            }
+            })
         }
     }
 
-    list(path, callback = undefined) {
-        this.search(path, 0, callback);
-    }
-
-    set(source, refresh = true, callback = undefined) {
-        const index = this.state.items.findIndex(x => x.id === source.id);
-        if (index === -1) return;
+    set(index, source, refresh = true, callback = undefined) {
         // update the state and the virtual copies of the source
         const items = update(this.state.items, {
             [index]: {$merge: source}
@@ -144,6 +136,51 @@ class Library extends Component {
         }
     }
 
+    unset(index, callback = undefined) {
+        // update the state and the virtual copies of the source
+        const items = update(this.state.items, {
+            $unset: [index]
+        });
+        this.setState({
+            items: items
+        }, () => {
+            if (callback !== undefined) {
+                callback();
+            }
+        });
+    }
+
+
+    list(path = undefined, callback = undefined) {
+        const components = this.props.search.path.match(/(.*\/)(.*)?/);
+        if (!path && components) path = components[1];
+        this.search(path, 0, callback);
+    }
+
+    refresh(callback = undefined) {
+        if (this.props.search.query) {
+            this.search(null, 0, (succeeded, name) => {
+                if (callback !== undefined) {
+                    callback(succeeded, name);
+                }
+
+            });
+        } else {
+            const components = this.props.search.path.match(/(.*\/)(.*)?/);
+            if (components) {
+                const path = components[1];
+                const name = components[2];
+                this.list(path, (succeeded, _) => {
+                    if (callback !== undefined) {
+                        callback(succeeded, name);
+                    }
+                });
+            } else {
+                this.list(this.props.search.path);
+            }
+        }
+    }
+
     /**
      * Update a MediaContainer with new attributes.
      * @param {*} source The modified MediaContainer to update.
@@ -158,7 +195,7 @@ class Library extends Component {
             return;
         }
         fetch("/library" + item.fullPath, {
-            method: "PUT",
+            method: "PATCH",
             headers: {
                 accept: "application/json",
                 "Content-Type": "application/json",
@@ -175,7 +212,7 @@ class Library extends Component {
             }
         })
         .then((response) => {
-            this.set(response, refresh, callback);
+            this.set(index, response, refresh, callback);
         })
         .catch((error) => {
             console.error(error);
@@ -190,22 +227,19 @@ class Library extends Component {
         const rows = 10000;
         let path = browse;
         let name = null;
-        if (!path) {
-            const components = this.props.search.path.match(/(.*\/)(.*)?/);
-            if (components) {
-                path = components[1];
-                name = components[2];
-            }
+        const components = this.props.search.path.match(/(.*\/)(.*)?/);
+        if (!browse && components) {
+            // this seems to be a search with a query, extract the required details
+            path = components[1];
+            name = components[2];
         }
         if (!path) return;
         let history = this.state.history;
+        let params = new URLSearchParams();
         let query = browse ? "*" : this.props.search.query;
-        let params = new URLSearchParams(path.split('?')[1]);
         let flags = parseInt(params.get("flags") ?? 0);
         let values = parseInt(params.get("values") ?? 0);
-        if (browse) {
-            params.delete("query");
-        } else {
+        if (!browse) {
             // update the query parameter
             params.set("query", query);
         }
@@ -222,13 +256,9 @@ class Library extends Component {
         values = updateBit(values, 0, deleted);
         if (flags) {
             params.set("flags", flags);
-        } else {
-            params.delete("flags");
         }
         if (values) {
             params.set("values", values);
-        } else {
-            params.delete("values");
         }
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
@@ -343,7 +373,15 @@ class Library extends Component {
     }
 
     reload(id) {
-        if (!id) return;
+        if (!id) {
+            console.error("Invalid id was supplied to the reload() function!");
+            return;
+        }
+        const index = this.state.items.findIndex(x => x.id === id);
+        if (index === -1) {
+            console.error("Unable to find the index for %s in the items!", id);
+            return;
+        }
         let query = "*";
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
@@ -382,8 +420,16 @@ class Library extends Component {
         .then((result) => {
             const numFound = extract(0, result, "response", "numFound");
             const source = extract(null, result, "response", "docs", 0);
-            if (numFound === 1) {
-                this.set(source, false);
+            if (numFound === 0) {
+                // looks like the file has been deleted, refresh the grid and scroll to the previous item
+                this.refresh((succeeded) => {
+                    if (succeeded && this.state.items.length > 0) {
+                        // scroll to the previous item
+                        this.scrollToItem(Math.max(0, index - 1), true);
+                    }
+                })
+            } else if (numFound === 1) {
+                this.set(index, source, false);
             } else {
                 throw Error("Reload request for " + id + " received duplicate results!");
             }
@@ -392,6 +438,208 @@ class Library extends Component {
             if (error.name === 'AbortError') return;
             toast.error(error.message);
             console.error(error);
+        });
+    }
+
+    upload(files = null) {
+        if (files) {
+            let queued = [];
+            files.forEach(file => {
+                if (!file.type && file.size % 4096 == 0) {
+                    // it's a folder, ignore it for now
+                } else {
+                    // it's a file, queue the file object and its destination path if not already queued or active
+                    if (!this.state.uploads.active.hasOwnProperty(file.name) && (this.state.uploads.queued.findIndex(x => x.file.name == file.name) === -1)) {
+                        queued.push({
+                            file: file,
+                            path: this.props.search.path
+                        });
+                    }
+                }
+            });
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    uploads: update(prevState.uploads, {
+                        $merge: {
+                            total: prevState.uploads.total + queued.length,
+                            queued: update(prevState.uploads.queued, {
+                                $push: queued
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.upload();
+            });
+            return;
+        }
+        // do we already have the maximum simultaneous number of active uploads?
+        if (Object.keys(this.state.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
+        // nope, do we have any files in the queue? if not, log the list failed uploads if any
+        if (!this.state.uploads.queued.length) {
+            // if no uploads are currently active either, reset the total
+            if (!Object.keys(this.state.uploads.active).length) {
+                this.setState(prevState => {
+                    return {
+                        ...prevState,
+                        uploads: update(prevState.uploads, {
+                            $merge: {
+                                total: 0,
+                            }
+                        })
+                    }
+                }, () => {
+                    if (this.state.uploads.failed.length > 0) {
+                        console.log(this.state.uploads.failed);
+                    }
+                });
+            }
+            return;
+        }
+        // yes, we can start one more
+        const file = this.state.uploads.queued[0].file;
+        const path = this.state.uploads.queued[0].path;
+        // dequeue the first file and start uploading it
+        this.setState(prevState => {
+            return {
+                ...prevState,
+                uploads: update(prevState.uploads, {
+                    $merge: {
+                        queued: update(prevState.uploads.queued, {
+                            $splice: [[0, 1]]
+                        })
+                    }
+                })
+            }
+        }, () => {
+            let config =  {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+                validateStatus: (status) => {
+                    return (status === 200);
+                },
+                onUploadProgress: this.onUploadProgress.bind(this, file, this.state.uploads.total - this.state.uploads.queued.length),
+            };
+            let data = new FormData();
+            data.append('files', file);
+            const prefix = "[" + (this.state.uploads.total - this.state.uploads.queued.length) + " / " + this.state.uploads.total + "] ";
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    uploads: update(prevState.uploads, {
+                        $merge: {
+                            active: update(prevState.uploads.active, {
+                                $merge: {
+                                    [file.name]: {
+                                        file: file,
+                                        toast: toast.info(this.renderUploadToast(prefix + "Uploading...", file.name),
+                                        {
+                                            progress: 0,
+                                            theme: 'dark',
+                                            icon: <div className="Toastify__spinner"></div>
+                                        }),
+                                    }
+                                }
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                let params = new URLSearchParams();
+                params.set('overwrite', this.props.ui.uploads.overwrite);
+                params.set('duplicate', false/*this.props.ui.uploads.duplicate*/);
+                axios.post("/library" + path + "?" + params.toString(), data, config)
+                .then((response) => {
+                    toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
+                        progress: 1,
+                        theme: null,
+                        render: this.renderUploadToast.bind(this, prefix + "Complete", file.name),
+                        type: toast.TYPE.SUCCESS,
+                        icon: null,
+                    });
+                    // remove the successfully uploaded file from the list of active uploads
+                    this.setState(prevState => {
+                        return {
+                            ...prevState,
+                            uploads: update(prevState.uploads, {
+                                $merge: {
+                                    active: update(prevState.uploads.active, {
+                                        $unset: [file.name]
+                                    })
+                                }
+                            })
+                        }
+                    }, () => {
+                        this.upload();
+                        // reload the grid items if the uploaded file's path is the current path
+                        if (path === this.props.search.path) {
+                            this.list(undefined, () => {
+                                const index = this.state.items.findIndex(x => x.name === file.name);
+                                if (index !== -1) this.scrollToItem(index, true);
+                            });
+                        }
+                    })
+                })
+                .catch((error) => {
+                    console.error(error);
+                    let message = "Upload Failed";
+                    let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
+                    if (error.response) {
+                        // the client was given an error response (5xx, 4xx)
+                        let title = extract(null, error.response, 'data', 'title');
+                        if (title) message += " (" + title + ")";
+                    } else if (error.request) {
+                        // the client never received a response, and the request was never left
+                    } else {
+                        // well, something else must've happened
+                    }
+                    toast.update(toastId, {
+                        progress: 0,
+                        theme: null,
+                        render: this.renderUploadToast.bind(this, message, file.name),
+                        type: toast.TYPE.ERROR,
+                        icon: null,
+                    });
+                    let failed = extract(null, this.state.uploads.active, file.name, 'file');
+                    // remove the failed upload from the list of active uploads
+                    this.setState(prevState => {
+                        return {
+                            ...prevState,
+                            uploads: update(prevState.uploads, {
+                                $merge: {
+                                    active: update(prevState.uploads.active, {
+                                        $unset: [file.name]
+                                    })
+                                }
+                            })
+                        }
+                    }, () => {
+                        // add the failed upload to the list of failed uploads
+                        this.setState(prevState => {
+                            return {
+                                ...prevState,
+                                uploads: update(prevState.uploads, {
+                                    $merge: {
+                                        failed: update(prevState.uploads.failed, {
+                                            $push: [{
+                                                file: failed,
+                                                path: path
+                                            }]
+                                        }),
+                                    }
+                                })
+                            }
+                        }, () => {
+                            // process any remaining queued files
+                            this.upload();
+                        });
+                    });
+                });
+                // process any remaining queued files
+                this.upload();
+            });
         });
     }
 
@@ -579,6 +827,16 @@ class Library extends Component {
         event.stopPropagation();
     }
 
+    onUploadProgress(file, index, progressEvent) {
+        var progress = progressEvent.loaded / progressEvent.total;
+        let toastId = extract(null, this.state.uploads.active, file.name, 'toast');
+        const prefix = "[" + index + " / " + this.state.uploads.total + "] ";
+        toast.update(toastId, {
+            progress: Math.min(progress, 0.99),
+            render: this.renderUploadToast.bind(this, prefix + ((progress < 1) ? "Uploading" : "Processing") + "...", file.name),
+        });
+    }
+
     async scrollToItem(index, store=false, align="start", rowIndex=undefined, columnIndex=undefined) {
         if (!this.grid.current) return;
         let grid = this.grid.current;
@@ -644,6 +902,17 @@ class Library extends Component {
         this.scrollToItem(0, true);
     }
 
+    renderUploadToast(title, subtitle) {
+        return (
+            <>
+                <div>
+                    <strong>{title}</strong>
+                </div>
+                <small>{subtitle}</small>
+            </>
+        );
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
@@ -696,26 +965,28 @@ class Library extends Component {
                                 let columnWidth = width / columnCount;
                                 let rowCount = Math.ceil(this.state.items.length / columnCount);
                                 return (
-                                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
-                                    {
-                                        ({ columnIndex, rowIndex, style }) => {
-                                            let index = (rowIndex * columnCount) + columnIndex;
-                                            let source = this.state.items[index];
-                                            if (source !== undefined) {
-                                                this.mediaContainers[index] = React.createRef();
-                                                return (
-                                                    <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
-                                                    </div>
-                                                );
-                                            } else {
-                                                return (
-                                                    <div style={style}></div>
-                                                );
+                                    <UploadZone onUpload={this.upload.bind(this)}>
+                                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
+                                        {
+                                            ({ columnIndex, rowIndex, style }) => {
+                                                let index = (rowIndex * columnCount) + columnIndex;
+                                                let source = this.state.items[index];
+                                                if (source !== undefined) {
+                                                    this.mediaContainers[index] = React.createRef();
+                                                    return (
+                                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
+                                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <div style={style}></div>
+                                                    );
+                                                }
                                             }
                                         }
-                                    }
-                                    </Grid>
+                                        </Grid>
+                                    </UploadZone>
                                 )}
                             }
                         </AutoSizer>
@@ -754,6 +1025,7 @@ const mapStateToProps = (state) => ({
     ui: {
         theme: state.ui.theme,
         scrollPosition: state.ui.scrollPosition,
+        uploads: state.ui.uploads,
     },
     search: {
         sort: state.search.sort,
