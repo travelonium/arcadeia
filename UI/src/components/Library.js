@@ -48,7 +48,7 @@ class Library extends Component {
                 total: 0,
                 queued: [],
                 active: {},
-                failed: {},
+                failed: [],
             },
             options: {
                 videoPlayer: {
@@ -490,7 +490,7 @@ class Library extends Component {
                         })
                     }
                 }, () => {
-                    if (Object.keys(this.state.uploads.failed).length > 0) {
+                    if (this.state.uploads.failed.length > 0) {
                         console.log(this.state.uploads.failed);
                     }
                 });
@@ -549,7 +549,7 @@ class Library extends Component {
             }, () => {
                 let params = new URLSearchParams();
                 params.set('overwrite', this.props.ui.uploads.overwrite);
-                params.set('duplicate', this.props.ui.uploads.duplicate);
+                params.set('duplicate', false/*this.props.ui.uploads.duplicate*/);
                 axios.post("/library" + path + "?" + params.toString(), data, config)
                 .then((response) => {
                     toast.update(extract(null, this.state.uploads.active, file.name, 'toast'), {
@@ -602,7 +602,7 @@ class Library extends Component {
                         type: toast.TYPE.ERROR,
                         icon: null,
                     });
-                    let failed = extract(null, this.state.uploads.active, file.name);
+                    let failed = extract(null, this.state.uploads.active, file.name, 'file');
                     // remove the failed upload from the list of active uploads
                     this.setState(prevState => {
                         return {
@@ -623,10 +623,11 @@ class Library extends Component {
                                 uploads: update(prevState.uploads, {
                                     $merge: {
                                         failed: update(prevState.uploads.failed, {
-                                            $merge: {
-                                                [file.name]: failed
-                                            }
-                                        })
+                                            $push: [{
+                                                file: failed,
+                                                path: path
+                                            }]
+                                        }),
                                     }
                                 })
                             }
