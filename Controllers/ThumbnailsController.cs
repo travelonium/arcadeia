@@ -5,6 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static System.Net.Mime.MediaTypeNames;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
+using static System.Collections.Specialized.BitVector32;
+using System.Linq;
+using System.Text;
+using ImageMagick;
+using System.IO;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -13,18 +21,41 @@ namespace MediaCurator.Controllers
    [ApiController]
    public class ThumbnailsController : Controller
    {
+      #region Constants
+
+      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
+      {
+         var section = _configuration.GetSection("Thumbnails:Video");
+
+         if (section.Exists())
+         {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            return new Dictionary<string, Dictionary<string, int>>(section.Get<Dictionary<string, Dictionary<string, int>>>(), comparer);
+         }
+
+         return new Dictionary<string, Dictionary<string, int>>();
+      });
+
+      #endregion // Constants
+
+      private readonly IServiceProvider _services;
       private readonly IMediaLibrary _mediaLibrary;
+      private readonly IConfiguration _configuration;
+      private readonly ILogger<MediaContainer> _logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
-      private readonly ILogger<ThumbnailsController> _logger;
       private readonly CancellationToken _cancellationToken;
 
-      public ThumbnailsController(ILogger<ThumbnailsController> logger,
+      public ThumbnailsController(ILogger<MediaContainer> logger,
+                                  IServiceProvider services,
                                   IHostApplicationLifetime applicationLifetime,
                                   IThumbnailsDatabase thumbnailsDatabase,
+                                  IConfiguration configuration,
                                   IMediaLibrary mediaLibrary)
       {
          _logger = logger;
+         _services = services;
          _mediaLibrary = mediaLibrary;
+         _configuration = configuration;
          _thumbnailsDatabase = thumbnailsDatabase;
          _cancellationToken = applicationLifetime.ApplicationStopping;
       }
@@ -53,6 +84,73 @@ namespace MediaCurator.Controllers
          }
 
          return NotFound();
+      }
+
+      // GET: /<controller>/{id}/{index}.vtt
+      [Route("[controller]/{id}/{label}.vtt")]
+      public async Task<IActionResult> WebVTT(string id, string label)
+      {
+         byte[] thumbnail;
+         var content = new StringBuilder();
+
+         if (!ThumbnailsConfiguration.Value.ContainsKey(label))
+         {
+            return NotFound();
+         }
+
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         if ((videoFile.Type != MediaContainerType.Video.ToString()) || (videoFile.Duration <= 0))
+         {
+            return NotFound();
+         }
+
+         var item = ThumbnailsConfiguration.Value.GetValueOrDefault(label);
+
+         int count = 0;
+         int width = -1;
+         int height = -1;
+         bool sprite = false;
+         string from = "00:00:00";
+         double duration = videoFile.Duration;
+
+         if (item.ContainsKey("Width")) width = item["Width"];
+         if (item.ContainsKey("Height")) height = item["Height"];
+         if (item.ContainsKey("Sprite")) sprite = (item["Sprite"] > 0);
+         if (item.ContainsKey("Count")) count = (int)Math.Min(item["Count"], Math.Floor(duration));
+
+         if (!sprite || (count <= 1))
+         {
+            return NotFound();
+         }
+
+         thumbnail = await _thumbnailsDatabase.GetThumbnailAsync(id, label, _cancellationToken);
+
+         if (thumbnail.Length <= 0)
+         {
+            return NotFound();
+         }
+
+         var info = new MagickImageInfo(thumbnail);
+
+         if ((width <= 0) && (info.Width > 0)) width = (int)(info.Width / count);
+         if ((height <= 0) && (info.Height > 0)) height = info.Height;
+
+         content.AppendLine("WEBVTT" + Environment.NewLine);
+
+         for (int counter = 0; counter < count; counter++)
+         {
+            var y = 0;
+            var x = counter * width;
+            string to = TimeSpan.FromSeconds((counter + 0.5) * duration / count).ToString(@"hh\:mm\:ss");
+
+            content.AppendLine(String.Format("{0}.000 --> {1}.000", from, to));
+            content.AppendLine(String.Format("{0}.jpg#xywh={1},{2},{3},{4}", label, x, y, width, height) + Environment.NewLine);
+
+            from = to;
+         }
+
+         return Content(content.ToString(), "text/plain", Encoding.UTF8);
       }
 
       // GET: /<controller>/{id}

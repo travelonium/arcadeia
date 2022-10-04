@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Data.Sqlite;
 using System.Diagnostics;
+using System.Data.Common;
 
 namespace MediaCurator
 {
@@ -140,6 +141,37 @@ namespace MediaCurator
       public bool Exists(string id)
       {
          return RowExists("Thumbnails", "ID", id);
+      }
+
+      public bool Incomplete(string id)
+      {
+         string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
+
+         using (SqliteConnection connection = new(_connectionString.Value))
+         {
+            connection.Open();
+
+            using SqliteCommand command = new(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+
+               foreach (var item in _columns)
+               {
+                  string column = item.Key;
+                  object blob = reader[column];
+                  if ((blob == null) || (blob.GetType() != typeof(byte[])))
+                  {
+                     return true;
+                  }
+               }
+
+               break;
+            }
+         }
+
+         return false;
       }
 
       public void SetThumbnail(string id, int index, ref byte[] data)
@@ -388,7 +420,7 @@ namespace MediaCurator
             {
                foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
                {
-                  if (item.Value.ContainsKey("Count"))
+                  if (item.Value.ContainsKey("Count") && !item.Value.ContainsKey("Sprite"))
                   {
                      for (int i = 0; i < item.Value["Count"]; i++)
                      {

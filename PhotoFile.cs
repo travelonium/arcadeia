@@ -291,7 +291,7 @@ namespace MediaCurator
       /// photo file.
       /// </summary>
       /// <returns>The count of successfully generated thumbnails.</returns>
-      public override int GenerateThumbnails()
+      public override int GenerateThumbnails(bool force = false)
       {
          int total = 0;
 
@@ -324,8 +324,20 @@ namespace MediaCurator
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
+               byte[] thumbnail = null;
+
+               if (!force)
+               {
+                  // Retrieve the existing thumbnail if any.
+                  if (count >= 1) thumbnail = Thumbnails[counter];
+                  else thumbnail = Thumbnails[label];
+
+                  // Skip the thumbnail generation for this specific thumbnail if it already exists.
+                  if ((thumbnail != null) && (thumbnail.Length > 0)) continue;
+               }
+
                // Generate the thumbnail.
-               byte[] thumbnail = GenerateThumbnail(FullPath, width, height, crop);
+               thumbnail = GenerateThumbnail(FullPath, width, height, crop);
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {

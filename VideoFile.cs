@@ -8,6 +8,8 @@ using System.Threading;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ImageMagick;
+using System.Reflection.Metadata;
 
 namespace MediaCurator
 {
@@ -277,7 +279,7 @@ namespace MediaCurator
       /// video file.
       /// </summary>
       /// <returns>The count of successfully generated thumbnails.</returns>
-      public override int GenerateThumbnails()
+      public override int GenerateThumbnails(bool force = false)
       {
          int total = 0;
 
@@ -304,26 +306,48 @@ namespace MediaCurator
             int width = -1;
             int height = -1;
             bool crop = false;
+            bool sprite = false;
             string label = item.Key;
 
-            if (item.Value.ContainsKey("Count")) count = item.Value["Count"];
             if (item.Value.ContainsKey("Width")) width = item.Value["Width"];
             if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
             if (item.Value.ContainsKey("Crop")) crop = (item.Value["Crop"] > 0);
+            if (item.Value.ContainsKey("Sprite")) sprite = (item.Value["Sprite"] > 0);
+            if (item.Value.ContainsKey("Count")) count = (int)Math.Min(item.Value["Count"], Math.Floor(Duration));
+
+            using var collection = new MagickImageCollection();
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
-               int position = (int)((counter + 0.5) * Duration / Math.Max(24, count));
+               byte[] thumbnail = null;
+               int position = (int)((counter + 0.5) * Duration / count);
+
+               if (!force)
+               {
+                  // Retrieve the existing thumbnail if any.
+                  if ((count >= 1) && !sprite) thumbnail = Thumbnails[counter];
+                  else thumbnail = Thumbnails[label];
+
+                  // Skip the thumbnail generation for this specific thumbnail if it already exists.
+                  if ((thumbnail != null) && (thumbnail.Length > 0)) continue;
+               }
 
                // Generate the thumbnail.
-               byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
+               thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {
                   // Add the newly generated thumbnail to the database.
                   if (count >= 1)
                   {
-                     Thumbnails[counter] = thumbnail;
+                     if (sprite)
+                     {
+                        collection.Add(new MagickImage(thumbnail));
+                     }
+                     else
+                     {
+                        Thumbnails[counter] = thumbnail;
+                     }
                   }
                   else
                   {
@@ -332,6 +356,12 @@ namespace MediaCurator
 
                   total++;
                }
+            }
+
+            if (collection.Count > 0)
+            {
+               using var output = collection.AppendHorizontally();
+               Thumbnails[label] = output.ToByteArray();
             }
          }
 

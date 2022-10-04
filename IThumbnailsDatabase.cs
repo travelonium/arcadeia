@@ -13,6 +13,7 @@ namespace MediaCurator
 
       void Create(string id);
       bool Exists(string id);
+      bool Incomplete(string id);
       int DeleteThumbnails(string id);
       byte[] GetThumbnail(string id, int index);
       byte[] GetThumbnail(string id, string label);

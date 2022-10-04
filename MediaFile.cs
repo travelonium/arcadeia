@@ -196,6 +196,11 @@ namespace MediaCurator
             if (Created || Modified)
             {
                // Try to regenerate thumbnails for the file.
+               GenerateThumbnails(force: true);
+            }
+            else if (Thumbnails.Incomplete)
+            {
+               // Try to generate the missing thumbnails for the file.
                GenerateThumbnails();
             }
          }
@@ -232,7 +237,7 @@ namespace MediaCurator
       /// <param name="preview">The name of the recently generated thumbnail file in order to be
       /// previewed for the user.</param>
       /// <returns>The count of successfully generated thumbnails.</returns>
-      public virtual int GenerateThumbnails()
+      public virtual int GenerateThumbnails(bool force = false)
       {
          throw new NotImplementedException("This MediaFile does not offer a GenerateThumbnails() method!");
       }
