@@ -198,11 +198,6 @@ namespace MediaCurator
                // Try to regenerate thumbnails for the file.
                GenerateThumbnails(force: true);
             }
-            else if (Thumbnails.Incomplete)
-            {
-               // Try to generate the missing thumbnails for the file.
-               GenerateThumbnails();
-            }
          }
          else
          {
@@ -210,7 +205,7 @@ namespace MediaCurator
             Thumbnails.Initialize();
 
             // Try to generate thumbnails for the file.
-            GenerateThumbnails();
+            GenerateThumbnails(force: true);
          }
       }
 

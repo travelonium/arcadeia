@@ -324,6 +324,10 @@ namespace MediaCurator
 
                if (!force)
                {
+                  // FIXME: This is probably way too slow right now and can be improved by for
+                  //        instance caching the columns in MediaFileThumbnails or perhaps a new
+                  //        method that executes a SQL command checking whether the column is empty.
+
                   // Retrieve the existing thumbnail if any.
                   if ((count >= 1) && !sprite) thumbnail = Thumbnails[counter];
                   else thumbnail = Thumbnails[label];

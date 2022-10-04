@@ -75,17 +75,6 @@ namespace MediaCurator
          }
       }
 
-      /// <summary>
-      /// Whether or not one or few of the thumbnails have not been generated or have failed.
-      /// </summary>
-      public bool Incomplete
-      {
-         get
-         {
-            return _database.Incomplete(_id);
-         }
-      }
-
       #region Constructors
 
       public MediaFileThumbnails(IThumbnailsDatabase database, string id)

@@ -143,37 +143,6 @@ namespace MediaCurator
          return RowExists("Thumbnails", "ID", id);
       }
 
-      public bool Incomplete(string id)
-      {
-         string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
-
-         using (SqliteConnection connection = new(_connectionString.Value))
-         {
-            connection.Open();
-
-            using SqliteCommand command = new(sql, connection);
-            using var reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-
-               foreach (var item in _columns)
-               {
-                  string column = item.Key;
-                  object blob = reader[column];
-                  if ((blob == null) || (blob.GetType() != typeof(byte[])))
-                  {
-                     return true;
-                  }
-               }
-
-               break;
-            }
-         }
-
-         return false;
-      }
-
       public void SetThumbnail(string id, int index, ref byte[] data)
       {
          if (!RowExists("Thumbnails", "ID", id))
