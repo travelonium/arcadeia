@@ -33,6 +33,7 @@
     "rimraf": "^3.0.2",
     "sortablejs": "^1.15.0",
     "video.js": "^7.17.0",
+    "videojs-vtt-thumbnails": "^0.0.13",
     "viewerjs": "^1.10.3"
   },
   "devDependencies": {

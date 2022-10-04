@@ -22,8 +22,7 @@ export class PhotoViewer extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        let sources = this.props.sources;
-        if (!_.isEqual(sources, prevProps.sources)) {
+        if (!_.isEqual(this.props.sources, prevProps.sources)) {
             this.viewer.update();
         }
     }
@@ -33,7 +32,7 @@ export class PhotoViewer extends React.Component {
     }
 
     render() {
-        const sources = extract([], this.props, 'sources');
+        const sources = extract([], this.props, 'sources').map((item) => ("/preview/photo/" + item.id + "/" + item.name));
         return (
             <div ref={element => this.imagesElement = element} className={cx(this.props.className, "photo-viewer")}>
             {
