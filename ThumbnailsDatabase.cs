@@ -196,13 +196,18 @@ namespace MediaCurator
 
             while (reader.Read())
             {
-               object blob = reader[column];
+               int ordinal = reader.GetOrdinal(column);
 
-               if ((blob != null) && (blob.GetType() == typeof(byte[])))
+               if (!reader.IsDBNull(ordinal))
                {
-                  thumbnail = (byte[])blob;
+                  object blob = reader[column];
 
-                  break;
+                  if (blob.GetType() == typeof(byte[]))
+                  {
+                     thumbnail = (byte[])blob;
+
+                     break;
+                  }
                }
             }
          }
@@ -232,13 +237,18 @@ namespace MediaCurator
 
             while (await reader.ReadAsync(cancellationToken))
             {
-               object blob = reader[column];
+               int ordinal = reader.GetOrdinal(column);
 
-               if ((blob != null) && (blob.GetType() == typeof(byte[])))
+               if (!await reader.IsDBNullAsync(ordinal, cancellationToken))
                {
-                  thumbnail = (byte[])blob;
+                  object blob = reader[column];
 
-                  break;
+                  if (blob.GetType() == typeof(byte[]))
+                  {
+                     thumbnail = (byte[])blob;
+
+                     break;
+                  }
                }
             }
          }
@@ -273,10 +283,9 @@ namespace MediaCurator
                for (int i = 0; i < Maximum; i++)
                {
                   string column = "T" + i.ToString();
+                  int ordinal = reader.GetOrdinal(column);
 
-                  object blob = reader[column];
-
-                  if ((blob != null) && (blob.GetType() == typeof(byte[])))
+                  if (!reader.IsDBNull(ordinal))
                   {
                      count++;
                   }
@@ -293,7 +302,7 @@ namespace MediaCurator
          return count;
       }
 
-      public List<string> GetEmptyColumnNames(string id)
+      public List<string> GetNullColumns(string id)
       {
          var columns = new List<string>();
          string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
@@ -309,9 +318,9 @@ namespace MediaCurator
             {
                foreach (var column in _columns.Keys)
                {
-                  object blob = reader[column];
+                  int ordinal = reader.GetOrdinal(column);
 
-                  if ((blob == null) || (blob.GetType() != typeof(byte[])) || (((byte[])blob).Length == 0))
+                  if (reader.IsDBNull(ordinal))
                   {
                      columns.Add(column);
                   }

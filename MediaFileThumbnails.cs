@@ -77,13 +77,13 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Retrieve a list of all the empty/null columns of the row.
+      /// Retrieve a list of all the null columns of the row.
       /// </summary>
-      public List<string> EmptyColumns
+      public List<string> NullColumns
       {
          get
          {
-            return _database.GetEmptyColumnNames(_id);
+            return _database.GetNullColumns(_id);
          }
       }
 
