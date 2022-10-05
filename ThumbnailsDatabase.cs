@@ -302,7 +302,7 @@ namespace MediaCurator
          return count;
       }
 
-      public List<string> GetNullColumns(string id)
+      public string[] GetNullColumns(string id)
       {
          var columns = new List<string>();
          string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
@@ -330,7 +330,7 @@ namespace MediaCurator
             }
          }
 
-         return columns;
+         return columns.ToArray();
       }
 
       public void SetJournalMode(string mode)

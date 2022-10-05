@@ -79,7 +79,7 @@ namespace MediaCurator
       /// <summary>
       /// Retrieve a list of all the null columns of the row.
       /// </summary>
-      public List<string> NullColumns
+      public string[] NullColumns
       {
          get
          {

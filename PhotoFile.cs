@@ -331,7 +331,7 @@ namespace MediaCurator
                if (!force)
                {
                   // Skip the thumbnail generation for this specific thumbnail if it already exists.
-                  if (!nullColums.Contains(column)) continue;
+                  if (!nullColums.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
                Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);

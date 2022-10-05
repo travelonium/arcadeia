@@ -211,7 +211,7 @@ namespace MediaCurator
 
          if (Thumbnails.Initialized)
          {
-            if (Created || Modified)
+            if (Created || Modified)
             {
                // Try to regenerate thumbnails for the file.
                GenerateThumbnails(force: true);
@@ -276,7 +276,7 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Deletes the MediaFile from the disk and the MediaLibrary. Each MediaFile type can 
+      /// Deletes the MediaFile from the disk and the MediaLibrary. Each MediaFile type can
       /// optionally override and implement its own delete method or its additional delete actions.
       /// </summary>
       /// <param name="permanent">if set to <c>true</c>, it permanently deletes the file from the disk
@@ -286,7 +286,7 @@ namespace MediaCurator
       /// is in use by another process or program, Windows will prompt the user so and he can choose
       /// whether they want to try again or cancel the operation. The intention here was that it would
       /// simply queue the delete without notifying the user and attempt to delete the file cyclically
-      /// until it succeeds. However, since the <seealso cref="FileSystem.DeleteFile"/> if used with 
+      /// until it succeeds. However, since the <seealso cref="FileSystem.DeleteFile"/> if used with
       /// the <seealso cref="RecycleOption"/> does not throw the <seealso cref="System.IO.IOException"/>,
       /// it currently will give up if the user chooses to cancel the delete.
       /// </remarks>
