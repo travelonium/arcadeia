@@ -357,6 +357,10 @@ namespace MediaCurator
 
                   total++;
                }
+               else
+               {
+                  break;
+               }
             }
 
             if (collection.Count > 0)
