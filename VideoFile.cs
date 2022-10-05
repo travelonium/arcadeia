@@ -330,7 +330,7 @@ namespace MediaCurator
                   if (!nullColums.Contains(column)) continue;
                }
 
-               Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+               if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
                byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
