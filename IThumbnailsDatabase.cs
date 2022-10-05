@@ -19,6 +19,7 @@ namespace MediaCurator
       Task<byte[]> GetThumbnailAsync(string id, int index, CancellationToken cancellationToken);
       Task<byte[]> GetThumbnailAsync(string id, string label, CancellationToken cancellationToken);
       int GetThumbnailsCount(string id);
+      List<string> GetEmptyColumnNames(string id);
       void SetThumbnail(string id, int index, ref byte[] data);
       void SetThumbnail(string id, string label, ref byte[] data);
       void SetJournalMode(string mode);

@@ -293,6 +293,37 @@ namespace MediaCurator
          return count;
       }
 
+      public List<string> GetEmptyColumnNames(string id)
+      {
+         var columns = new List<string>();
+         string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
+
+         using (SqliteConnection connection = new(_connectionString.Value))
+         {
+            connection.Open();
+
+            using SqliteCommand command = new(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+               foreach (var column in _columns.Keys)
+               {
+                  object blob = reader[column];
+
+                  if ((blob == null) || (blob.GetType() != typeof(byte[])) || (((byte[])blob).Length == 0))
+                  {
+                     columns.Add(column);
+                  }
+               }
+
+               break;
+            }
+         }
+
+         return columns;
+      }
+
       public void SetJournalMode(string mode)
       {
          string sql = "PRAGMA journal_mode=";

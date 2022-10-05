@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ImageMagick;
 using System.Reflection.Metadata;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 
 namespace MediaCurator
 {
@@ -282,6 +283,7 @@ namespace MediaCurator
       public override int GenerateThumbnails(bool force = false)
       {
          int total = 0;
+         var emptyColums = Thumbnails.EmptyColumns;
 
          // Make sure the video file is valid and not corrupted or empty.
          if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
@@ -319,25 +321,22 @@ namespace MediaCurator
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
-               byte[] thumbnail = null;
                int position = (int)((counter + 0.5) * Duration / count);
 
                if (!force)
                {
-                  // FIXME: This is probably way too slow right now and can be improved by for
-                  //        instance caching the columns in MediaFileThumbnails or perhaps a new
-                  //        method that executes a SQL command checking whether the column is empty.
+                  string key = null;
 
-                  // Retrieve the existing thumbnail if any.
-                  if ((count >= 1) && !sprite) thumbnail = Thumbnails[counter];
-                  else thumbnail = Thumbnails[label];
+                  // Formulate a column name based on the current conditions.
+                  if ((count >= 1) && !sprite) key = String.Format("T{0}", counter);
+                  else key = label;
 
                   // Skip the thumbnail generation for this specific thumbnail if it already exists.
-                  if ((thumbnail != null) && (thumbnail.Length > 0)) continue;
+                  if (!emptyColums.Contains(key)) continue;
                }
 
                // Generate the thumbnail.
-               thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
+               byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {

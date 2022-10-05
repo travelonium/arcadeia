@@ -15,6 +15,24 @@ namespace MediaCurator
    {
       #region Fields
 
+      /// <summary>
+      /// Determines whether or not the missing thumbnails have to be forcefully generated.
+      /// </summary>
+      protected bool ForceGenerateMissingThumbnails
+      {
+         get
+         {
+            if (Configuration.GetSection("Scanner:ForceGenerateMissingThumbnails").Exists())
+            {
+               return Configuration.GetSection("Scanner:ForceGenerateMissingThumbnails").Get<bool>();
+            }
+            else
+            {
+               return false;
+            }
+         }
+      }
+
       private long _size = -1;
 
       /// <summary>
@@ -197,6 +215,11 @@ namespace MediaCurator
             {
                // Try to regenerate thumbnails for the file.
                GenerateThumbnails(force: true);
+            }
+            else if (ForceGenerateMissingThumbnails)
+            {
+               // Try to generate the missing thumbnails for the file.
+               GenerateThumbnails();
             }
          }
          else

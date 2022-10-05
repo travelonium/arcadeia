@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
@@ -72,6 +73,17 @@ namespace MediaCurator
          get
          {
             return _database.Exists(_id);
+         }
+      }
+
+      /// <summary>
+      /// Retrieve a list of all the empty/null columns of the row.
+      /// </summary>
+      public List<string> EmptyColumns
+      {
+         get
+         {
+            return _database.GetEmptyColumnNames(_id);
          }
       }
 
