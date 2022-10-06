@@ -2,6 +2,8 @@
 #
 # Start the docker compose application in debug mode.
 
+set -e
+
 docker compose -f docker-compose.yml -f docker-compose-debug.yml build
 
 if [ $# -eq 0 ]; then

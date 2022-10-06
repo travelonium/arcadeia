@@ -42,7 +42,7 @@ namespace MediaCurator
             {
                foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
                {
-                  if (item.Value.ContainsKey("Count"))
+                  if (item.Value.ContainsKey("Count") && !item.Value.ContainsKey("Sprite"))
                   {
                      maximum = Math.Max(item.Value["Count"], maximum);
                   }
