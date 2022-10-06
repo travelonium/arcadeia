@@ -359,7 +359,15 @@ namespace MediaCurator
                }
                else
                {
-                  break;
+                  if (collection.Count > 0)
+                  {
+                     var last = collection.Last();
+                     collection.Add(new MagickImage(new MagickColor(0, 0, 0, 0), last.Width, last.Height));
+                  }
+                  else
+                  {
+                     break;
+                  }
                }
             }
 

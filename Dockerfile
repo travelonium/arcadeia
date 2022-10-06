@@ -19,7 +19,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ARG VERSION
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y iputils-ping net-tools ffmpeg cifs-utils nfs-common; \
+    apt-get install -y iputils-ping net-tools ffmpeg sqlite3 cifs-utils nfs-common; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -p /Network /Uploads; \
     dpkg -l; \
