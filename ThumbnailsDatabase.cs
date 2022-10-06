@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Data.Sqlite;
 using System.Diagnostics;
+using System.Data.Common;
 
 namespace MediaCurator
 {
@@ -41,7 +42,7 @@ namespace MediaCurator
             {
                foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
                {
-                  if (item.Value.ContainsKey("Count"))
+                  if (item.Value.ContainsKey("Count") && !item.Value.ContainsKey("Sprite"))
                   {
                      maximum = Math.Max(item.Value["Count"], maximum);
                   }
@@ -195,13 +196,18 @@ namespace MediaCurator
 
             while (reader.Read())
             {
-               object blob = reader[column];
+               int ordinal = reader.GetOrdinal(column);
 
-               if ((blob != null) && (blob.GetType() == typeof(byte[])))
+               if (!reader.IsDBNull(ordinal))
                {
-                  thumbnail = (byte[])blob;
+                  object blob = reader[column];
 
-                  break;
+                  if (blob.GetType() == typeof(byte[]))
+                  {
+                     thumbnail = (byte[])blob;
+
+                     break;
+                  }
                }
             }
          }
@@ -231,13 +237,18 @@ namespace MediaCurator
 
             while (await reader.ReadAsync(cancellationToken))
             {
-               object blob = reader[column];
+               int ordinal = reader.GetOrdinal(column);
 
-               if ((blob != null) && (blob.GetType() == typeof(byte[])))
+               if (!await reader.IsDBNullAsync(ordinal, cancellationToken))
                {
-                  thumbnail = (byte[])blob;
+                  object blob = reader[column];
 
-                  break;
+                  if (blob.GetType() == typeof(byte[]))
+                  {
+                     thumbnail = (byte[])blob;
+
+                     break;
+                  }
                }
             }
          }
@@ -272,10 +283,9 @@ namespace MediaCurator
                for (int i = 0; i < Maximum; i++)
                {
                   string column = "T" + i.ToString();
+                  int ordinal = reader.GetOrdinal(column);
 
-                  object blob = reader[column];
-
-                  if ((blob != null) && (blob.GetType() == typeof(byte[])))
+                  if (!reader.IsDBNull(ordinal))
                   {
                      count++;
                   }
@@ -290,6 +300,37 @@ namespace MediaCurator
          }
 
          return count;
+      }
+
+      public string[] GetNullColumns(string id)
+      {
+         var columns = new List<string>();
+         string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
+
+         using (SqliteConnection connection = new(_connectionString.Value))
+         {
+            connection.Open();
+
+            using SqliteCommand command = new(sql, connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+               foreach (var column in _columns.Keys)
+               {
+                  int ordinal = reader.GetOrdinal(column);
+
+                  if (reader.IsDBNull(ordinal))
+                  {
+                     columns.Add(column);
+                  }
+               }
+
+               break;
+            }
+         }
+
+         return columns.ToArray();
       }
 
       public void SetJournalMode(string mode)
@@ -388,7 +429,7 @@ namespace MediaCurator
             {
                foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
                {
-                  if (item.Value.ContainsKey("Count"))
+                  if (item.Value.ContainsKey("Count") && !item.Value.ContainsKey("Sprite"))
                   {
                      for (int i = 0; i < item.Value["Count"]; i++)
                      {

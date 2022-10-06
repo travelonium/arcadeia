@@ -94,9 +94,9 @@ export class MediaViewer extends Component {
         const type = extract(null, source, 'type');
         switch (type) {
             case "Photo":
-                return <PhotoViewer ref={this.photoViewer} options={this.state.viewerJsOptions} sources={this.state.sources.map((item) => ("/preview/photo/" + item.id + "/" + item.name))} />
+                return <PhotoViewer ref={this.photoViewer} options={this.state.viewerJsOptions} sources={this.state.sources} />
             case "Video":
-                return <VideoPlayer ref={this.videoPlayer} options={this.state.videoJsOptions} sources={this.state.sources.map((item) => ("/preview/video/" + item.id + "/" + item.name))} />
+                return <VideoPlayer ref={this.videoPlayer} options={this.state.videoJsOptions} sources={this.state.sources} />
             default:
                 return <></>;
         }

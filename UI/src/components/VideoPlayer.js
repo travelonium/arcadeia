@@ -1,5 +1,6 @@
 import React from 'react';
 import videojs from 'video.js';
+import vttThumbnails from 'videojs-vtt-thumbnails';
 import cx from 'classnames';
 import _ from 'lodash';
 
@@ -7,10 +8,17 @@ export class VideoPlayer extends React.Component {
 
     componentDidMount() {
         // instantiate Video.js
-        let sources = this.props.sources;
         let options = this.props.options;
+        let sources = this.props.sources.map((item) => ("/preview/video/" + item.id + "/" + item.name));
         options.sources = sources;
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
+        if (this.props.sources.length === 1) {
+            let source = this.props.sources[0];
+            this.player.vttThumbnails({
+                src: window.location.origin + "/thumbnails/" + source.id + "/sprite.vtt",
+                showTimestamp: false,
+            });
+        }
     }
 
     // destroy player on unmount
@@ -21,8 +29,8 @@ export class VideoPlayer extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        let sources = this.props.sources;
-        if (!_.isEqual(sources, prevProps.sources)) {
+        if (!_.isEqual(this.props.sources, prevProps.sources)) {
+            let sources = this.props.sources.map((item) => ("/preview/photo/" + item.id + "/" + item.name));
             this.player.src(sources);
         }
     }

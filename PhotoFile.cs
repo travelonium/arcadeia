@@ -291,9 +291,10 @@ namespace MediaCurator
       /// photo file.
       /// </summary>
       /// <returns>The count of successfully generated thumbnails.</returns>
-      public override int GenerateThumbnails()
+      public override int GenerateThumbnails(bool force = false)
       {
          int total = 0;
+         var nullColums = Thumbnails.NullColumns;
 
          // Make sure the photo file is valid and not corrupted or empty.
          if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
@@ -324,8 +325,19 @@ namespace MediaCurator
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
+               byte[] thumbnail = null;
+               string column = (count >= 1) ? String.Format("{0}{1}", item.Key, counter) : label;
+
+               if (!force)
+               {
+                  // Skip the thumbnail generation for this specific thumbnail if it already exists.
+                  if (!nullColums.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
+               }
+
+               Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+
                // Generate the thumbnail.
-               byte[] thumbnail = GenerateThumbnail(FullPath, width, height, crop);
+               thumbnail = GenerateThumbnail(FullPath, width, height, crop);
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {
