@@ -30,7 +30,7 @@ export class VideoPlayer extends React.Component {
 
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.sources, prevProps.sources)) {
-            let sources = this.props.sources.map((item) => ("/preview/photo/" + item.id + "/" + item.name));
+            let sources = this.props.sources.map((item) => ("/preview/video/" + item.id + "/" + item.name));
             this.player.src(sources);
         }
     }
