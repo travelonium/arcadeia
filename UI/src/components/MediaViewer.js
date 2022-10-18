@@ -56,9 +56,8 @@ export class MediaViewer extends Component {
 
     view(sources, index, player = true) {
         let source = sources[index];
-        if ((source.type !== "Photo") && (source.type !== "Video")) return;
         let params = new URLSearchParams(window.location.search);
-        // if (params.has('query')) params.delete('query');
+        if ((source.type !== "Photo") && (source.type !== "Video")) return;
         const path = window.location.pathname.match(/.*\//g)[0] + source.name + '?' + params.toString();
         window.history.replaceState({path: path}, "", path);
         if (player) {

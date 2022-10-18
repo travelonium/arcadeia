@@ -31,6 +31,7 @@ class Library extends Component {
         this.current = -1;          // the current item index being viewed in the MediaViewer
         this.viewing = false;       // indicates that a media is being viewed in the MediaViewer
         this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
+        this.history = false;       // notifies the search function that the call is coming from the history
         this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
         this.grid = React.createRef();
         this.gridWrapper = React.createRef();
@@ -40,7 +41,6 @@ class Library extends Component {
         this.ignoreScrollUpdateWasRequested = false;
         this.storeScrollPositionTimeout = null;
         this.state = {
-            history: false,
             loading: false,
             status: "",
             items: [],
@@ -77,13 +77,9 @@ class Library extends Component {
         this.props.dispatch(reset(path));
         // handles the browser history operations
         window.onpopstate = (event) => {
-            let path = extract("", event, 'state', 'path');
-            this.setState({
-                history: true, // notify the search function that the call is coming from the history
-            }, () => {
-                this.props.dispatch(reset(path));
-                this.mediaViewer.current.hide();
-            });
+            this.history = true;
+            this.props.dispatch(reset(extract("", event, 'state', 'path')));
+            this.mediaViewer.current.hide();
         };
     }
 
@@ -234,7 +230,7 @@ class Library extends Component {
             name = components[2];
         }
         if (!path) return;
-        let history = this.state.history;
+        let history = this.history;
         let params = new URLSearchParams();
         let query = browse ? "*" : this.props.search.query;
         let flags = parseInt(params.get("flags") ?? 0);
@@ -289,6 +285,7 @@ class Library extends Component {
             input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
         }
         path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
+        this.history = false;
         this.controller.abort();
         this.controller = new AbortController();
         // clear the update scroll position timeout, it's too late to do that
@@ -301,7 +298,6 @@ class Library extends Component {
             items: [],
             path: path,
             loading: true,
-            history: false,
             status: "Requesting",
         }, () => {
             // change the url and the history before going any further
@@ -650,7 +646,6 @@ class Library extends Component {
     view(source, index = 0, player = true) {
         this.current = index;
         let params = new URLSearchParams(window.location.search);
-        // if (params.has('query')) params.delete('query');
         const path = window.location.pathname + source.name + '?' + params.toString();
         if (!this.viewing) window.history.pushState({path: path}, "", path);
         else window.history.replaceState({path: path}, "", path);
