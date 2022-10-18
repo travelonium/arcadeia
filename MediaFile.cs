@@ -209,26 +209,33 @@ namespace MediaCurator
             GetFileInfo(FullPath);
          }
 
-         if (Thumbnails.Initialized)
+         try
          {
-            if (Created || Modified)
+            if (Thumbnails.Initialized)
             {
-               // Try to regenerate thumbnails for the file.
+               if (Created || Modified)
+               {
+                  // Try to regenerate thumbnails for the file.
+                  GenerateThumbnails(force: true);
+               }
+               else if (ForceGenerateMissingThumbnails)
+               {
+                  // Try to generate the missing thumbnails for the file.
+                  GenerateThumbnails();
+               }
+            }
+            else
+            {
+               // Initialize the record for the file so we wouldn't end up here next time.
+               Thumbnails.Initialize();
+
+               // Try to generate thumbnails for the file.
                GenerateThumbnails(force: true);
             }
-            else if (ForceGenerateMissingThumbnails)
-            {
-               // Try to generate the missing thumbnails for the file.
-               GenerateThumbnails();
-            }
          }
-         else
+         catch (Exception e)
          {
-            // Initialize the record for the file so we wouldn't end up here next time.
-            Thumbnails.Initialize();
-
-            // Try to generate thumbnails for the file.
-            GenerateThumbnails(force: true);
+            Logger.LogWarning("Failed To Generate Thumbnails For: {}, Because: {}", FullPath, e.Message);
          }
       }
 
