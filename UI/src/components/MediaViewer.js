@@ -6,6 +6,7 @@ import { VideoPlayer } from './VideoPlayer';
 import { PhotoViewer } from './PhotoViewer';
 import { extract, clone } from './../utils';
 import { Flag } from './Flag';
+import cx from 'classnames';
 
 export class MediaViewer extends Component {
 
@@ -19,6 +20,7 @@ export class MediaViewer extends Component {
             index: -1,
             sources: [],
             origin: null,
+            expanded: false,
             videoJsOptions: {
                 inactivityTimeout: 5000,
                 aspectRatio: "16:9",
@@ -50,6 +52,12 @@ export class MediaViewer extends Component {
 
     onToggleFavorite(value, event) {
         this.toggle("Favorite");
+    }
+
+    onToggleExpand(value, event) {
+        this.setState({
+            expanded: value
+        });
     }
 
     onEditing(editing) {
@@ -155,13 +163,14 @@ export class MediaViewer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <>
-                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
-                    <Modal.Header className="flex-row align-items-center me-3" closeButton>
+                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size={this.state.expanded ? "fullscreen" : "xl"} aria-labelledby="contained-modal-title-vcenter" centered>
+                    <Modal.Header className="flex-row align-items-center me-3" closeVariant='white' closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                             <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
                         </Modal.Title>
+                        <Flag name="expand" className="px-2" tooltip={this.state.expanded ? "Shrink" : "Expand"} value={this.state.expanded} set="bi-arrows-angle-contract" unset="bi-arrows-angle-expand" onChange={this.onToggleExpand.bind(this)} />
                     </Modal.Header>
-                    <Modal.Body className="">
+                    <Modal.Body>
                         {this.viewer(source)}
                         <div className="flags px-1 ms-4 mt-4">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
