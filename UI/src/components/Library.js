@@ -645,11 +645,7 @@ class Library extends Component {
 
     view(source, index = 0, player = true) {
         this.current = index;
-        let params = new URLSearchParams(window.location.search);
-        const path = window.location.pathname + source.name + '?' + params.toString();
-        if (!this.viewing) window.history.pushState({path: path}, "", path);
-        else window.history.replaceState({path: path}, "", path);
-        this.mediaViewer.current.view([source], 0, player);
+        this.mediaViewer.current.view([source], 0, player, true);
     }
 
     previous() {

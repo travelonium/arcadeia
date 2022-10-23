@@ -18,6 +18,7 @@ export class MediaViewer extends Component {
         this.state = {
             index: -1,
             sources: [],
+            origin: null,
             videoJsOptions: {
                 inactivityTimeout: 5000,
                 aspectRatio: "16:9",
@@ -38,11 +39,12 @@ export class MediaViewer extends Component {
     onShow() {}
 
     onHide() {
+        if (this.state.origin) window.history.pushState({path: this.state.origin}, "", this.state.origin);
         this.setState({
             sources: [],
+            origin: null
         }, () => {
             if (this.props.onHide !== undefined) this.props.onHide();
-            window.history.back();
         });
     }
 
@@ -54,17 +56,19 @@ export class MediaViewer extends Component {
         this.props.library.current.editing = editing;
     }
 
-    view(sources, index, player = true) {
+    view(sources, index, player = true, origin = false) {
         let source = sources[index];
-        let params = new URLSearchParams(window.location.search);
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
-        const path = window.location.pathname.match(/.*\//g)[0] + source.name + '?' + params.toString();
-        window.history.replaceState({path: path}, "", path);
         if (player) {
+            let params = new URLSearchParams(window.location.search);
+            const parent = window.location.pathname.match(/.*\//g)[0];
+            const path = parent + source.name + '?' + params.toString();
             this.setState({
                 index: index,
                 sources: sources,
+                origin: origin ? parent + '?' + params.toString() : this.state.origin
             }, () => {
+                window.history.pushState({path: path}, "", path);
                 if (this.props.onShow !== undefined) {
                     this.props.onShow();
                 }
