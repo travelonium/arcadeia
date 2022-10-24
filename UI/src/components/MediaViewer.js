@@ -64,7 +64,7 @@ export class MediaViewer extends Component {
         this.props.library.current.editing = editing;
     }
 
-    view(sources, index, player = true, origin = false) {
+    view(sources, index, player = true, history = false, origin = false) {
         let source = sources[index];
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
         if (player) {
@@ -76,7 +76,7 @@ export class MediaViewer extends Component {
                 sources: sources,
                 origin: origin ? parent + '?' + params.toString() : this.state.origin
             }, () => {
-                window.history.pushState({path: path}, "", path);
+                if (!history) window.history.pushState({path: path}, "", path);
                 if (this.props.onShow !== undefined) {
                     this.props.onShow();
                 }

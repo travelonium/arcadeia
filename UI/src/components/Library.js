@@ -78,7 +78,7 @@ class Library extends Component {
         // handles the browser history operations
         window.onpopstate = (event) => {
             this.history = true;
-            this.props.dispatch(reset(extract("", event, 'state', 'path')));
+            this.props.dispatch(reset(extract("", event, "state", "path")));
             this.mediaViewer.current.hide();
         };
     }
@@ -97,12 +97,13 @@ class Library extends Component {
     }
 
     componentDidUpdate(prevProps) {
+        const history = this.history;
         if (!_.isEqual(this.props.search, prevProps.search)) {
             this.refresh((succeeded, name) => {
                 if (succeeded && name) {
                     const index = this.state.items.findIndex(x => x.name === name);
                     if (index !== -1) {
-                        this.view(this.state.items[index], index, true);
+                        this.view(this.state.items[index], index, true, history);
                     }
                 }
             })
@@ -643,9 +644,9 @@ class Library extends Component {
         this.props.dispatch(setPath(source.fullPath));
     }
 
-    view(source, index = 0, player = true) {
+    view(source, index = 0, player = true, history = false) {
         this.current = index;
-        this.mediaViewer.current.view([source], 0, player, true);
+        this.mediaViewer.current.view([source], 0, player, history, true);
     }
 
     previous() {
@@ -704,6 +705,7 @@ class Library extends Component {
     onMediaViewerHide() {
         this.viewing = false;
         this.reload(extract(null, this.state.items, this.current, 'id'));
+        this.props.dispatch(reset(window.history.state.path));
     }
 
     onKeyDown(event) {
