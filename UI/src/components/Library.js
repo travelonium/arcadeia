@@ -1,5 +1,6 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import MediaViewer from './MediaViewer';
 import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Button from 'react-bootstrap/Button'
@@ -12,7 +13,6 @@ import { clone, extract, size, updateBit } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
-import { MediaViewer } from './MediaViewer';
 import { UploadZone } from './UploadZone';
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
@@ -92,8 +92,10 @@ class Library extends Component {
         selectedNextState = _.omit(selectedNextState, ['uploads']);
         selectedCurrentState = _.omit(selectedCurrentState, ['uploads']);
         // ignore the scrollPosition key as its changes shouldn't cause a reload
-        if (!_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) return false;
-        return (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
+        let should = (_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
+                     (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
+        console.debug("shouldComponentUpdate(" + should + ")");
+        return should;
     }
 
     componentDidUpdate(prevProps) {
@@ -646,7 +648,8 @@ class Library extends Component {
 
     view(source, index = 0, player = true, history = false) {
         this.current = index;
-        this.mediaViewer.current.view([source], 0, player, history, true);
+        let origin = this.props.search.path + window.location.search;
+        this.mediaViewer.current.view([source], 0, player, history, origin);
     }
 
     previous() {
@@ -705,7 +708,6 @@ class Library extends Component {
     onMediaViewerHide() {
         this.viewing = false;
         this.reload(extract(null, this.state.items, this.current, 'id'));
-        this.props.dispatch(reset(window.history.state.path));
     }
 
     onKeyDown(event) {
