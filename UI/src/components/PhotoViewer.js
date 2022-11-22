@@ -43,7 +43,7 @@ export class PhotoViewer extends React.Component {
     }
 
     render() {
-        const sources = this.sources(extract([], this.props.sources));
+        const sources = this.sources(this.props.sources);
         return (
             <div ref={element => this.imagesElement = element} className={cx(this.props.className, "photo-viewer")}>
             {
