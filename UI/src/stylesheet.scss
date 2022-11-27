@@ -109,8 +109,19 @@
     position: relative;
     cursor: pointer;
     display: none;
+    opacity: .4;
+
+    &.set {
+        opacity: 1;
+    }
+
+    &:hover {
+        opacity: 1;
+    }
 
     &.favorite {
+        opacity: 1;
+
         &.set {
             color: yellow;
 
@@ -122,6 +133,11 @@
         &:hover {
             color: yellow;
         }
+    }
+
+    &.expand {
+        display: unset;
+        font-size: unset;
     }
 }
 

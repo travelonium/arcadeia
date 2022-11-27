@@ -1,13 +1,17 @@
 import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Modal from 'react-bootstrap/Modal';
-import { EditableText } from './EditableText';
 import { VideoPlayer } from './VideoPlayer';
 import { PhotoViewer } from './PhotoViewer';
+import { EditableText } from './EditableText';
+import { reset } from '../features/search/slice';
+import { useParams } from "react-router-dom";
 import { extract, clone } from './../utils';
+import { connect } from "react-redux";
 import { Flag } from './Flag';
+import cx from 'classnames';
 
-export class MediaViewer extends Component {
+class MediaViewer extends Component {
 
     static displayName = MediaViewer.name;
 
@@ -18,6 +22,8 @@ export class MediaViewer extends Component {
         this.state = {
             index: -1,
             sources: [],
+            origin: null,
+            expanded: false,
             videoJsOptions: {
                 inactivityTimeout: 5000,
                 aspectRatio: "16:9",
@@ -38,11 +44,17 @@ export class MediaViewer extends Component {
     onShow() {}
 
     onHide() {
+        if (this.state.origin) {
+            this.props.dispatch(reset(this.state.origin));
+            window.history.pushState({path: this.state.origin}, "", this.state.origin);
+        } else {
+            throw Error("No origin has been set on the MediaViewer instance.");
+        }
         this.setState({
             sources: [],
+            origin: null
         }, () => {
             if (this.props.onHide !== undefined) this.props.onHide();
-            window.history.back();
         });
     }
 
@@ -50,22 +62,30 @@ export class MediaViewer extends Component {
         this.toggle("Favorite");
     }
 
+    onToggleExpand(value, event) {
+        this.setState({
+            expanded: value
+        });
+    }
+
     onEditing(editing) {
         this.props.library.current.editing = editing;
     }
 
-    view(sources, index, player = true) {
+    view(sources, index, player = true, history = false, origin = null) {
         let source = sources[index];
+        if (!origin) origin = this.state.origin;
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
-        let params = new URLSearchParams(window.location.search);
-        // if (params.has('query')) params.delete('query');
-        const path = window.location.pathname.match(/.*\//g)[0] + source.name + '?' + params.toString();
-        window.history.replaceState({path: path}, "", path);
         if (player) {
+            const search = origin.split('?')[1];
+            const parent = origin.match(/.*\//g)[0];
+            const path = parent + source.name + '?' + search;
             this.setState({
                 index: index,
                 sources: sources,
+                origin: parent + '?' + search
             }, () => {
+                if (!history) window.history.pushState({path: path}, "", path);
                 if (this.props.onShow !== undefined) {
                     this.props.onShow();
                 }
@@ -152,13 +172,14 @@ export class MediaViewer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <>
-                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size="xl" aria-labelledby="contained-modal-title-vcenter" centered>
-                    <Modal.Header className="flex-row align-items-center me-3" closeButton>
+                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size={this.state.expanded ? "fullscreen" : "xl"} aria-labelledby="contained-modal-title-vcenter" centered>
+                    <Modal.Header className="flex-row align-items-center me-3" closeVariant='white' closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                             <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
                         </Modal.Title>
+                        <Flag name="expand" className="px-2" tooltip={this.state.expanded ? "Shrink" : "Expand"} value={this.state.expanded} set="bi-arrows-angle-contract" unset="bi-arrows-angle-expand" onChange={this.onToggleExpand.bind(this)} />
                     </Modal.Header>
-                    <Modal.Body className="">
+                    <Modal.Body>
                         {this.viewer(source)}
                         <div className="flags px-1 ms-4 mt-4">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
@@ -169,3 +190,14 @@ export class MediaViewer extends Component {
         );
     }
 }
+
+const mapStateToProps = (state) => ({
+    search: {
+        path: state.search.path,
+        query: state.search.query,
+    }
+});
+
+export default connect(mapStateToProps, null, null, { forwardRef: true })(React.forwardRef((props, ref) => (
+    <MediaViewer ref={ref} {...props} match={{ params: useParams() }} />
+)));

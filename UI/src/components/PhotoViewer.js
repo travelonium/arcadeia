@@ -17,13 +17,20 @@ export class PhotoViewer extends React.Component {
     // destroy viewer on unmount
     componentWillUnmount() {
         if (this.viewer) {
-            this.viewer.destroy()
+            this.viewer.destroy();
         }
     }
 
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.sources, prevProps.sources)) {
-            this.viewer.update();
+            // a reload becomes necessary only when the fullPath of one or more sources have changed
+            let reload = prevProps.sources.reduce((previousValue, currentValue, currentIndex) => {
+                if (currentIndex >= this.props.sources.length) return true;
+                return (previousValue | (extract(null, currentValue, "fullPath") !== extract(null, this.props.sources, currentIndex, "fullPath")))
+            }, false)
+            if (reload) {
+                this.viewer.update();
+            }
         }
     }
 
@@ -31,13 +38,17 @@ export class PhotoViewer extends React.Component {
         // console.log(this);
     }
 
+    sources(items) {
+        return items.map((item) => ("/preview/photo/" + item.id + "/" + item.name));
+    }
+
     render() {
-        const sources = extract([], this.props, 'sources').map((item) => ("/preview/photo/" + item.id + "/" + item.name));
+        const sources = this.sources(this.props.sources);
         return (
             <div ref={element => this.imagesElement = element} className={cx(this.props.className, "photo-viewer")}>
             {
                 sources.map((source, index) => {
-                    const description = extract("", source, 'description');
+                    const description = extract("", source, "description");
                     return (
                         <img key={index} id="image" src={source} alt={description} />
                     );

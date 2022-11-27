@@ -1,6 +1,7 @@
 import React from 'react';
 import videojs from 'video.js';
 import vttThumbnails from 'videojs-vtt-thumbnails';
+import { extract } from '../utils';
 import cx from 'classnames';
 import _ from 'lodash';
 
@@ -9,7 +10,7 @@ export class VideoPlayer extends React.Component {
     componentDidMount() {
         // instantiate Video.js
         let options = this.props.options;
-        let sources = this.props.sources.map((item) => ("/preview/video/" + item.id + "/" + item.name));
+        let sources = this.sources(this.props.sources);
         options.sources = sources;
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
         if (this.props.sources.length === 1) {
@@ -24,19 +25,30 @@ export class VideoPlayer extends React.Component {
     // destroy player on unmount
     componentWillUnmount() {
         if (this.player) {
-            this.player.dispose()
+            this.player.dispose();
         }
     }
 
     componentDidUpdate(prevProps) {
         if (!_.isEqual(this.props.sources, prevProps.sources)) {
-            let sources = this.props.sources.map((item) => ("/preview/video/" + item.id + "/" + item.name));
-            this.player.src(sources);
+            // a reload becomes necessary only when the fullPath of one or more sources have changed
+            let reload = prevProps.sources.reduce((previousValue, currentValue, currentIndex) => {
+                if (currentIndex >= this.props.sources.length) return true;
+                return (previousValue | (extract(null, currentValue, "fullPath") !== extract(null, this.props.sources, currentIndex, "fullPath")))
+            }, false)
+            if (reload) {
+                let sources = this.sources(this.props.sources);
+                this.player.src(sources);
+            }
         }
     }
 
     onPlayerReady() {
         // console.log(this);
+    }
+
+    sources(items) {
+        return items.map((item) => ("/preview/video/" + item.id + "/" + item.name));
     }
 
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't create additional wrapper in the DOM
