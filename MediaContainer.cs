@@ -764,15 +764,15 @@ namespace MediaCurator
          // the library.
          if (Created && Deleted) return false;
 
-         // Save the Parent(s) before attending to the child!
-         Parent?.Save();
-
          if (Skipped)
          {
             Logger.LogInformation("{} Skipped: {}", Type, FullPath);
 
             return result;
          }
+
+         // Save the Parent(s) before attending to the child!
+         Parent?.Save();
 
          if (Deleted)
          {
