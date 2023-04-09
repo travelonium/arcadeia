@@ -760,15 +760,14 @@ namespace MediaCurator
       {
          var result = false;
 
-         // This can happen when a container has been loaded that does not exist on either disk or
-         // the library.
+         // This can happen when a container has been loaded that exists neither on the disk nor in the library.
          if (Created && Deleted) return false;
 
          if (Skipped)
          {
             Logger.LogInformation("{} Skipped: {}", Type, FullPath);
 
-            return result;
+            return false;
          }
 
          // Save the Parent(s) before attending to the child!

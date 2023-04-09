@@ -5,8 +5,8 @@ using System.IO;
 
 namespace MediaCurator.Services
 {
-	public class FileSystemMount
-	{
+   public class FileSystemMount
+   {
       #region Fields
 
       public string Types;
@@ -62,7 +62,7 @@ namespace MediaCurator.Services
       #region Constructors
 
       public FileSystemMount(Dictionary<string, string> mount)
-		{
+      {
          Attached = false;
          Types = mount.GetValueOrDefault("Types", null);
          Options = mount.GetValueOrDefault("Options", null);
