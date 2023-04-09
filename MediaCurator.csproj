@@ -20,9 +20,9 @@
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.9" />
     <PackageReference Include="SolrNet" Version="1.1.1" />
     <PackageReference Include="SolrNet.Microsoft.DependencyInjection" Version="1.1.1" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="12.1.0" />
-    <PackageReference Include="Magick.NET.SystemDrawing" Version="6.1.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.9" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.0.1" />
+    <PackageReference Include="Magick.NET.SystemDrawing" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.4" />
   </ItemGroup>
 
   <ItemGroup>
