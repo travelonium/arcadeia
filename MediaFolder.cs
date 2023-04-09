@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using MediaCurator.Services;
 
 namespace MediaCurator
 {
@@ -27,9 +30,19 @@ namespace MediaCurator
 
          if (Skipped) return;
 
+         var fileSystemService = Services.GetService<IFileSystemService>();
+
          if (!Exists())
          {
-            Deleted = true;
+            // Avoid updating or removing the folder if it was located in a network mount that is currently unavailable.
+            if (fileSystemService.Mounts.Any(mount => (FullPath.StartsWith(mount.Folder) && !mount.Available)))
+            {
+               Skipped = true;
+            }
+            else
+            {
+               Deleted = true;
+            }
 
             return;
          }

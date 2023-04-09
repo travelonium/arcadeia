@@ -43,9 +43,9 @@ namespace MediaCurator
          // Instantiate the BackgroundTaskQueue used by the Scanner
          services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 
-         // Start the FileSystem Service in a way that is possible to retrieve later through dependancy injection.
-         services.AddSingleton<FileSystemService>();
-         services.AddHostedService<FileSystemService>(provider => provider.GetRequiredService<FileSystemService>());
+         // Start the FileSystem Service
+         services.AddSingleton<IFileSystemService, FileSystemService>();
+         services.AddHostedService<FileSystemService>(provider => (FileSystemService)provider.GetService<IFileSystemService>());
 
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
