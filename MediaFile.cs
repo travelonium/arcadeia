@@ -1,13 +1,13 @@
 ﻿using System;
 using System.IO;
-using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
-using SolrNet;
-using System.Xml.Linq;
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Linq;
+using MediaCurator.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaCurator
 {
@@ -29,6 +29,21 @@ namespace MediaCurator
             else
             {
                return false;
+            }
+         }
+      }
+
+      public IEnumerable<string> MountFolders
+      {
+         get
+         {
+            if (Configuration.GetSection("Mounts").Exists())
+            {
+               return Configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>().Select(item => item.GetValueOrDefault("Directory", null));
+            }
+            else
+            {
+               return new List<string>();
             }
          }
       }
@@ -171,12 +186,22 @@ namespace MediaCurator
 
          Thumbnails = new(ThumbnailsDatabase, Id);
 
+         var fileSystemService = Services.GetService<IFileSystemService>();
+
          if (!Exists())
          {
-            Deleted = true;
+            // Avoid updating or removing the file if it was located in a network mount that is currently unavailable.
+            if (fileSystemService.Mounts.Any(mount => (FullPath.StartsWith(mount.Folder) && !mount.Available)))
+            {
+               Skipped = true;
+            }
+            else
+            {
+               Deleted = true;
 
-            // Delete the thumbnails belonging to the deleted file.
-            Thumbnails.DeleteAll();
+               // Delete the thumbnails belonging to the deleted file.
+               Thumbnails.DeleteAll();
+            }
 
             return;
          }

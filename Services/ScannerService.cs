@@ -342,6 +342,14 @@ namespace MediaCurator.Services
          var watch = new Stopwatch();
          var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
+         var fileSystemService = _services.GetService<IFileSystemService>();
+         if (fileSystemService.Mounts.Any(mount => (path.StartsWith(mount.Folder) && !mount.Available)))
+         {
+            _logger.LogWarning("{} Scanning Cancelled: {}", type, path);
+
+            return;
+         }
+
          _logger.LogInformation("{} Scanning Started: {}", type, path);
 
          watch.Start();
