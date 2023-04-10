@@ -118,11 +118,78 @@ export class MediaContainer extends Component {
         );
     }
 
+    card(source) {
+        const flags = extract([], source, 'flags');
+        const favorite = flags.includes('Favorite');
+        return (
+            <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
+                <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
+                    <div className="thumbnail-container">
+                        <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
+                        <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
+                        <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
+                        <div className="flags px-1">
+                            <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                        </div>
+                    </div>
+                </OverlayTrigger>
+                <Card.Body className="d-flex flex-column">
+                    <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
+                    <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
+                </Card.Body>
+                <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
+                    <div className="d-flex align-items-center ps-1" style={{flexGrow: 1}}>
+                    {
+                        ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
+                        <i className="bi bi-eye-fill me-1"></i>
+                        <small>{source.views}</small>
+                        </> : <></>
+                    }
+                    </div>
+                    <div className="d-flex align-items-center pe-1">
+                        <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
+                    </div>
+                </div>
+            </Card>
+        )
+    }
+
+    thumbnail(source, size = "large") {
+        const flags = extract([], source, 'flags');
+        const favorite = flags.includes('Favorite');
+        return (
+            <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
+                <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
+                    <div className="thumbnail-container">
+                        <Thumbnail id={source.id} size={size} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
+                        <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
+                        <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
+                        <div className="flags px-1">
+                            <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
+                        </div>
+                    </div>
+                </OverlayTrigger>
+            </Card>
+        );
+    }
+
+    view(source, view) {
+        switch (view) {
+            case "Card":
+                return this.card(source);
+
+            case "Thumbnail":
+                return this.thumbnail(source);
+
+            default:
+                return this.card(source);
+        }
+    }
+
     render() {
         const source = this.state.current;
         const type = extract(null, source, 'type');
-        const flags = extract([], source, 'flags');
-        const favorite = flags.includes('Favorite');
+        const view = extract("Card", this.props, 'view');
         let href = source.fullPath;
         switch (type) {
             case "Photo":
@@ -135,36 +202,10 @@ export class MediaContainer extends Component {
                 break
         }
         return (
-            <a href={href} className={"media-container" + (source.type ? (" " + source.type.toLowerCase()) : "")} onClick={(event) => event.preventDefault()} >
-                <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
-                    <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
-                        <div className="thumbnail-container">
-                            <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
-                            <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
-                            <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
-                            <div className="flags px-1">
-                                <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
-                            </div>
-                        </div>
-                    </OverlayTrigger>
-                    <Card.Body className="d-flex flex-column">
-                        <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
-                        <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
-                    </Card.Body>
-                    <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
-                        <div className="d-flex align-items-center ps-1" style={{flexGrow: 1}}>
-                        {
-                            ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
-                            <i className="bi bi-eye-fill me-1"></i>
-                            <small>{source.views}</small>
-                            </> : <></>
-                        }
-                        </div>
-                        <div className="d-flex align-items-center pe-1">
-                            <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
-                        </div>
-                    </div>
-                </Card>
+            <a href={href} className={cx("media-container" + (source.type ? (" " + source.type.toLowerCase()) : ""), (view.toLowerCase() + "-view"))} onClick={(event) => event.preventDefault()} >
+            {
+                this.view(source, view)
+            }
             </a>
         );
     }

@@ -202,7 +202,7 @@
 
         @media all and (hover: hover) {
             &:hover {
-                transform: translateY(-5px);
+                transform: scale(1.03);
             }
         }
     }
@@ -347,9 +347,14 @@
         }
     }
 
+    &.thumbnail-view {
+        .card {
+            height: unset;
+        }
+    }
+
     &.folder {
         .card {
-
             .card-title,
             .card-text {
                 text-align: center;

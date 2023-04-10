@@ -34,7 +34,7 @@ export class Thumbnail extends Component {
 
     thumbnail(index) {
         if ((index < 0) || (this.props.id === null)) return "/placeholder.png";
-        return "/thumbnails/" + this.props.id + "/" + index + ".jpg";
+        return "/thumbnails/" + this.props.id + "/" + (this.props.size ? this.props.size : index) + ".jpg";
     }
 
     animate() {
