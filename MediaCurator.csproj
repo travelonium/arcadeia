@@ -11,15 +11,12 @@
     <SpaProxyServerUrl>https://localhost:44438</SpaProxyServerUrl>
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!--<MagickCopyNativeMacOS>true</MagickCopyNativeMacOS>-->
-    <!--<MagickCopyNativeWindows>true</MagickCopyNativeWindows>-->
-    <!--<MagickCopyNativeLinuxMusl>true</MagickCopyNativeLinuxMusl>-->
-    <!-- <MagickCopyNativeLinux>true</MagickCopyNativeLinux> -->
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.9" />
     <PackageReference Include="SolrNet" Version="1.1.1" />

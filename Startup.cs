@@ -50,12 +50,6 @@ namespace MediaCurator
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
 
-         // In production, the React files will be served from this directory
-         services.AddSpaStaticFiles(configuration =>
-         {
-            configuration.RootPath = "UI/build";
-         });
-
          // Proxies running on loopback addresses (127.0.0.0/8, [::1]), including the standard localhost
          // address (127.0.0.1), are trusted by default. If other trusted proxies or networks within the
          // organization handle requests between the Internet and the web server, add them to the KnownProxies
@@ -77,13 +71,13 @@ namespace MediaCurator
       {
          if (env.IsDevelopment())
          {
+            app.UseHttpsRedirection();
             app.UseDeveloperExceptionPage();
          }
          else
          {
-            app.UseExceptionHandler("/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
+            app.UseExceptionHandler("/Error");
          }
 
          if (env.IsProduction())
@@ -93,50 +87,17 @@ namespace MediaCurator
                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
          }
-         else
-         {
-            // Disabled the HTTPS as React Scripts would require the development server to use
-            // secure sockets e.g. wss://localhost:3000/ws instead of ws://... and this broke the
-            // auto refresh.
-            // app.UseHttpsRedirection();
-         }
 
          app.UseAuthentication();
          app.UseStaticFiles();
-         app.UseSpaStaticFiles();
-
          app.UseRouting();
-
-         app.UseAuthorization();
 
          app.UseEndpoints(endpoints =>
          {
-            endpoints.MapControllerRoute(
-                   name: "default",
-                   pattern: "{controller}/{action=Index}/{id?}"
-            );
-            endpoints.MapControllerRoute(
-                   name: "library",
-                   pattern: "{controller}/{*path}"
-            );
+            endpoints.MapControllers();
+
+            endpoints.MapFallbackToFile("index.html");
          });
-
-         /*
-          * Removed following the upgrade to .NET 6.0
-          *
-         app.UseSpa(spa =>
-         {
-            spa.Options.SourcePath = "UI";
-
-            if (env.IsDevelopment())
-            {
-               spa.UseReactDevelopmentServer(npmScript: "start");
-
-               // The development server can now be launched manually. Crashes after a while though.
-               // spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
-            }
-         });
-         */
       }
    }
 }
