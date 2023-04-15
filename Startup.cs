@@ -95,21 +95,15 @@ namespace MediaCurator
          }
 
          app.UseAuthentication();
+
          app.UseStaticFiles();
          app.UseSpaStaticFiles();
 
          app.UseRouting();
 
-
          app.UseEndpoints(endpoints =>
          {
             endpoints.MapControllers();
-
-            // This is meant to allow static files to be resolved. The pattern it uses is
-            // "{**path:nonfile}" which would sadly also consider a media file path such as
-            // /Network/folder/file.mp4 a static file and won't redirect it to the index.html
-            // for routing.
-            // endpoints.MapFallbackToFile("index.html");
          });
 
          app.UseSpa(spa =>
