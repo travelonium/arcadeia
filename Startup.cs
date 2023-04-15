@@ -50,6 +50,12 @@ namespace MediaCurator
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
 
+         // In production, the React files will be served from this directory
+         services.AddSpaStaticFiles(configuration =>
+         {
+            configuration.RootPath = "wwwroot";
+         });
+
          // Proxies running on loopback addresses (127.0.0.0/8, [::1]), including the standard localhost
          // address (127.0.0.1), are trusted by default. If other trusted proxies or networks within the
          // organization handle requests between the Internet and the web server, add them to the KnownProxies
@@ -90,13 +96,25 @@ namespace MediaCurator
 
          app.UseAuthentication();
          app.UseStaticFiles();
+         app.UseSpaStaticFiles();
+
          app.UseRouting();
+
 
          app.UseEndpoints(endpoints =>
          {
             endpoints.MapControllers();
 
-            endpoints.MapFallbackToFile("index.html");
+            // This is meant to allow static files to be resolved. The pattern it uses is
+            // "{**path:nonfile}" which would sadly also consider a media file path such as
+            // /Network/folder/file.mp4 a static file and won't redirect it to the index.html
+            // for routing.
+            // endpoints.MapFallbackToFile("index.html");
+         });
+
+         app.UseSpa(spa =>
+         {
+            spa.Options.SourcePath = "UI";
          });
       }
    }
