@@ -9,7 +9,6 @@ import { useParams } from "react-router-dom";
 import { extract, clone } from './../utils';
 import { connect } from "react-redux";
 import { Flag } from './Flag';
-import cx from 'classnames';
 
 class MediaViewer extends Component {
 

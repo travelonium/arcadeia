@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { extract } from '../utils';
 import cx from 'classnames';
 import './UploadZone.scss';
 
@@ -25,7 +24,7 @@ export class UploadZone extends Component {
         // are file(s) being dragged or else?
         if (event.dataTransfer.types) {
             for (var i=0; i<event.dataTransfer.types.length; i++) {
-                if (event.dataTransfer.types[i] == "Files") {
+                if (event.dataTransfer.types[i] === "Files") {
                     dragging = true;
                 }
             }
