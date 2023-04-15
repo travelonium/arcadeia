@@ -15,6 +15,7 @@ export class VideoPlayer extends React.Component {
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
         if (this.props.sources.length === 1) {
             let source = this.props.sources[0];
+            this.player.vttThumbnails = vttThumbnails;
             this.player.vttThumbnails({
                 src: window.location.origin + "/thumbnails/" + source.id + "/sprite.vtt",
                 showTimestamp: false,

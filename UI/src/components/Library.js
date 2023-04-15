@@ -94,7 +94,6 @@ class Library extends Component {
         // ignore the scrollPosition key as its changes shouldn't cause a reload
         let should = (_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
                      (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
-        console.debug("shouldComponentUpdate(" + should + ")");
         return should;
     }
 
