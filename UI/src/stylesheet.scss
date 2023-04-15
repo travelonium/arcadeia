@@ -4,16 +4,53 @@
 @import "~video.js/dist/video-js.css";
 @import "~animate.css/animate.css";
 
+/*
+ * Temporary solution after switching to dart-sass.
+ */
+@import "~bootswatch/dist/darkly/bootstrap.min.css";
 
+.breadcrumb {
+    .breadcrumb-item {
+        a {
+            &:hover {
+                color: rgba(#fff, 0.7);
+            }
+        }
+    }
+}
+
+.media-container {
+    &:hover {
+        .card {
+            border: 1px solid rgba(#fff, 0.125);
+            box-shadow: 0 .125rem .75rem rgba(#fff, 0.050);
+        }
+    }
+}
+
+.editable-text {
+
+    &:hover {
+        -webkit-box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
+        -moz-box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
+        box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
+
+        .underline {
+            background-color: rgba(#000, 0.1);
+        }
+    }
+
+    &.editing {
+
+        .underline {
+            background-color: rgba(#3498db, 1.0);
+        }
+    }
+}
+
+/* Currently not working after switching to dart-sass so the above only uses the darkly theme.
 .light {
     @import "~bootswatch/dist/flatly/bootstrap.min.css";
-
-    /* FIXME: Not working as expected. This is meant to eliminate the need for passing the darkMode.
-    header {
-        .navbar {
-            @extend .bg-primary;
-        }
-    }*/
 
     .media-container {
         &:hover {
@@ -46,14 +83,6 @@
 
 .dark {
     @import "~bootswatch/dist/darkly/bootstrap.min.css";
-
-    /* FIXME: Not working as expected. This is meant to eliminate the need for passing the darkMode.
-    header {
-        .navbar {
-            @extend .bg-dark;
-        }
-    }
-    */
 
     .breadcrumb {
         .breadcrumb-item {
@@ -94,6 +123,7 @@
         }
     }
 }
+*/
 
 @mixin flag-styles {
     -moz-osx-font-smoothing: grayscale;

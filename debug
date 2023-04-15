@@ -9,5 +9,5 @@ docker compose -f docker-compose.yml -f docker-compose-debug.yml build
 if [ $# -eq 0 ]; then
     docker compose -f docker-compose.yml -f docker-compose-debug.yml up
 else
-    docker compose -f docker-compose.yml -f docker-compose-debug.yml start $@
+    docker compose -f docker-compose.yml -f docker-compose-debug.yml up $@
 fi

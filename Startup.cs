@@ -107,13 +107,23 @@ namespace MediaCurator
 
          app.UseRouting();
 
+         app.UseAuthorization();
+
          app.UseEndpoints(endpoints =>
          {
             endpoints.MapControllerRoute(
                    name: "default",
-                   pattern: "{controller}/{action=Index}/{id?}");
+                   pattern: "{controller}/{action=Index}/{id?}"
+            );
+            endpoints.MapControllerRoute(
+                   name: "library",
+                   pattern: "{controller}/{*path}"
+            );
          });
 
+         /*
+          * Removed following the upgrade to .NET 6.0
+          *
          app.UseSpa(spa =>
          {
             spa.Options.SourcePath = "UI";
@@ -126,6 +136,7 @@ namespace MediaCurator
                // spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
             }
          });
+         */
       }
    }
 }

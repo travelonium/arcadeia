@@ -1,18 +1,20 @@
 import App from './App';
 import React from 'react';
-import ReactDOM from 'react-dom';
-import { store, persistor } from './store';
 import { Provider } from 'react-redux';
+import { store, persistor } from './store';
+import { createRoot } from 'react-dom/client';
 import { ToastContainer } from 'react-toastify';
 import { BrowserRouter } from 'react-router-dom';
 import { PersistGate } from 'redux-persist/integration/react';
-import registerServiceWorker from './registerServiceWorker';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import reportWebVitals from './reportWebVitals';
 import './stylesheet.scss';
 
 const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
 const rootElement = document.getElementById('root');
+const root = createRoot(rootElement);
 
-ReactDOM.render(
+root.render(
     <BrowserRouter basename={baseUrl}>
         <Provider store={store}>
             <PersistGate loading={null} persistor={persistor}>
@@ -20,9 +22,15 @@ ReactDOM.render(
             </PersistGate>
         </Provider>
         <ToastContainer position="bottom-right" theme="colored" />
-    </BrowserRouter>,
-    rootElement
+    </BrowserRouter>
 );
 
-registerServiceWorker();
+// If you want your app to work offline and load faster, you can change
+// unregister() to register() below. Note this comes with some pitfalls.
+// Learn more about service workers: https://cra.link/PWA
+serviceWorkerRegistration.unregister();
 
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();

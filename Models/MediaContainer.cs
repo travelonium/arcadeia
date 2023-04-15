@@ -21,7 +21,7 @@ namespace MediaCurator.Models
       public string ParentType { get; set; }
 
       [SolrField("description")]
-      public string Description { get; set; }
+      public string? Description { get; set; }
 
       [SolrField("path")]
       public string Path { get; set; }
@@ -33,10 +33,10 @@ namespace MediaCurator.Models
       public long Size { get; set; }
 
       [SolrField("contentType")]
-      public string ContentType { get; set; }
+      public string? ContentType { get; set; }
 
       [SolrField("extension")]
-      public string Extension { get; set; }
+      public string? Extension { get; set; }
 
       [SolrField("views")]
       public long Views { get; set; }
