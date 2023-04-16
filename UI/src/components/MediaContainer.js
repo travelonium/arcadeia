@@ -154,14 +154,14 @@ export class MediaContainer extends Component {
         )
     }
 
-    thumbnail(source, size = "large") {
+    thumbnail(source) {
         const flags = extract([], source, 'flags');
         const favorite = flags.includes('Favorite');
         return (
             <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                     <div className="thumbnail-container">
-                        <Thumbnail id={source.id} size={size} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
+                        <Thumbnail id={source.id} type={source.type} count={extract(0, this.props, 'source', 'thumbnails')} library={this.props.library} />
                         <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
                         <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
                         <div className="flags px-1">
