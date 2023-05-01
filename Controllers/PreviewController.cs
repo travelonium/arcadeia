@@ -56,6 +56,8 @@ namespace MediaCurator.Controllers
 
          if ((videoFile.Name != name) || (!videoFile.Exists()))
          {
+            videoFile.Skipped = true;
+
             return NotFound();
          }
 
@@ -71,6 +73,8 @@ namespace MediaCurator.Controllers
 
          if ((photoFile.Name != name) || (!photoFile.Exists()))
          {
+            photoFile.Skipped = true;
+
             return NotFound();
          }
 
