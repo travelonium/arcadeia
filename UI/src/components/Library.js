@@ -970,7 +970,7 @@ class Library extends Component {
                                                     this.mediaContainers[index] = React.createRef();
                                                     return (
                                                         <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={"Thumbnail"} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} /*view={"Thumbnail"}*/ source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                                         </div>
                                                     );
                                                 } else {
