@@ -770,10 +770,7 @@ namespace MediaCurator
             return false;
          }
 
-         // Save the Parent(s) before attending to the child!
-         Parent?.Save();
-
-         if (Deleted)
+         if (Deleted && (Children.Count() == 0))
          {
             using IServiceScope scope = Services.CreateScope();
             ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
@@ -785,8 +782,12 @@ namespace MediaCurator
                Logger.LogInformation("{} Removed: {}", Type, FullPath);
             }
 
+            Parent?.Save();
+
             return result;
          }
+
+         Parent?.Save();
 
          if (Created)
          {
