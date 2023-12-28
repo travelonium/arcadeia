@@ -15,13 +15,8 @@ export const uiSlice = createSlice({
     initialState: initialState,
     reducers: {
         setTheme: (state, action) => {
-            if (document.documentElement.classList.contains(state.theme)) {
-                document.documentElement.classList.remove(state.theme);
-            }
             state.theme = action.payload ?? initialState.theme;
-            if (!document.documentElement.classList.contains(state.theme)) {
-                document.documentElement.className += ` ${state.theme}`;
-            }
+            document.documentElement.setAttribute('data-bs-theme', state.theme);
         },
         setScrollPosition: (state, action) => {
             let path = action.payload.path;
