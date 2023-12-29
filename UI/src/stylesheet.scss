@@ -15,20 +15,20 @@
     .media-container {
         &:hover {
             .card {
-                border: 1px solid rgba(#000, 0.125);
-                box-shadow: 0 .125rem .25rem rgba(#000, .075);
+                border: 1px solid rgba($black, 0.125);
+                box-shadow: 0 .125rem .25rem rgba($black, .075);
             }
         }
     }
 
     .editable-text {
         &:hover {
-            -webkit-box-shadow: inset 0px -3px 0px rgba(#000, 0.1);
-            -moz-box-shadow: inset 0px -3px 0px rgba(#000, 0.1);
-            box-shadow: inset 0px -3px 0px rgba(#000, 0.1);
+            -webkit-box-shadow: inset 0px -3px 0px rgba($black, 0.1);
+            -moz-box-shadow: inset 0px -3px 0px rgba($black, 0.1);
+            box-shadow: inset 0px -3px 0px rgba($black, 0.1);
 
             .underline {
-                background-color: rgba(#000, 0.1);
+                background-color: rgba($black, 0.1);
             }
         }
 
@@ -46,7 +46,7 @@
         .breadcrumb-item {
             a {
                 &:hover {
-                    color: rgba(#fff, 0.7);
+                    color: rgba($white, 0.7);
                 }
             }
         }
@@ -55,8 +55,8 @@
     .media-container {
         &:hover {
             .card {
-                border: 1px solid rgba(#fff, 0.125);
-                box-shadow: 0 .125rem .75rem rgba(#fff, 0.050);
+                border: 1px solid rgba($white, 0.125);
+                box-shadow: 0 .125rem .75rem rgba($white, 0.075);
             }
         }
     }
@@ -64,12 +64,12 @@
     .editable-text {
 
         &:hover {
-            -webkit-box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
-            -moz-box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
-            box-shadow: inset 0px -3px 0px rgba(#fff, 0.1);
+            -webkit-box-shadow: inset 0px -3px 0px rgba($white, 0.1);
+            -moz-box-shadow: inset 0px -3px 0px rgba($white, 0.1);
+            box-shadow: inset 0px -3px 0px rgba($white, 0.1);
 
             .underline {
-                background-color: rgba(#000, 0.1);
+                background-color: rgba($black, 0.1);
             }
         }
 
@@ -85,8 +85,7 @@
 @mixin flag-styles {
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
-    text-shadow: 0 0 1px #000;
-    color: white;
+    text-shadow: 0 0 1px $black;
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
@@ -136,7 +135,7 @@
             -moz-osx-font-smoothing: grayscale;
             -webkit-font-smoothing: antialiased;
             text-shadow: none;
-            color: lightgray;
+            // color: lightgray;
             font-style: normal;
             font-variant: normal;
             font-weight: normal;
@@ -159,6 +158,10 @@
         right: 5px;
         position: absolute;
         vertical-align: middle;
+
+        .flag {
+            color: white;
+        }
     }
 
     .flag {
@@ -189,7 +192,7 @@
 
         @media all and (hover: hover) {
             &:hover {
-                transform: scale(1.03);
+                transform: scale(1.015);
             }
         }
     }
@@ -239,6 +242,10 @@
                 right: 5px;
                 position: absolute;
                 vertical-align: middle;
+
+                .flag {
+                    color: white;
+                }
             }
 
             .flag {
