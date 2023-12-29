@@ -187,7 +187,11 @@ class Library extends Component {
      * @param {(source, succeeded) => void} callback The callback function to call with either the updated or unmodified source when the operation is thorough.
      */
     update(source, refresh = true, callback = undefined) {
-        let item = clone(source);
+        let item = clone({
+            // Avoid "One or more validation errors occurred." errors
+            flags: [], // Avoid "The Flags field is required."
+            ...source
+        });
         const index = this.state.items.findIndex(x => x.id === item.id);
         if (index === -1) {
             toast.error("Unable to find the item that was to be updated.");
