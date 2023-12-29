@@ -15,7 +15,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
 .breadcrumb {
     border: 1px solid rgba($secondary, .25);
-    border-radius: 10px;
+    border-radius: var(--bs-border-radius);
 }
 
 @include color-mode(light) {
@@ -344,6 +344,11 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
                 -moz-transition: all .15s ease-out;
                 transition: all .15s ease-out;
             }
+        }
+
+        .card-footer {
+            border-top: none;
+            background-color: unset;
         }
 
         .progress {
