@@ -133,22 +133,24 @@ export class MediaContainer extends Component {
                         </div>
                     </div>
                 </OverlayTrigger>
-                <Card.Body className="d-flex flex-column">
-                    <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
-                    <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
-                </Card.Body>
-                <div className="d-flex flex-row p-1" style={{flexShrink: 0}}>
-                    <div className="d-flex align-items-center ps-1" style={{flexGrow: 1}}>
-                    {
-                        ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
-                        <i className="bi bi-eye-fill me-1"></i>
-                        <small>{source.views}</small>
-                        </> : <></>
-                    }
-                    </div>
-                    <div className="d-flex align-items-center pe-1">
-                        <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
-                    </div>
+                <div className="content-container d-flex flex-column">
+                    <Card.Body className="d-flex flex-column flex-grow-1">
+                        <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
+                        <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
+                    </Card.Body>
+                    <Card.Footer className="d-flex flex-row p-1" style={{flexShrink: 0}}>
+                        <div className="d-flex align-items-center ps-1" style={{flexGrow: 1}}>
+                        {
+                            ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
+                            <i className="bi bi-eye-fill me-1"></i>
+                            <small>{source.views}</small>
+                            </> : <></>
+                        }
+                        </div>
+                        <div className="d-flex align-items-center pe-1">
+                            <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
+                        </div>
+                    </Card.Footer>
                 </div>
             </Card>
         )
