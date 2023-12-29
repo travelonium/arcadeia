@@ -6,16 +6,24 @@
 
 // Your variable overrides can go here, e.g.:
 // $h1-font-size: 3rem;
+$dropdown-link-active-bg: transparent;
+$dropdown-link-active-color: var(--bs-dropdown-color);
 
 @import "~bootswatch/dist/spacelab/variables";
 @import "~bootstrap/scss/bootstrap";
 @import "~bootswatch/dist/spacelab/bootswatch";
 
+.breadcrumb {
+    border: 1px solid rgba($secondary, .25);
+    border-radius: 10px;
+}
+
 @include color-mode(light) {
+
     .media-container {
         &:hover {
             .card {
-                border: 1px solid rgba($black, 0.125);
+                border: 1px solid rgba($black, 0.25);
                 box-shadow: 0 .125rem .25rem rgba($black, .075);
             }
         }
@@ -55,7 +63,7 @@
     .media-container {
         &:hover {
             .card {
-                border: 1px solid rgba($white, 0.125);
+                border: 1px solid rgba($white, 0.25);
                 box-shadow: 0 .125rem .75rem rgba($white, 0.075);
             }
         }
@@ -438,8 +446,8 @@
         min-width: 13rem;
 
         .dropdown-item {
-            &.active:not(:hover) {
-                background-color: inherit;
+            &.active:hover {
+                background-color: var(--bs-dropdown-link-hover-bg);
             }
         }
     }
