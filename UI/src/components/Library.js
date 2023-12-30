@@ -912,6 +912,45 @@ class Library extends Component {
         );
     }
 
+    gridView() {
+        return (
+            <AutoSizer>
+            {({ height, width }) => {
+                let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
+                let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
+                let columnCount = Math.ceil(size / 400);
+                let rowHeight = (width / columnCount);
+                let columnWidth = width / columnCount;
+                let rowCount = Math.ceil(this.state.items.length / columnCount);
+                return (
+                    <UploadZone onUpload={this.upload.bind(this)}>
+                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
+                        {
+                            ({ columnIndex, rowIndex, style }) => {
+                                let index = (rowIndex * columnCount) + columnIndex;
+                                let source = this.state.items[index];
+                                if (source !== undefined) {
+                                    this.mediaContainers[index] = React.createRef();
+                                    return (
+                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
+                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={this.props.ui.view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                        </div>
+                                    );
+                                } else {
+                                    return (
+                                        <div style={style}></div>
+                                    );
+                                }
+                            }
+                        }
+                        </Grid>
+                    </UploadZone>
+                )}
+            }
+            </AutoSizer>
+        );
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
@@ -955,40 +994,7 @@ class Library extends Component {
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                        <AutoSizer>
-                            {({ height, width }) => {
-                                let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
-                                let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
-                                let columnCount = Math.ceil(size / 400);
-                                let rowHeight = (width / columnCount);
-                                let columnWidth = width / columnCount;
-                                let rowCount = Math.ceil(this.state.items.length / columnCount);
-                                return (
-                                    <UploadZone onUpload={this.upload.bind(this)}>
-                                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
-                                        {
-                                            ({ columnIndex, rowIndex, style }) => {
-                                                let index = (rowIndex * columnCount) + columnIndex;
-                                                let source = this.state.items[index];
-                                                if (source !== undefined) {
-                                                    this.mediaContainers[index] = React.createRef();
-                                                    return (
-                                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} /*view={"Thumbnail"}*/ source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
-                                                        </div>
-                                                    );
-                                                } else {
-                                                    return (
-                                                        <div style={style}></div>
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        </Grid>
-                                    </UploadZone>
-                                )}
-                            }
-                        </AutoSizer>
+                        { this.gridView() }
                         <Container fluid className="scroll-to-top animate__animated animate__faster position-absolute d-flex justify-content-center pe-none pb-5">
                             <Button ref={this.scrollToTopButton} className="animate__animated animate__fast px-3" variant="info" onClick={this.onScrollToTop.bind(this)}>
                                 <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
@@ -1022,6 +1028,7 @@ class Library extends Component {
 
 const mapStateToProps = (state) => ({
     ui: {
+        view: state.ui.view,
         theme: state.ui.theme,
         scrollPosition: state.ui.scrollPosition,
         uploads: state.ui.uploads,

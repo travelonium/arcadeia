@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
+    view: "card",
     theme: "light",
     scrollPosition: {},
     uploads: {
@@ -14,6 +15,9 @@ export const uiSlice = createSlice({
     name: 'ui',
     initialState: initialState,
     reducers: {
+        setView: (state, action) => {
+            state.view = action.payload ?? initialState.view;
+        },
         setTheme: (state, action) => {
             state.theme = action.payload ?? initialState.theme;
             document.documentElement.setAttribute('data-bs-theme', state.theme);
@@ -45,5 +49,5 @@ export const uiSlice = createSlice({
 });
 
 const { actions, reducer } = uiSlice;
-export const { setTheme, setScrollPosition, setSimultaneousUploads } = actions;
+export const { setView, setTheme, setScrollPosition, setSimultaneousUploads } = actions;
 export default reducer;

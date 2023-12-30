@@ -12,6 +12,9 @@ import cx from 'classnames';
 export class MediaContainer extends Component {
 
     static displayName = MediaContainer.name;
+    static defaultProps = {
+        view: "card",
+    }
 
     constructor(props) {
         super(props);
@@ -171,16 +174,19 @@ export class MediaContainer extends Component {
                         </div>
                     </div>
                 </OverlayTrigger>
+                <Card.ImgOverlay className="content-container flex-column">
+                    <EditableText name="Name" className="card-title h5 name text-overflow-ellipsis" row={1} value={source.name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
+                </Card.ImgOverlay>
             </Card>
         );
     }
 
     view(source, view) {
         switch (view) {
-            case "Card":
+            case "card":
                 return this.card(source);
 
-            case "Thumbnail":
+            case "thumbnail":
                 return this.thumbnail(source);
 
             default:
@@ -190,8 +196,8 @@ export class MediaContainer extends Component {
 
     render() {
         const source = this.state.current;
+        const view = this.props.view.toLowerCase();
         const type = extract(null, source, 'type');
-        const view = extract("Card", this.props, 'view');
         let href = source.fullPath;
         switch (type) {
             case "Photo":

@@ -302,13 +302,12 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
             bottom: 0px;
             position: absolute;
             overflow: hidden;
+            transition: all .15s ease-in-out;
         }
 
         .card-img {
             width: 100%;
             height: 100%;
-            border-bottom-left-radius: 0%;
-            border-bottom-right-radius: 0%;
         }
 
         .card-body {
@@ -361,9 +360,51 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
         }
     }
 
-    &.thumbnail-view {
+    &.card-view {
         .card {
-            height: unset;
+            .card-img {
+                border-bottom-left-radius: 0%;
+                border-bottom-right-radius: 0%;
+            }
+        }
+    }
+
+    &.thumbnail-view {
+
+        &.photo, &.video, &.audio {
+            .card {
+                .content-container {
+                    color: $white;
+                    background-color: rgba($black, .3);
+                }
+            }
+        }
+
+        .card {
+            // non-touch devices supporting a real hover effect
+            @media all and (hover: hover) {
+
+                &:not(:hover) {
+                    .content-container {
+                        opacity: 0.0;
+                    }
+                }
+            }
+
+            .thumbnail-container {
+                height: 100%;
+
+                .card-img {
+                    object-fit: cover;
+                }
+            }
+
+            .content-container {
+                top: 70%;
+                padding-bottom: 2em;
+                border-top-left-radius: 0%;
+                border-top-right-radius: 0%;
+            }
         }
     }
 
@@ -559,4 +600,9 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
         margin-bottom: 30px;
         border: 2px solid;
     }
+}
+
+.react-photo-album {
+    height: 100vw;
+    overflow: auto;
 }
