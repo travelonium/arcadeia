@@ -373,6 +373,16 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
         &.photo, &.video, &.audio {
             .card {
+                // non-touch devices supporting a real hover effect
+                @media all and (hover: hover) {
+
+                    &:not(:hover) {
+                        .content-container {
+                            opacity: 0.0;
+                        }
+                    }
+                }
+
                 .content-container {
                     color: $white;
                     background-color: rgba($black, .3);
@@ -381,16 +391,6 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
         }
 
         .card {
-            // non-touch devices supporting a real hover effect
-            @media all and (hover: hover) {
-
-                &:not(:hover) {
-                    .content-container {
-                        opacity: 0.0;
-                    }
-                }
-            }
-
             .thumbnail-container {
                 height: 100%;
 
