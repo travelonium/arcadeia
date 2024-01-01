@@ -192,7 +192,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 
     .grid-item {
-        padding: 0.25rem;
+        padding: 0.5rem;
         -webkit-transition: all .15s ease-out;
         -moz-transition: all .15s ease-out;
         transition: all .15s ease-out;
@@ -402,20 +402,11 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     &.thumbnail-view {
 
         .card {
-            // non-touch devices supporting a real hover effect
-            @media all and (hover: hover) {
-
-                &:not(:hover) {
-                    .content-container {
-                        opacity: 0.0;
-                    }
-                }
-            }
-
             .thumbnail-container {
                 .thumbnail {
                     .card-img {
                         position: absolute;
+                        transition: all .15s ease-in-out;
                     }
 
                     .card-img:nth-child(2) {
@@ -435,6 +426,38 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
             .content-container {
                 color: $white;
                 background-color: rgba($black, .3);
+            }
+
+            // non-touch devices supporting a real hover effect
+            @media all and (hover: hover) {
+
+                &:not(:hover) {
+                    .content-container {
+                        opacity: 0.0;
+                    }
+                }
+
+                &:hover {
+                    .thumbnail-container {
+                        .thumbnail {
+                            .card-img {
+                                position: absolute;
+                            }
+
+                            .card-img:nth-child(2) {
+                                transform: rotate(0deg);
+                            }
+
+                            .card-img:nth-child(3) {
+                                transform: rotate(-2deg);
+                            }
+
+                            .card-img:nth-child(4) {
+                                transform: rotate(2deg);
+                            }
+                        }
+                    }
+                }
             }
         }
 
