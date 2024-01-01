@@ -9,7 +9,6 @@ import { useParams } from "react-router-dom";
 import { extract, clone } from './../utils';
 import { connect } from "react-redux";
 import { Flag } from './Flag';
-import cx from 'classnames';
 
 class MediaViewer extends Component {
 
@@ -41,7 +40,17 @@ class MediaViewer extends Component {
         };
     }
 
-    onShow() {}
+    onShow() {
+        const expanded = this.state.expanded;
+        const source = extract(null, this.state.sources, this.state.index);
+        if (source.type === "Photo") {
+            if (expanded) this.photoViewer.current.viewer.full();
+            else this.photoViewer.current.viewer.exit();
+        } else {
+            if (expanded) this.videoPlayer.current.player.fill(true);
+            else this.videoPlayer.current.player.aspectRatio(this.state.videoJsOptions.aspectRatio);
+        }
+    }
 
     onHide() {
         if (this.state.origin) {
@@ -63,9 +72,18 @@ class MediaViewer extends Component {
     }
 
     onToggleExpand(value, event) {
-        this.setState({
-            expanded: value
-        });
+        const source = extract(null, this.state.sources, this.state.index);
+        if (source.type === "Photo") {
+            if (value) this.photoViewer.current.viewer.full();
+            else this.photoViewer.current.viewer.exit();
+        } else {
+            this.setState({
+                expanded: value
+            }, () => {
+                if (value) this.videoPlayer.current.player.fill(true);
+                else this.videoPlayer.current.player.aspectRatio(this.state.videoJsOptions.aspectRatio);
+            });
+        }
     }
 
     onEditing(editing) {
@@ -173,7 +191,7 @@ class MediaViewer extends Component {
         return (
             <>
                 <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size={this.state.expanded ? "fullscreen" : "xl"} aria-labelledby="contained-modal-title-vcenter" centered>
-                    <Modal.Header className="flex-row align-items-center me-3" closeVariant='white' closeButton>
+                    <Modal.Header className="flex-row align-items-center me-3" closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                             <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />
                         </Modal.Title>

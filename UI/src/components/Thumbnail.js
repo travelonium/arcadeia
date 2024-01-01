@@ -1,7 +1,7 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import ProgressBar from 'react-bootstrap/ProgressBar';
-
+import { extract } from './../utils';
 
 export class Thumbnail extends Component {
 
@@ -13,13 +13,20 @@ export class Thumbnail extends Component {
         this.state = {
             index: -1,
             loaded: true,
+            id: extract(null, this.props, 'source', 'id'),
+            type: extract(null, this.props, 'source', 'type'),
+            count: extract(0, this.props, 'source', 'thumbnails'),
+            children: extract([], this.props, 'source', 'children').reduce((previous, item) => {
+                if ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) previous.push(item.id);
+                return previous;
+            }, []),
         };
     }
 
     componentDidMount() {
-        if ((this.animateInterval == null) && (this.props.id != null) && (this.props.count > 0)) {
+        if ((this.animateInterval == null) && (this.state.id != null) && (this.state.count > 0)) {
             this.animate();
-            if (this.props.count > 1) {
+            if (this.state.count > 1) {
                 this.animateInterval = setInterval(() => this.animate(), 500);
             }
         }
@@ -32,16 +39,16 @@ export class Thumbnail extends Component {
         }
     }
 
-    thumbnail(index) {
-        if ((index < 0) || (this.props.id === null)) return "/placeholder.png";
-        return "/thumbnails/" + this.props.id + "/" + index + ".jpg";
+    thumbnail(id, index) {
+        if ((index < 0) || (id === null)) return "/placeholder.png";
+        return "/thumbnails/" + id + "/" + (this.props.size ? this.props.size : index) + ".jpg";
     }
 
     animate() {
         let index = this.state.index;
-        if (((!this.props.library.current.viewing) || (index === -1)) && (this.props.count > 0) && (this.state.loaded)) {
+        if (((!this.props.library.current.viewing) || (index === -1)) && (this.state.count > 0) && (this.state.loaded)) {
             this.setState({
-                index: (index < (this.props.count - 1)) ? ++index : 0,
+                index: (index < (this.state.count - 1)) ? ++index : 0,
                 loaded: false,
             });
         }
@@ -51,10 +58,13 @@ export class Thumbnail extends Component {
         return (
             <div className="thumbnail d-flex">
                 <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
-                    { (this.props.type === "Folder") ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
+                    { ((this.state.type === "Folder") && (this.state.children.length === 0)) ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
                 </div>
-                <Card.Img src={this.thumbnail(this.state.index)} onLoad={() => this.setState({ loaded: true })} />
-                { (this.props.count > 1) ? <ProgressBar variant="info" min={1} max={(this.props.id != null) ? this.props.count : 0} now={this.state.index + 1} className={((this.props.id != null) && (this.props.count)) ? "visible" : "invisible"} /> : <></> }
+                {
+                    ((this.state.type === "Folder") && (this.state.children.length > 0)) ? this.state.children.map((id, index) => <Card.Img key={index} src={this.thumbnail(id, 0)} />)
+                    : <Card.Img src={this.thumbnail(this.state.id, this.state.index)} onLoad={() => this.setState({ loaded: true })} />
+                }
+                { (this.state.count > 1) ? <ProgressBar variant="info" min={1} max={(this.state.id != null) ? this.state.count : 0} now={this.state.index + 1} className={((this.state.id != null) && (this.state.count)) ? "visible" : "invisible"} /> : <></> }
             </div>
         );
     }

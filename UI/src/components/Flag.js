@@ -7,6 +7,10 @@ import cx from 'classnames';
 export class Flag extends Component {
 
     static displayName = Flag.name;
+    static defaultProps = {
+        true: true,
+        false: false
+    }
 
     constructor(props) {
         super(props);
@@ -24,12 +28,12 @@ export class Flag extends Component {
         event.stopPropagation();
         event.persist();
         if (this.props.onChange) {
-            this.props.onChange(!this.props.value, event);
+            this.props.onChange((this.props.value === this.props.true) ? this.props.false : this.props.true, event);
         }
     }
 
     render() {
-        let icon = this.props.value ? this.props.set : this.props.unset;
+        let icon = (this.props.value === this.props.true) ? this.props.set : this.props.unset;
         return (
             <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                 (this.props.tooltip) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
@@ -37,9 +41,9 @@ export class Flag extends Component {
                 {
                     (this.props.button) ?
                     <Button className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" onClick={this.onToggle.bind(this)}>
-                        <i className={cx("flag bi", icon, this.props.name, (this.props.value ? "set" : ""))}></i>
+                        <i className={cx("flag bi", icon, this.props.name, ((this.props.value === this.props.true) ? "set" : ""))}></i>
                     </Button> :
-                    <i className={cx(this.props.className, "flag bi", icon, this.props.name, (this.props.value ? "set" : ""))} onClick={this.onToggle.bind(this)}></i>
+                    <i className={cx(this.props.className, "flag bi", icon, this.props.name, ((this.props.value === this.props.true) ? "set" : ""))} onClick={this.onToggle.bind(this)}></i>
                 }
             </OverlayTrigger>
         );

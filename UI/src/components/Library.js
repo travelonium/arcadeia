@@ -94,7 +94,6 @@ class Library extends Component {
         // ignore the scrollPosition key as its changes shouldn't cause a reload
         let should = (_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
                      (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
-        console.debug("shouldComponentUpdate(" + should + ")");
         return should;
     }
 
@@ -126,6 +125,7 @@ class Library extends Component {
                 }
             });
         } else {
+            // eslint-disable-next-line
             this.state.items = items;
             this.mediaContainers[index].current.set(source, (_) => {
                 if (callback !== undefined) {
@@ -187,7 +187,11 @@ class Library extends Component {
      * @param {(source, succeeded) => void} callback The callback function to call with either the updated or unmodified source when the operation is thorough.
      */
     update(source, refresh = true, callback = undefined) {
-        let item = clone(source);
+        let item = clone({
+            // Avoid "One or more validation errors occurred." errors
+            flags: [], // Avoid "The Flags field is required."
+            ...source
+        });
         const index = this.state.items.findIndex(x => x.id === item.id);
         if (index === -1) {
             toast.error("Unable to find the item that was to be updated.");
@@ -268,11 +272,17 @@ class Library extends Component {
             fq: [],
             rows: rows,
             start: start,
+            fl: "*,children:[subquery]",
             "q.op": "AND",
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
             wt: "json",
             sort: this.sort(this.props.search.sort.fields, this.props.search.sort.direction),
+            children: {
+                q: "{!terms f=parent v=$row.id}",
+                fq: ["-type:Folder", "-type:Drive", "-type:Server"],
+                rows: 3,
+            }
         };
         if (favorite) {
             input.fq.push("flags:Favorite");
@@ -332,7 +342,10 @@ class Library extends Component {
             })
             .then((result) => {
                 const numFound = extract(0, result, "response", "numFound");
-                const docs = extract([], result, "response", "docs");
+                const docs = extract([], result, "response", "docs").map((doc) => {
+                    doc.children = extract([], doc, "children", "docs");
+                    return doc;
+                });
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
                 this.setState({
@@ -444,11 +457,11 @@ class Library extends Component {
         if (files) {
             let queued = [];
             files.forEach(file => {
-                if (!file.type && file.size % 4096 == 0) {
+                if (!file.type && file.size % 4096 === 0) {
                     // it's a folder, ignore it for now
                 } else {
                     // it's a file, queue the file object and its destination path if not already queued or active
-                    if (!this.state.uploads.active.hasOwnProperty(file.name) && (this.state.uploads.queued.findIndex(x => x.file.name == file.name) === -1)) {
+                    if (!this.state.uploads.active.hasOwnProperty(file.name) && (this.state.uploads.queued.findIndex(x => x.file.name === file.name) === -1)) {
                         queued.push({
                             file: file,
                             path: this.props.search.path
@@ -680,16 +693,26 @@ class Library extends Component {
         return (count === 0) ? '' : (count + ((count === 1) ? " File" : " Files"));
     }
 
-    querify(dictionary, query = new URLSearchParams()) {
+    querify(dictionary, parentKey = '', query = new URLSearchParams()) {
         for (const key in dictionary) {
             const value = dictionary[key];
-            if ((value === null) || (value === undefined)) continue;
-            if (Array.isArray(value)) {
+            // Skip null or undefined values
+            if (value === null || value === undefined) continue;
+
+            // Construct a new key for nested dictionaries
+            const newKey = parentKey ? `${parentKey}.${key}` : key;
+
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                // Recursively handle nested objects
+                this.querify(value, newKey, query);
+            } else if (Array.isArray(value)) {
+                // Handle arrays
                 for (const item of value) {
-                    query.append(key, item);
+                    query.append(newKey, item);
                 }
             } else {
-                query.set(key, value);
+                // Handle single values
+                query.set(newKey, value);
             }
         }
         return query;
@@ -908,6 +931,45 @@ class Library extends Component {
         );
     }
 
+    gridView() {
+        return (
+            <AutoSizer>
+            {({ height, width }) => {
+                let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
+                let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
+                let columnCount = Math.ceil(size / 400);
+                let rowHeight = (width / columnCount);
+                let columnWidth = width / columnCount;
+                let rowCount = Math.ceil(this.state.items.length / columnCount);
+                return (
+                    <UploadZone onUpload={this.upload.bind(this)}>
+                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
+                        {
+                            ({ columnIndex, rowIndex, style }) => {
+                                let index = (rowIndex * columnCount) + columnIndex;
+                                let source = this.state.items[index];
+                                if (source !== undefined) {
+                                    this.mediaContainers[index] = React.createRef();
+                                    return (
+                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
+                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={this.props.ui.view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                        </div>
+                                    );
+                                } else {
+                                    return (
+                                        <div style={style}></div>
+                                    );
+                                }
+                            }
+                        }
+                        </Grid>
+                    </UploadZone>
+                )}
+            }
+            </AutoSizer>
+        );
+    }
+
     render() {
         let location = "/";
         let url = "Library".concat(this.props.search.path);
@@ -951,40 +1013,7 @@ class Library extends Component {
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                        <AutoSizer>
-                            {({ height, width }) => {
-                                let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
-                                let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
-                                let columnCount = Math.ceil(size / 400);
-                                let rowHeight = (width / columnCount);
-                                let columnWidth = width / columnCount;
-                                let rowCount = Math.ceil(this.state.items.length / columnCount);
-                                return (
-                                    <UploadZone onUpload={this.upload.bind(this)}>
-                                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
-                                        {
-                                            ({ columnIndex, rowIndex, style }) => {
-                                                let index = (rowIndex * columnCount) + columnIndex;
-                                                let source = this.state.items[index];
-                                                if (source !== undefined) {
-                                                    this.mediaContainers[index] = React.createRef();
-                                                    return (
-                                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
-                                                        </div>
-                                                    );
-                                                } else {
-                                                    return (
-                                                        <div style={style}></div>
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        </Grid>
-                                    </UploadZone>
-                                )}
-                            }
-                        </AutoSizer>
+                        { this.gridView() }
                         <Container fluid className="scroll-to-top animate__animated animate__faster position-absolute d-flex justify-content-center pe-none pb-5">
                             <Button ref={this.scrollToTopButton} className="animate__animated animate__fast px-3" variant="info" onClick={this.onScrollToTop.bind(this)}>
                                 <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
@@ -1018,6 +1047,7 @@ class Library extends Component {
 
 const mapStateToProps = (state) => ({
     ui: {
+        view: state.ui.view,
         theme: state.ui.theme,
         scrollPosition: state.ui.scrollPosition,
         uploads: state.ui.uploads,

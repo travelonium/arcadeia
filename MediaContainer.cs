@@ -461,6 +461,7 @@ namespace MediaCurator
             if (value.ParentType == null)
             {
                // This must be the MediaLibrary itself.
+               Name ??= MediaContainerType.Library.ToString();
             }
             else if (Parent == null)
             {
@@ -763,6 +764,9 @@ namespace MediaCurator
          // This can happen when a container has been loaded that exists neither on the disk nor in the library.
          if (Created && Deleted) return false;
 
+         // No MediaContainer should be processed having its Name field set to null.
+         if (String.IsNullOrEmpty(Name)) Skipped = true;
+
          if (Skipped)
          {
             Logger.LogInformation("{} Skipped: {}", Type, FullPath);
@@ -770,10 +774,7 @@ namespace MediaCurator
             return false;
          }
 
-         // Save the Parent(s) before attending to the child!
-         Parent?.Save();
-
-         if (Deleted)
+         if (Deleted && (!Children.Any()))
          {
             using IServiceScope scope = Services.CreateScope();
             ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
@@ -785,8 +786,12 @@ namespace MediaCurator
                Logger.LogInformation("{} Removed: {}", Type, FullPath);
             }
 
+            Parent?.Save();
+
             return result;
          }
+
+         Parent?.Save();
 
          if (Created)
          {

@@ -1,13 +1,17 @@
 ARG VERSION=6.0
+ARG NODEJS_VERSION=20
 ARG DISTRO=bullseye-slim
 
 FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
+ARG NODEJS_VERSION
 WORKDIR /root/
 COPY ./ ./
 RUN set -eux; \
     apt-get update; \
     apt-get -y install curl gnupg build-essential python; \
-    curl -fsSL https://deb.nodesource.com/setup_14.x | bash -; \
+    curl -sLo /tmp/nsolid_setup_deb.sh https://deb.nodesource.com/nsolid_setup_deb.sh; \
+    chmod 500 /tmp/nsolid_setup_deb.sh; \
+    /tmp/nsolid_setup_deb.sh ${NODEJS_VERSION}; \
     apt-get -y install nodejs; \
     node --version; \
     npm version; \
