@@ -40,7 +40,17 @@ class MediaViewer extends Component {
         };
     }
 
-    onShow() {}
+    onShow() {
+        const expanded = this.state.expanded;
+        const source = extract(null, this.state.sources, this.state.index);
+        if (source.type === "Photo") {
+            if (expanded) this.photoViewer.current.viewer.full();
+            else this.photoViewer.current.viewer.exit();
+        } else {
+            if (expanded) this.videoPlayer.current.player.fill(true);
+            else this.videoPlayer.current.player.aspectRatio(this.state.videoJsOptions.aspectRatio);
+        }
+    }
 
     onHide() {
         if (this.state.origin) {
