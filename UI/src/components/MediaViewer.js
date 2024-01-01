@@ -62,9 +62,18 @@ class MediaViewer extends Component {
     }
 
     onToggleExpand(value, event) {
-        this.setState({
-            expanded: value
-        });
+        const source = extract(null, this.state.sources, this.state.index);
+        if (source.type === "Photo") {
+            if (value) this.photoViewer.current.viewer.full();
+            else this.photoViewer.current.viewer.exit();
+        } else {
+            this.setState({
+                expanded: value
+            }, () => {
+                if (value) this.videoPlayer.current.player.fill(true);
+                else this.videoPlayer.current.player.aspectRatio(this.state.videoJsOptions.aspectRatio);
+            });
+        }
     }
 
     onEditing(editing) {

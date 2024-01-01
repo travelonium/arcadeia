@@ -696,10 +696,14 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     --toastify-toast-width: 450px;
 }
 
-.video-js {
-    .vjs-vtt-thumbnail-display {
-        transition: opacity .2s;
-        margin-bottom: 30px;
-        border: 2px solid;
+.video-player {
+    height: 100%;
+
+    .video-js {
+        .vjs-vtt-thumbnail-display {
+            transition: opacity .2s;
+            margin-bottom: 30px;
+            border: 2px solid;
+        }
     }
 }
