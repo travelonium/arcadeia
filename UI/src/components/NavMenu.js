@@ -76,7 +76,10 @@ class NavMenu extends Component {
 
     onSortChange(value) {
         clearTimeout(this.searchTimeout);
-        this.props.dispatch(setSort(value));
+        this.props.dispatch(setSort({
+            path: this.props.search.path,
+            ...value
+        }));
     }
 
     toggleNavbar() {
@@ -86,6 +89,9 @@ class NavMenu extends Component {
     }
 
     render() {
+        const path = this.props.search.path;
+        const sort = this.props.search.sort[path] ?? this.props.search.sort;
+        const overridden = (path in this.props.search.sort);
         return (
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"} className="mb-3 p-2">
@@ -102,7 +108,7 @@ class NavMenu extends Component {
                         <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
-                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" value={this.props.search.sort} onChange={this.onSortChange.bind(this)} />
+                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} />
                                     <ViewDropdown className="me-1" name="view" tooltip="View" value={this.props.ui.view} onChange={this.onViewChange.bind(this)} />
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.props.search.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />

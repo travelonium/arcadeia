@@ -267,6 +267,7 @@ class Library extends Component {
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
         }
+        const sort = this.props.search.sort[this.props.search.path] ?? this.props.search.sort;
         const input = {
             q: query,
             fq: [],
@@ -277,7 +278,7 @@ class Library extends Component {
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
             wt: "json",
-            sort: this.sort(this.props.search.sort.fields, this.props.search.sort.direction),
+            sort: this.sort(sort.fields, sort.direction),
             children: {
                 q: "{!terms f=parent v=$row.id}",
                 fq: ["-type:Folder", "-type:Drive", "-type:Server"],

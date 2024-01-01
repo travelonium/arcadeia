@@ -47,6 +47,15 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
             }
         }
     }
+
+    .sort-dropdown {
+
+        &.overridden {
+            button {
+                color: black;
+            }
+        }
+    }
 }
 
 @include color-mode(dark) {
@@ -85,6 +94,15 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
             .underline {
                 background-color: rgba(#3498db, 1.0);
+            }
+        }
+    }
+
+    .sort-dropdown {
+
+        &.overridden {
+            button {
+                color: white;
             }
         }
     }

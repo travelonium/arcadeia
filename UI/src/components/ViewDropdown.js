@@ -1,5 +1,4 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { ReactSortable } from "react-sortablejs";
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import React, { Component } from 'react';
@@ -35,16 +34,6 @@ export class ViewDropdown extends Component {
         }
         if (this.props.onChange && !_.isEqual(this.props.value, value)) {
             this.props.onChange(value, event);
-        }
-    }
-
-    onSetList(newState) {
-        if (this.props.onChange && !_.isEqual(this.props.value, newState)) {
-            let value = clone({
-                ...this.props.value,
-                fields: newState
-            });
-            this.props.onChange(value);
         }
     }
 

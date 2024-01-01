@@ -39,14 +39,20 @@ export const searchSlice = createSlice({
             state.recursive = action.payload;
         },
         setSort: (state, action) => {
+            const path = action.payload?.path;
             state.sort.fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
             state.sort.direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
+            if (path) {
+                state.sort[path] = {};
+                state.sort[path].fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
+                state.sort[path].direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
+            }
         },
         setSortFields: (state, action) => {
             state.sort.fields = action.payload ? action.payload : initialState.sort.fields;
         },
         setSortDirection: (state, action) => {
-            state.direction = action.payload ? action.payload : initialState.sort.direction;
+            state.sort.direction = action.payload ? action.payload : initialState.sort.direction;
         },
         reset: (state, action) => {
             let path = action.payload?.split('?')[0];
