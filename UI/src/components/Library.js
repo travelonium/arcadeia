@@ -272,11 +272,17 @@ class Library extends Component {
             fq: [],
             rows: rows,
             start: start,
+            fl: "*,children:[subquery]",
             "q.op": "AND",
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
             wt: "json",
             sort: this.sort(this.props.search.sort.fields, this.props.search.sort.direction),
+            children: {
+                q: "{!terms f=parent v=$row.id}",
+                fq: ["-type:Folder", "-type:Drive", "-type:Server"],
+                rows: 3,
+            }
         };
         if (favorite) {
             input.fq.push("flags:Favorite");
@@ -336,7 +342,10 @@ class Library extends Component {
             })
             .then((result) => {
                 const numFound = extract(0, result, "response", "numFound");
-                const docs = extract([], result, "response", "docs");
+                const docs = extract([], result, "response", "docs").map((doc) => {
+                    doc.children = extract([], doc, "children", "docs");
+                    return doc;
+                });
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
                 this.setState({
@@ -684,16 +693,26 @@ class Library extends Component {
         return (count === 0) ? '' : (count + ((count === 1) ? " File" : " Files"));
     }
 
-    querify(dictionary, query = new URLSearchParams()) {
+    querify(dictionary, parentKey = '', query = new URLSearchParams()) {
         for (const key in dictionary) {
             const value = dictionary[key];
-            if ((value === null) || (value === undefined)) continue;
-            if (Array.isArray(value)) {
+            // Skip null or undefined values
+            if (value === null || value === undefined) continue;
+
+            // Construct a new key for nested dictionaries
+            const newKey = parentKey ? `${parentKey}.${key}` : key;
+
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                // Recursively handle nested objects
+                this.querify(value, newKey, query);
+            } else if (Array.isArray(value)) {
+                // Handle arrays
                 for (const item of value) {
-                    query.append(key, item);
+                    query.append(newKey, item);
                 }
             } else {
-                query.set(key, value);
+                // Handle single values
+                query.set(newKey, value);
             }
         }
         return query;
