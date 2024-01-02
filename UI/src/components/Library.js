@@ -282,7 +282,7 @@ class Library extends Component {
             children: {
                 q: "{!terms f=parent v=$row.id}",
                 fq: ["-type:Folder", "-type:Drive", "-type:Server"],
-                sort: "views asc, dateAdded desc, name desc",
+                sort: "views desc, dateAdded asc, name asc",
                 rows: 3,
             }
         };
