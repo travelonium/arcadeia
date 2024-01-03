@@ -16,7 +16,7 @@ export class Thumbnail extends Component {
             id: extract(null, this.props, 'source', 'id'),
             type: extract(null, this.props, 'source', 'type'),
             count: extract(0, this.props, 'source', 'thumbnails'),
-            children: extract([], this.props, 'source', 'children').reduce((previous, item) => {
+            children: extract([], this.props, 'source', 'children').reverse().reduce((previous, item) => {
                 if ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) previous.push(item.id);
                 return previous;
             }, []),
@@ -61,7 +61,7 @@ export class Thumbnail extends Component {
                     { ((this.state.type === "Folder") && (this.state.children.length === 0)) ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
                 </div>
                 {
-                    ((this.state.type === "Folder") && (this.state.children.length > 0)) ? this.state.children.reverse().map((id, index) => <Card.Img key={index} src={this.thumbnail(id, 0)} />)
+                    ((this.state.type === "Folder") && (this.state.children.length > 0)) ? this.state.children.map((id, index) => <Card.Img key={index} src={this.thumbnail(id, 0)} />)
                     : <Card.Img src={this.thumbnail(this.state.id, this.state.index)} onLoad={() => this.setState({ loaded: true })} />
                 }
                 { (this.state.count > 1) ? <ProgressBar variant="info" min={1} max={(this.state.id != null) ? this.state.count : 0} now={this.state.index + 1} className={((this.state.id != null) && (this.state.count)) ? "visible" : "invisible"} /> : <></> }
