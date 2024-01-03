@@ -111,10 +111,14 @@ class MediaViewer extends Component {
         } else {
             switch (source.type) {
                 case "Photo":
-                    window.open("/preview/photo/" + source.id + "/" + source.name, "_blank");
+                    // The old approach is no longer working in Firefox as it tries to download the file. Can be used later for a download button.
+                    // window.open("/preview/photo/" + source.id + "/" + source.name, "_blank");
+                    window.open(source.fullPath, "_blank");
                     break;
                 case "Video":
-                    window.open("/preview/video/" + source.id + "/" + source.name, "_blank");
+                    // The old approach is no longer working in Firefox as it tries to download the file. Can be used later for a download button.
+                    // window.open("/preview/video/" + source.id + "/" + source.name, "_blank");
+                    window.open(source.fullPath, "_blank");
                     break;
                 default:
                     break;
