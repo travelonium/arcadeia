@@ -122,10 +122,10 @@ namespace MediaCurator.Controllers
          return Content(videoFile.GenerateVideoOnDemandPlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8);
       }
 
-      // GET: /<controller>/stream/{id}/{index}.ts"
+      // GET: /<controller>/stream/{id}/{sequence}.ts"
       [HttpGet]
-      [Route("stream/{id}/{index}.ts")]
-      public IActionResult Segment(string id, int index)
+      [Route("stream/{id}/{sequence}.ts")]
+      public IActionResult Segment(string id, int sequence)
       {
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
@@ -136,7 +136,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateVideoOnDemandSegment(index, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
+         return File(videoFile.GenerateVideoOnDemandSegment(sequence, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
       }
    }
 }

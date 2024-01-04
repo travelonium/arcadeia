@@ -333,7 +333,7 @@ namespace MediaCurator
                   if (!nullColums.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
-               if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+               if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
                byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
@@ -390,9 +390,9 @@ namespace MediaCurator
          return total;
       }
 
-      public string GenerateVideoOnDemandPlaylist(int duration)
+      public string GenerateVideoOnDemandPlaylist(int segment)
       {
-         double segment = (double)duration;
+         double interval = (double)segment;
          var content = new StringBuilder();
 
          content.AppendLine("#EXTM3U");
@@ -402,9 +402,9 @@ namespace MediaCurator
          content.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
          content.AppendLine("#EXT-X-INDEPENDENT-SEGMENTS");
 
-         for (double index = 0; (index * segment) < Duration; index++)
+         for (double index = 0; (index * interval) < Duration; index++)
          {
-            content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * segment)) > segment) ? segment : ((Duration - (index * segment)))));
+            content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
             content.AppendLine(String.Format("{0:00000}.ts", index));
          }
 
@@ -413,7 +413,7 @@ namespace MediaCurator
          return content.ToString();
       }
 
-      public byte[] GenerateVideoOnDemandSegment(int index, int duration)
+      public byte[] GenerateVideoOnDemandSegment(int sequence, int duration)
       {
          byte[] output = Array.Empty<byte>();
          int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
@@ -433,12 +433,12 @@ namespace MediaCurator
          {
             ffmpeg.StartInfo.FileName = executable;
 
-            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", index * duration);
+            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", sequence * duration);
             ffmpeg.StartInfo.Arguments += String.Format("-y -t {0} ", duration);
             ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
             ffmpeg.StartInfo.Arguments += String.Format("-c:v libx264 -c:a aac ");
             ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 1 -break_non_keyframes 1 -map 0 ", duration);
-            ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", index * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
             ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0}", format);
 
             Logger.LogDebug(String.Format("{0} {1}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments));
