@@ -12,6 +12,8 @@ using ImageMagick;
 using System.Reflection.Metadata;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using System.Linq;
+using SolrNet;
+using System.Text;
 
 namespace MediaCurator
 {
@@ -386,6 +388,97 @@ namespace MediaCurator
          }
 
          return total;
+      }
+
+      public string GenerateVideoOnDemandPlaylist(int duration)
+      {
+         double segment = (double)duration;
+         var content = new StringBuilder();
+
+         content.AppendLine("#EXTM3U");
+         content.AppendLine("#EXT-X-VERSION:6");
+         content.AppendLine(String.Format("#EXT-X-TARGETDURATION:{0}", segment));
+         content.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
+         content.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
+         content.AppendLine("#EXT-X-INDEPENDENT-SEGMENTS");
+
+         for (double index = 0; (index * segment) < Duration; index++)
+         {
+            content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * segment)) > segment) ? segment : ((Duration - (index * segment)))));
+            content.AppendLine(String.Format("{0:00000}.ts", index));
+         }
+
+         content.AppendLine("#EXT-X-ENDLIST");
+
+         return content.ToString();
+      }
+
+      public byte[] GenerateVideoOnDemandSegment(int index, int duration)
+      {
+         byte[] output = Array.Empty<byte>();
+         int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
+         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
+         DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
+         string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");
+
+         int waitInterval = 100;
+         int totalWaitTime = 0;
+
+         if (!File.Exists(executable))
+         {
+            throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
+         }
+
+         using (Process ffmpeg = new())
+         {
+            ffmpeg.StartInfo.FileName = executable;
+
+            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", index * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-y -t {0} ", duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
+            ffmpeg.StartInfo.Arguments += String.Format("-c:v libx264 -c:a aac ");
+            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 1 -break_non_keyframes 1 -map 0 ", duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", index * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0}", format);
+
+            Logger.LogDebug(String.Format("{0} {1}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments));
+
+            ffmpeg.StartInfo.CreateNoWindow = true;
+            ffmpeg.StartInfo.UseShellExecute = false;
+            ffmpeg.StartInfo.RedirectStandardError = true;
+            ffmpeg.StartInfo.RedirectStandardOutput = true;
+
+            ffmpeg.Start();
+
+            do
+            {
+               Thread.Sleep(waitInterval);
+               totalWaitTime += waitInterval;
+            }
+            while ((!ffmpeg.HasExited) && (totalWaitTime < timeout));
+
+            if (ffmpeg.HasExited)
+            {
+               string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");
+
+               if (!File.Exists(filename))
+               {
+                  throw new FileNotFoundException("Unable to find the generated segment: " + filename);
+               }
+
+               output = File.ReadAllBytes(filename);
+            }
+            else
+            {
+               // It's been too long. Kill it!
+               ffmpeg.Kill();
+            }
+         }
+
+         // Remove the temporary directory and all its contents.
+         temp.Delete(true);
+
+         return output;
       }
 
       #endregion // Video File Operations

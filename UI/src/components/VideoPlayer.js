@@ -49,7 +49,20 @@ export class VideoPlayer extends React.Component {
     }
 
     sources(items) {
-        return items.map((item) => ("/preview/video/" + item.id + "/" + item.name));
+        return items.map((item) => {
+            switch (item.extension) {
+                case "wmv":
+                case "flv":
+                case "mov":
+                case "avi":
+                case "asf":
+                case "vob":
+                case "mkv":
+                    return "/preview/stream/" + item.id + "/stream.m3u8";
+                default:
+                    return "/preview/video/" + item.id + "/" + item.name;
+            }
+        });
     }
 
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't create additional wrapper in the DOM

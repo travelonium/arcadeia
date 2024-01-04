@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
+using ImageMagick;
+using System.Diagnostics;
+using System.Reflection.Metadata;
+using System.Text;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -17,6 +21,16 @@ namespace MediaCurator.Controllers
       private readonly IConfiguration _configuration;
       private readonly ILogger<MediaContainer> _logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
+
+      #region Constants
+
+      private Lazy<int> StreamingSegmentsDuration => new(() =>
+      {
+         var section = _configuration.GetSection("Streaming:Segments");
+         return section.GetValue<int>("Duration");
+      });
+
+      #endregion // Constants
 
       public PreviewController(ILogger<MediaContainer> logger,
                                IServiceProvider services,
@@ -87,6 +101,42 @@ namespace MediaCurator.Controllers
             ".png" or ".bmp" or ".tiff" or ".tga" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Png), "image/png"),
             _ => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Jpeg), "image/jpeg"),
          };
+      }
+
+      // GET: /<controller>/stream/{id}/{resolution}.m3u8"
+      [HttpGet]
+      [Route("stream/{id}/{resolution}.m3u8")]
+      public IActionResult Stream(string id, string resolution)
+      {
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         videoFile.Views += 1;
+
+         if (!videoFile.Exists())
+         {
+            videoFile.Skipped = true;
+
+            return NotFound();
+         }
+
+         return Content(videoFile.GenerateVideoOnDemandPlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8);
+      }
+
+      // GET: /<controller>/stream/{id}/{index}.ts"
+      [HttpGet]
+      [Route("stream/{id}/{index}.ts")]
+      public IActionResult Segment(string id, int index)
+      {
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         if (!videoFile.Exists())
+         {
+            videoFile.Skipped = true;
+
+            return NotFound();
+         }
+
+         return File(videoFile.GenerateVideoOnDemandSegment(index, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
       }
    }
 }
