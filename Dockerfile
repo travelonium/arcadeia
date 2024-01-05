@@ -21,9 +21,14 @@ RUN set -eux; \
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND noninteractive
 ARG VERSION
+RUN dpkg --print-architecture;
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y iputils-ping net-tools ffmpeg sqlite3 cifs-utils nfs-common; \
+    apt-get install -y iputils-ping net-tools curl xz-utils sqlite3 cifs-utils nfs-common; \
+    curl -SL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$(dpkg --print-architecture)-static.tar.xz" -o /tmp/ffmpeg-release.tar.xz; \
+    tar -xvf /tmp/ffmpeg-release.tar.xz -C /tmp/; \
+    cd /tmp/$(ls -l /tmp/ | grep ^d | grep 'ffmpeg-' | awk '{print $9}' | head -n 1); \
+    cp ffmpeg ffprobe qt-faststart /usr/bin/; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -p /Network /Uploads; \
     dpkg -l; \
