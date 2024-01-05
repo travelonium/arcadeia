@@ -434,12 +434,13 @@ namespace MediaCurator
             ffmpeg.StartInfo.FileName = executable;
 
             ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", sequence * duration);
-            ffmpeg.StartInfo.Arguments += String.Format("-y -t {0} ", duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-t {0} ", duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-copyts ");
             ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
-            ffmpeg.StartInfo.Arguments += String.Format("-c:v libx264 -c:a aac ");
-            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 1 -break_non_keyframes 1 -map 0 ", duration);
-            ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
-            ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0}", format);
+            ffmpeg.StartInfo.Arguments += String.Format("-map 0 -c:v libx264 -c:a aac ");
+            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 0 -break_non_keyframes 1 ", duration);
+            // ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0} -y", format);
 
             Logger.LogDebug(String.Format("{0} {1}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments));
 
@@ -457,25 +458,24 @@ namespace MediaCurator
             }
             while ((!ffmpeg.HasExited) && (totalWaitTime < timeout));
 
-            if (ffmpeg.HasExited)
+            if (!ffmpeg.HasExited || (ffmpeg.ExitCode != 0))
             {
-               string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");
+               if (!ffmpeg.HasExited) ffmpeg.Kill();
 
-               if (!File.Exists(filename))
-               {
-                  throw new FileNotFoundException("Unable to find the generated segment: " + filename);
-               }
-
-               output = File.ReadAllBytes(filename);
+               throw new Exception(String.Format("Segment generation failed: {0} {1}\n{2}",
+                  ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments, ffmpeg.StandardError.ReadToEnd()));
             }
-            else
+
+            string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");
+
+            if (!File.Exists(filename))
             {
-               // It's been too long. Kill it!
-               ffmpeg.Kill();
+               throw new FileNotFoundException("Unable to find the generated segment: " + filename);
             }
+
+            output = File.ReadAllBytes(filename);
          }
 
-         // Remove the temporary directory and all its contents.
          temp.Delete(true);
 
          return output;
