@@ -120,12 +120,34 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value, quality), "application/x-mpegURL", Encoding.UTF8);
+         return quality.ToLower() switch
+         {
+            "master" => Content(videoFile.GeneratePlaylist(), "application/x-mpegURL", Encoding.UTF8),
+            "240p" or "240" or "360p" or "360" or "480p" or "480" or "720p" or "720" or "1080p" or "1080" or "4k" or "2160" or "2160p" => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value, quality), "application/x-mpegURL", Encoding.UTF8),
+            _ => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8),
+         };
       }
 
       // GET: /<controller>/video/{id}/{sequence}.ts
       [HttpGet]
-      [Route("video/{id}/{quality}-{sequence}.ts")]
+      [Route("video/{id}/{sequence}.ts")]
+      public IActionResult Segment(string id, int sequence)
+      {
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         if (!videoFile.Exists())
+         {
+            videoFile.Skipped = true;
+
+            return NotFound();
+         }
+
+         return File(videoFile.GenerateSegment("", sequence, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
+      }
+
+      // GET: /<controller>/video/{id}/{quality}/{sequence}.ts
+      [HttpGet]
+      [Route("video/{id}/{quality}/{sequence}.ts")]
       public IActionResult Segment(string id, string quality, int sequence)
       {
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);

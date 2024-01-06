@@ -390,7 +390,53 @@ namespace MediaCurator
          return total;
       }
 
-      public string GeneratePlaylist(int segment, string quality)
+      public string GeneratePlaylist()
+      {
+         var content = new StringBuilder();
+
+         content.AppendLine("#EXTM3U");
+         content.AppendLine("#EXT-X-VERSION:7");
+
+         if (Resolution.Height >= 2160)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=45132170,RESOLUTION={0}x2160,CODECS=\"avc1.640033,mp4a.40.2\"", (long)((Resolution.Width * 2160) / Resolution.Height)));
+            content.AppendLine("2160.m3u8\n");
+         }
+
+         if (Resolution.Height >= 1080)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=6132170,RESOLUTION={0}x1080,CODECS=\"avc1.640028,mp4a.40.2\"", (long)((Resolution.Width * 1080) / Resolution.Height)));
+            content.AppendLine("1080.m3u8\n");
+         }
+
+         if (Resolution.Height >= 720)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=4132170,RESOLUTION={0}x720,CODECS=\"avc1.64001f,mp4a.40.2\"", (long)((Resolution.Width * 720) / Resolution.Height)));
+            content.AppendLine("720.m3u8\n");
+         }
+
+         if (Resolution.Height >= 480)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=2132170,RESOLUTION={0}x480,CODECS=\"avc1.64001e,mp4a.40.2\"", (long)((Resolution.Width * 480) / Resolution.Height)));
+            content.AppendLine("480.m3u8\n");
+         }
+
+         if (Resolution.Height >= 360)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=1132170,RESOLUTION={0}x360,CODECS=\"avc1.640015,mp4a.40.2\"", (long)((Resolution.Width * 360) / Resolution.Height)));
+            content.AppendLine("360.m3u8\n");
+         }
+
+         if (Resolution.Height >= 240)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=829647,RESOLUTION={0}x240,CODECS=\"avc1.64000d,mp4a.40.2\"", (long)((Resolution.Width * 240) / Resolution.Height)));
+            content.AppendLine("240.m3u8\n");
+         }
+
+         return content.ToString();
+      }
+
+      public string GeneratePlaylist(int segment, string quality = "")
       {
          double interval = (double)segment;
          var content = new StringBuilder();
@@ -405,7 +451,8 @@ namespace MediaCurator
          for (double index = 0; (index * interval) < Duration; index++)
          {
             content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
-            content.AppendLine(String.Format("{0}-{1:00000}.ts", quality, index));
+            if (!String.IsNullOrEmpty(quality)) content.AppendLine(String.Format("{0}/{1:00000}.ts", quality, index));
+            else content.AppendLine(String.Format("{0:00000}.ts", index));
          }
 
          content.AppendLine("#EXT-X-ENDLIST");
@@ -464,6 +511,7 @@ namespace MediaCurator
                   ffmpeg.StartInfo.Arguments += String.Format(template, 1080, 6000, 6000, 12000);
                   break;
                case "4k":
+               case "2160p":
                case "2160":
                   ffmpeg.StartInfo.Arguments += String.Format(template, 2160, 45000, 45000, 90000);
                   break;

@@ -1,6 +1,7 @@
 import React from 'react';
 import videojs from 'video.js';
 import vttThumbnails from 'videojs-vtt-thumbnails';
+import hlsQualitySelector from "videojs-hls-quality-selector";
 import { extract } from '../utils';
 import cx from 'classnames';
 import _ from 'lodash';
@@ -12,13 +13,19 @@ export class VideoPlayer extends React.Component {
         let options = this.props.options;
         let sources = this.sources(this.props.sources);
         options.sources = sources;
+        videojs.registerPlugin("vttThumbnails", vttThumbnails);
+        videojs.registerPlugin("hlsQualitySelector", hlsQualitySelector);
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
+        this.player.on('loadstart', this.onPlayerLoadStart.bind(this));
+        this.player.on('loadeddata', this.onPlayerLoadedData.bind(this));
         if (this.props.sources.length === 1) {
             let source = this.props.sources[0];
-            this.player.vttThumbnails = vttThumbnails;
             this.player.vttThumbnails({
                 src: window.location.origin + "/thumbnails/" + source.id + "/sprite.vtt",
                 showTimestamp: false,
+            });
+            this.player.hlsQualitySelector({
+                displayCurrentQuality: true,
             });
         }
     }
@@ -44,9 +51,14 @@ export class VideoPlayer extends React.Component {
         }
     }
 
-    onPlayerReady() {
-        // console.log(this);
+    onPlayerReady() {}
+
+    onPlayerLoadStart() {
+        if (typeof this.player.hlsQualitySelector.bindPlayerEvents === 'function') this.player.hlsQualitySelector.bindPlayerEvents();
+        if (typeof this.player.hlsQualitySelector.createQualityButton === 'function') this.player.hlsQualitySelector.createQualityButton();
     }
+
+    onPlayerLoadedData() {}
 
     sources(items) {
         return items.map((item) => {
@@ -58,7 +70,7 @@ export class VideoPlayer extends React.Component {
                 case "asf":
                 case "vob":
                 case "mkv":
-                    return "/preview/video/" + item.id + "/4k.m3u8";
+                    return "/preview/video/" + item.id + "/master.m3u8";
                 default:
                     return "/preview/video/" + item.id + "/" + item.name;
             }
