@@ -390,7 +390,7 @@ namespace MediaCurator
          return total;
       }
 
-      public string GenerateVideoOnDemandPlaylist(int segment)
+      public string GeneratePlaylist(int segment, string quality)
       {
          double interval = (double)segment;
          var content = new StringBuilder();
@@ -405,7 +405,7 @@ namespace MediaCurator
          for (double index = 0; (index * interval) < Duration; index++)
          {
             content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
-            content.AppendLine(String.Format("{0:00000}.ts", index));
+            content.AppendLine(String.Format("{0}-{1:00000}.ts", quality, index));
          }
 
          content.AppendLine("#EXT-X-ENDLIST");
@@ -413,7 +413,7 @@ namespace MediaCurator
          return content.ToString();
       }
 
-      public byte[] GenerateVideoOnDemandSegment(int sequence, int duration)
+      public byte[] GenerateSegment(string quality, int sequence, int duration)
       {
          byte[] output = Array.Empty<byte>();
          int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
@@ -438,6 +438,37 @@ namespace MediaCurator
             ffmpeg.StartInfo.Arguments += String.Format("-copyts ");
             ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
             ffmpeg.StartInfo.Arguments += String.Format("-map 0 -c:v libx264 -c:a aac ");
+
+            string template = "-vf scale=-1:{0} -b:v {1}k -maxrate {2}k -bufsize {3}k -b:a 128k ";
+
+            switch (quality)
+            {
+               case "240p":
+               case "240":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 240, 700, 700, 1400);
+                  break;
+               case "360p":
+               case "360":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 360, 1000, 1000, 2000);
+                  break;
+               case "480p":
+               case "480":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 480, 2000, 2000, 4000);
+                  break;
+               case "720p":
+               case "720":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 720, 4000, 4000, 8000);
+                  break;
+               case "1080p":
+               case "1080":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 1080, 6000, 6000, 12000);
+                  break;
+               case "4k":
+               case "2160":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 2160, 45000, 45000, 90000);
+                  break;
+            }
+
             ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 0 -break_non_keyframes 1 ", duration);
             // ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
             ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0} -y", format);

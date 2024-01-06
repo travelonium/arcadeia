@@ -104,10 +104,10 @@ namespace MediaCurator.Controllers
          };
       }
 
-      // GET: /<controller>/video/{id}/{resolution}.m3u8
+      // GET: /<controller>/video/{id}/{quality}.m3u8
       [HttpGet]
-      [Route("video/{id}/{resolution}.m3u8")]
-      public IActionResult Stream(string id, string resolution)
+      [Route("video/{id}/{quality}.m3u8")]
+      public IActionResult Stream(string id, string quality)
       {
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
@@ -120,13 +120,13 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return Content(videoFile.GenerateVideoOnDemandPlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8);
+         return Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value, quality), "application/x-mpegURL", Encoding.UTF8);
       }
 
       // GET: /<controller>/video/{id}/{sequence}.ts
       [HttpGet]
-      [Route("video/{id}/{sequence}.ts")]
-      public IActionResult Segment(string id, int sequence)
+      [Route("video/{id}/{quality}-{sequence}.ts")]
+      public IActionResult Segment(string id, string quality, int sequence)
       {
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
@@ -137,7 +137,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateVideoOnDemandSegment(sequence, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegment(quality, sequence, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
       }
    }
 }
