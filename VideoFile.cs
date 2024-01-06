@@ -399,37 +399,37 @@ namespace MediaCurator
 
          if (Resolution.Height >= 2160)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=45132170,RESOLUTION={0}x2160,CODECS=\"avc1.640033,mp4a.40.2\"", (long)((Resolution.Width * 2160) / Resolution.Height)));
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=45000000,RESOLUTION={0}x2160,CODECS=\"avc1.640033,mp4a.40.2\"", (long)((Resolution.Width * 2160) / Resolution.Height)));
             content.AppendLine("2160.m3u8\n");
          }
 
          if (Resolution.Height >= 1080)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=6132170,RESOLUTION={0}x1080,CODECS=\"avc1.640028,mp4a.40.2\"", (long)((Resolution.Width * 1080) / Resolution.Height)));
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION={0}x1080,CODECS=\"avc1.640028,mp4a.40.2\"", (long)((Resolution.Width * 1080) / Resolution.Height)));
             content.AppendLine("1080.m3u8\n");
          }
 
          if (Resolution.Height >= 720)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=4132170,RESOLUTION={0}x720,CODECS=\"avc1.64001f,mp4a.40.2\"", (long)((Resolution.Width * 720) / Resolution.Height)));
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION={0}x720,CODECS=\"avc1.64001f,mp4a.40.2\"", (long)((Resolution.Width * 720) / Resolution.Height)));
             content.AppendLine("720.m3u8\n");
          }
 
          if (Resolution.Height >= 480)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=2132170,RESOLUTION={0}x480,CODECS=\"avc1.64001e,mp4a.40.2\"", (long)((Resolution.Width * 480) / Resolution.Height)));
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION={0}x480,CODECS=\"avc1.64001e,mp4a.40.2\"", (long)((Resolution.Width * 480) / Resolution.Height)));
             content.AppendLine("480.m3u8\n");
          }
 
          if (Resolution.Height >= 360)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=1132170,RESOLUTION={0}x360,CODECS=\"avc1.640015,mp4a.40.2\"", (long)((Resolution.Width * 360) / Resolution.Height)));
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION={0}x360,CODECS=\"avc1.640015,mp4a.40.2\"", (long)((Resolution.Width * 360) / Resolution.Height)));
             content.AppendLine("360.m3u8\n");
          }
 
          if (Resolution.Height >= 240)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=829647,RESOLUTION={0}x240,CODECS=\"avc1.64000d,mp4a.40.2\"", (long)((Resolution.Width * 240) / Resolution.Height)));
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=700000,RESOLUTION={0}x240,CODECS=\"avc1.64000d,mp4a.40.2\"", (long)((Resolution.Width * 240) / Resolution.Height)));
             content.AppendLine("240.m3u8\n");
          }
 
