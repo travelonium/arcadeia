@@ -58,7 +58,7 @@ export class VideoPlayer extends React.Component {
                 case "asf":
                 case "vob":
                 case "mkv":
-                    return "/preview/stream/" + item.id + "/stream.m3u8";
+                    return "/preview/video/" + item.id + "/1080.m3u8";
                 default:
                     return "/preview/video/" + item.id + "/" + item.name;
             }

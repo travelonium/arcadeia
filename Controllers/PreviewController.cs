@@ -7,6 +7,7 @@ using ImageMagick;
 using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Text;
+using System.Xml.Linq;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -103,9 +104,9 @@ namespace MediaCurator.Controllers
          };
       }
 
-      // GET: /<controller>/stream/{id}/{resolution}.m3u8"
+      // GET: /<controller>/video/{id}/{resolution}.m3u8
       [HttpGet]
-      [Route("stream/{id}/{resolution}.m3u8")]
+      [Route("video/{id}/{resolution}.m3u8")]
       public IActionResult Stream(string id, string resolution)
       {
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
@@ -122,9 +123,9 @@ namespace MediaCurator.Controllers
          return Content(videoFile.GenerateVideoOnDemandPlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8);
       }
 
-      // GET: /<controller>/stream/{id}/{sequence}.ts"
+      // GET: /<controller>/video/{id}/{sequence}.ts
       [HttpGet]
-      [Route("stream/{id}/{sequence}.ts")]
+      [Route("video/{id}/{sequence}.ts")]
       public IActionResult Segment(string id, int sequence)
       {
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
