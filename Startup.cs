@@ -56,6 +56,16 @@ namespace MediaCurator
             configuration.RootPath = "wwwroot";
          });
 
+         // Required Session components
+         services.AddDistributedMemoryCache();
+         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+         services.AddSession(options =>
+         {
+            options.IdleTimeout = TimeSpan.FromSeconds(10);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+         });
+
          // Proxies running on loopback addresses (127.0.0.0/8, [::1]), including the standard localhost
          // address (127.0.0.1), are trusted by default. If other trusted proxies or networks within the
          // organization handle requests between the Internet and the web server, add them to the KnownProxies
@@ -100,6 +110,8 @@ namespace MediaCurator
          app.UseSpaStaticFiles();
 
          app.UseRouting();
+
+         app.UseSession();
 
          app.UseEndpoints(endpoints =>
          {

@@ -1,8 +1,7 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
+using System.Text;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -17,18 +16,31 @@ namespace MediaCurator.Controllers
       private readonly IConfiguration _configuration;
       private readonly ILogger<MediaContainer> _logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
+      private readonly IHttpContextAccessor _httpContextAccessor;
+
+      #region Constants
+
+      private Lazy<int> StreamingSegmentsDuration => new(() =>
+      {
+         var section = _configuration.GetSection("Streaming:Segments");
+         return section.GetValue<int>("Duration");
+      });
+
+      #endregion // Constants
 
       public PreviewController(ILogger<MediaContainer> logger,
                                IServiceProvider services,
                                IConfiguration configuration,
                                IThumbnailsDatabase thumbnailsDatabase,
-                               IMediaLibrary mediaLibrary)
+                               IMediaLibrary mediaLibrary,
+                               IHttpContextAccessor httpContextAccessor)
       {
          _logger = logger;
          _services = services;
          _mediaLibrary = mediaLibrary;
          _configuration = configuration;
          _thumbnailsDatabase = thumbnailsDatabase;
+         _httpContextAccessor = httpContextAccessor;
       }
 
       // GET: /<controller>/video/{id}/{name}
@@ -87,6 +99,64 @@ namespace MediaCurator.Controllers
             ".png" or ".bmp" or ".tiff" or ".tga" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Png), "image/png"),
             _ => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Jpeg), "image/jpeg"),
          };
+      }
+
+      // GET: /<controller>/video/{id}/{quality}.m3u8
+      [HttpGet]
+      [Route("video/{id}/{quality}.m3u8")]
+      public IActionResult Stream(string id, string quality)
+      {
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         videoFile.Views += 1;
+
+         if (!videoFile.Exists())
+         {
+            videoFile.Skipped = true;
+
+            return NotFound();
+         }
+
+         return quality.ToLower() switch
+         {
+            "master" => Content(videoFile.GeneratePlaylist(), "application/x-mpegURL", Encoding.UTF8),
+            "240p" or "240" or "360p" or "360" or "480p" or "480" or "720p" or "720" or "1080p" or "1080" or "4k" or "2160" or "2160p" => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value, quality), "application/x-mpegURL", Encoding.UTF8),
+            _ => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8),
+         };
+      }
+
+      // GET: /<controller>/video/{id}/{sequence}.ts
+      [HttpGet]
+      [Route("video/{id}/{sequence}.ts")]
+      public IActionResult Segment(string id, int sequence)
+      {
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         if (!videoFile.Exists())
+         {
+            videoFile.Skipped = true;
+
+            return NotFound();
+         }
+
+         return File(videoFile.GenerateSegments("", sequence, StreamingSegmentsDuration.Value, 1), "application/x-mpegURL", true);
+      }
+
+      // GET: /<controller>/video/{id}/{quality}/{sequence}.ts
+      [HttpGet]
+      [Route("video/{id}/{quality}/{sequence}.ts")]
+      public IActionResult Segment(string id, string quality, int sequence)
+      {
+         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         if (!videoFile.Exists())
+         {
+            videoFile.Skipped = true;
+
+            return NotFound();
+         }
+
+         return File(videoFile.GenerateSegments(quality, sequence, StreamingSegmentsDuration.Value, 1), "application/x-mpegURL", true);
       }
    }
 }

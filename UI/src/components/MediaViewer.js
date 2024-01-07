@@ -29,6 +29,12 @@ class MediaViewer extends Component {
                 responsive: true,
                 autoplay: true,
                 controls: true,
+                controlBar: {
+                    skipButtons: {
+                        backward:30,
+                        forward: 30
+                    }
+                },
             },
             viewerJsOptions: {
                 inline: true,

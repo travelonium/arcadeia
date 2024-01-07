@@ -12,6 +12,8 @@ using ImageMagick;
 using System.Reflection.Metadata;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using System.Linq;
+using SolrNet;
+using System.Text;
 
 namespace MediaCurator
 {
@@ -331,7 +333,7 @@ namespace MediaCurator
                   if (!nullColums.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
-               if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+               if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
                byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
@@ -386,6 +388,187 @@ namespace MediaCurator
          }
 
          return total;
+      }
+
+      public string GeneratePlaylist()
+      {
+         var content = new StringBuilder();
+
+         content.AppendLine("#EXTM3U");
+         content.AppendLine("#EXT-X-VERSION:7");
+
+         if (Resolution.Height >= 2160)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=45000000,RESOLUTION={0}x2160,CODECS=\"avc1.640033,mp4a.40.2\"", (long)((Resolution.Width * 2160) / Resolution.Height)));
+            content.AppendLine("2160.m3u8\n");
+         }
+
+         if (Resolution.Height >= 1080)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION={0}x1080,CODECS=\"avc1.640028,mp4a.40.2\"", (long)((Resolution.Width * 1080) / Resolution.Height)));
+            content.AppendLine("1080.m3u8\n");
+         }
+
+         if (Resolution.Height >= 720)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION={0}x720,CODECS=\"avc1.64001f,mp4a.40.2\"", (long)((Resolution.Width * 720) / Resolution.Height)));
+            content.AppendLine("720.m3u8\n");
+         }
+
+         if (Resolution.Height >= 480)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION={0}x480,CODECS=\"avc1.64001e,mp4a.40.2\"", (long)((Resolution.Width * 480) / Resolution.Height)));
+            content.AppendLine("480.m3u8\n");
+         }
+
+         if (Resolution.Height >= 360)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION={0}x360,CODECS=\"avc1.640015,mp4a.40.2\"", (long)((Resolution.Width * 360) / Resolution.Height)));
+            content.AppendLine("360.m3u8\n");
+         }
+
+         if (Resolution.Height >= 240)
+         {
+            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=700000,RESOLUTION={0}x240,CODECS=\"avc1.64000d,mp4a.40.2\"", (long)((Resolution.Width * 240) / Resolution.Height)));
+            content.AppendLine("240.m3u8\n");
+         }
+
+         return content.ToString();
+      }
+
+      public string GeneratePlaylist(int segment, string quality = "")
+      {
+         double interval = (double)segment;
+         var content = new StringBuilder();
+
+         content.AppendLine("#EXTM3U");
+         content.AppendLine("#EXT-X-VERSION:6");
+         content.AppendLine(String.Format("#EXT-X-TARGETDURATION:{0}", segment));
+         content.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
+         content.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
+         content.AppendLine("#EXT-X-INDEPENDENT-SEGMENTS");
+
+         for (double index = 0; (index * interval) < Duration; index++)
+         {
+            content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
+            if (!String.IsNullOrEmpty(quality)) content.AppendLine(String.Format("{0}/{1:00000}.ts", quality, index));
+            else content.AppendLine(String.Format("{0:00000}.ts", index));
+         }
+
+         content.AppendLine("#EXT-X-ENDLIST");
+
+         return content.ToString();
+      }
+
+      /// <summary>
+      /// Generates one or more segments of the video starting from the sequence number.
+      /// </summary>
+      /// <param name="quality">The expected quality e.g. 240p, 360p, ..., 2160p or anything else to disable scaling.</param>
+      /// <param name="sequence">The sequence number to start from.</param>
+      /// <param name="duration">The duration of each segment in seconds.</param>
+      /// <param name="count">The number of segments to generate. If left 0, the segmentation will continue for the rest of the duration.</param>
+      /// <returns>The generated segment in mpegts format and byte[] array.</returns>
+      /// <exception cref="DirectoryNotFoundException"></exception>
+      /// <exception cref="Exception"></exception>
+      /// <exception cref="FileNotFoundException"></exception>
+      public byte[] GenerateSegments(string quality, int sequence, int duration, int count = 0)
+      {
+         byte[] output = Array.Empty<byte>();
+         int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
+         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
+         DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
+         string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");
+
+         int waitInterval = 100;
+         int totalWaitTime = 0;
+
+         if (!File.Exists(executable))
+         {
+            throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
+         }
+
+         using (Process ffmpeg = new())
+         {
+            ffmpeg.StartInfo.FileName = executable;
+
+            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", sequence * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-t {0} ", count == 0 ? Duration - (double)(sequence * duration) : count * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-copyts ");
+            ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
+            ffmpeg.StartInfo.Arguments += String.Format("-map 0 -c:v libx264 -c:a aac ");
+
+            string template = "-vf scale=-1:{0} -b:v {1}k -maxrate {2}k -bufsize {3}k -b:a 128k ";
+
+            switch (quality)
+            {
+               case "240p":
+               case "240":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 240, 700, 700, 1400);
+                  break;
+               case "360p":
+               case "360":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 360, 1000, 1000, 2000);
+                  break;
+               case "480p":
+               case "480":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 480, 2000, 2000, 4000);
+                  break;
+               case "720p":
+               case "720":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 720, 4000, 4000, 8000);
+                  break;
+               case "1080p":
+               case "1080":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 1080, 6000, 6000, 12000);
+                  break;
+               case "4k":
+               case "2160p":
+               case "2160":
+                  ffmpeg.StartInfo.Arguments += String.Format(template, 2160, 45000, 45000, 90000);
+                  break;
+            }
+
+            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 0 -break_non_keyframes 1 ", duration);
+            // ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0} -y", format);
+
+            Logger.LogDebug(String.Format("{0} {1}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments));
+
+            ffmpeg.StartInfo.CreateNoWindow = true;
+            ffmpeg.StartInfo.UseShellExecute = false;
+            ffmpeg.StartInfo.RedirectStandardError = true;
+            ffmpeg.StartInfo.RedirectStandardOutput = true;
+
+            ffmpeg.Start();
+
+            do
+            {
+               Thread.Sleep(waitInterval);
+               totalWaitTime += waitInterval;
+            }
+            while ((!ffmpeg.HasExited) && (totalWaitTime < timeout));
+
+            if (!ffmpeg.HasExited || (ffmpeg.ExitCode != 0))
+            {
+               if (!ffmpeg.HasExited) ffmpeg.Kill();
+
+               throw new Exception(String.Format("Segment generation failed: {0} {1}\n{2}",
+                  ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments, ffmpeg.StandardError.ReadToEnd()));
+            }
+
+            string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");
+
+            if (!File.Exists(filename))
+            {
+               throw new FileNotFoundException("Unable to find the generated segment: " + filename);
+            }
+
+            output = File.ReadAllBytes(filename);
+         }
+
+         temp.Delete(true);
+
+         return output;
       }
 
       #endregion // Video File Operations

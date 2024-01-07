@@ -1,6 +1,7 @@
 import React from 'react';
 import videojs from 'video.js';
 import vttThumbnails from 'videojs-vtt-thumbnails';
+import "jb-videojs-hls-quality-selector";
 import { extract } from '../utils';
 import cx from 'classnames';
 import _ from 'lodash';
@@ -8,17 +9,22 @@ import _ from 'lodash';
 export class VideoPlayer extends React.Component {
 
     componentDidMount() {
-        // instantiate Video.js
         let options = this.props.options;
         let sources = this.sources(this.props.sources);
         options.sources = sources;
+        videojs.registerPlugin("vttThumbnails", vttThumbnails);
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
+        this.player.on('loadstart', this.onPlayerLoadStart.bind(this));
+        this.player.on('loadeddata', this.onPlayerLoadedData.bind(this));
         if (this.props.sources.length === 1) {
             let source = this.props.sources[0];
-            this.player.vttThumbnails = vttThumbnails;
             this.player.vttThumbnails({
                 src: window.location.origin + "/thumbnails/" + source.id + "/sprite.vtt",
                 showTimestamp: false,
+            });
+            this.player.hlsQualitySelector({
+                vjsIconClass: "vjs-icon-cog",
+                displayCurrentQuality: false,
             });
         }
     }
@@ -44,12 +50,27 @@ export class VideoPlayer extends React.Component {
         }
     }
 
-    onPlayerReady() {
-        // console.log(this);
-    }
+    onPlayerReady() {}
+
+    onPlayerLoadStart() {}
+
+    onPlayerLoadedData() {}
 
     sources(items) {
-        return items.map((item) => ("/preview/video/" + item.id + "/" + item.name));
+        return items.map((item) => {
+            switch (item.extension) {
+                case "wmv":
+                case "flv":
+                case "mov":
+                case "avi":
+                case "asf":
+                case "vob":
+                case "mkv":
+                    return "/preview/video/" + item.id + "/original.m3u8"; // To enable quality selection: "/master.m3u8"
+                default:
+                    return "/preview/video/" + item.id + "/" + item.name;
+            }
+        });
     }
 
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't create additional wrapper in the DOM
