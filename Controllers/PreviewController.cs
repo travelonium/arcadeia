@@ -1,13 +1,7 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
-using ImageMagick;
-using System.Diagnostics;
-using System.Reflection.Metadata;
 using System.Text;
-using System.Xml.Linq;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -22,6 +16,7 @@ namespace MediaCurator.Controllers
       private readonly IConfiguration _configuration;
       private readonly ILogger<MediaContainer> _logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
+      private readonly IHttpContextAccessor _httpContextAccessor;
 
       #region Constants
 
@@ -37,13 +32,15 @@ namespace MediaCurator.Controllers
                                IServiceProvider services,
                                IConfiguration configuration,
                                IThumbnailsDatabase thumbnailsDatabase,
-                               IMediaLibrary mediaLibrary)
+                               IMediaLibrary mediaLibrary,
+                               IHttpContextAccessor httpContextAccessor)
       {
          _logger = logger;
          _services = services;
          _mediaLibrary = mediaLibrary;
          _configuration = configuration;
          _thumbnailsDatabase = thumbnailsDatabase;
+         _httpContextAccessor = httpContextAccessor;
       }
 
       // GET: /<controller>/video/{id}/{name}
