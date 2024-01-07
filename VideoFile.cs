@@ -460,7 +460,18 @@ namespace MediaCurator
          return content.ToString();
       }
 
-      public byte[] GenerateSegment(string quality, int sequence, int duration)
+      /// <summary>
+      /// Generates one or more segments of the video starting from the sequence number.
+      /// </summary>
+      /// <param name="quality">The expected quality e.g. 240p, 360p, ..., 2160p or anything else to disable scaling.</param>
+      /// <param name="sequence">The sequence number to start from.</param>
+      /// <param name="duration">The duration of each segment in seconds.</param>
+      /// <param name="count">The number of segments to generate. If left 0, the segmentation will continue for the rest of the duration.</param>
+      /// <returns>The generated segment in mpegts format and byte[] array.</returns>
+      /// <exception cref="DirectoryNotFoundException"></exception>
+      /// <exception cref="Exception"></exception>
+      /// <exception cref="FileNotFoundException"></exception>
+      public byte[] GenerateSegments(string quality, int sequence, int duration, int count = 0)
       {
          byte[] output = Array.Empty<byte>();
          int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
@@ -481,7 +492,7 @@ namespace MediaCurator
             ffmpeg.StartInfo.FileName = executable;
 
             ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", sequence * duration);
-            ffmpeg.StartInfo.Arguments += String.Format("-t {0} ", duration);
+            ffmpeg.StartInfo.Arguments += String.Format("-t {0} ", count == 0 ? Duration - (double)(sequence * duration) : count * duration);
             ffmpeg.StartInfo.Arguments += String.Format("-copyts ");
             ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
             ffmpeg.StartInfo.Arguments += String.Format("-map 0 -c:v libx264 -c:a aac ");

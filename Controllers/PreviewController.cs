@@ -142,7 +142,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateSegment("", sequence, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegments("", sequence, StreamingSegmentsDuration.Value, 1), "application/x-mpegURL", true);
       }
 
       // GET: /<controller>/video/{id}/{quality}/{sequence}.ts
@@ -159,7 +159,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateSegment(quality, sequence, StreamingSegmentsDuration.Value), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegments(quality, sequence, StreamingSegmentsDuration.Value, 1), "application/x-mpegURL", true);
       }
    }
 }
