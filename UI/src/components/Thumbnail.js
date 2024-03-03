@@ -2,6 +2,7 @@ import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { extract } from './../utils';
+import cx from 'classnames';
 
 export class Thumbnail extends Component {
 
@@ -56,7 +57,7 @@ export class Thumbnail extends Component {
 
     render() {
         return (
-            <div className="thumbnail d-flex">
+            <div className={cx("thumbnail", (this.state.children.length > 0) ? "" : "childless", "d-flex")}>
                 <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
                     { ((this.state.type === "Folder") && (this.state.children.length === 0)) ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
                 </div>
