@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MediaCurator.Services;
 using Microsoft.Extensions.DependencyInjection;
+using System.Globalization;
 
 namespace MediaCurator
 {
@@ -135,6 +136,30 @@ namespace MediaCurator
          }
       }
 
+      private string _dateLastViewed = null;
+
+      /// <summary>
+      /// Gets or sets the date the file was viewed last.
+      /// </summary>
+      /// <value>
+      /// The last view date in DateTime.
+      /// </value>
+      public DateTime DateLastViewed
+      {
+         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateLastViewed, CultureInfo.InvariantCulture), DateTimeKind.Utc);
+
+         set
+         {
+            TimeSpan difference = value - DateLastViewed;
+            if (difference >= TimeSpan.FromSeconds(1))
+            {
+               Modified = true;
+
+               _dateLastViewed = value.ToString(CultureInfo.InvariantCulture);
+            }
+         }
+      }
+
       /// <summary>
       /// Gets a tailored MediaContainer model describing a media file.
       /// </summary>
@@ -149,6 +174,7 @@ namespace MediaCurator
             model.ContentType = ContentType;
             model.Extension = Extension;
             model.Views = Views;
+            model.DateLastViewed = DateLastViewed;
 
             return model;
          }
@@ -161,6 +187,12 @@ namespace MediaCurator
 
             Size = value.Size;
             Views = value.Views;
+
+            if (value.DateLastViewed.HasValue)
+            {
+               DateLastViewed = value.DateLastViewed.Value;
+            }
+
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
 
             if ((ContentType != value.ContentType) || (Extension != value.Extension)) Modified = true;

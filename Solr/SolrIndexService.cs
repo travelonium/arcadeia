@@ -246,8 +246,18 @@ namespace MediaCurator.Solr
 					{ "stored", true },
 				}
 			},
-			{
-				"contentType", new Dictionary<string, object>
+         {
+            "dateLastViewed", new Dictionary<string, object>
+            {
+               { "name", "dateLastViewed" },
+               { "type", "pdate" },
+               { "multiValued", false },
+               { "indexed", true },
+               { "stored", true },
+            }
+         },
+         {
+            "contentType", new Dictionary<string, object>
 				{
 					{ "name", "contentType" },
 					{ "type", "string" },

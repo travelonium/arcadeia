@@ -41,6 +41,9 @@ namespace MediaCurator.Models
       [SolrField("views")]
       public long Views { get; set; }
 
+      [SolrField("dateLastViewed")]
+      public DateTime? DateLastViewed { get; set; }
+
       [SolrField("dateAdded")]
       public DateTime DateAdded { get; set; }
 
@@ -51,7 +54,7 @@ namespace MediaCurator.Models
       public DateTime DateModified { get; set; }
 
       [SolrField("dateTaken")]
-      public DateTime DateTaken { get; set; }
+      public DateTime? DateTaken { get; set; }
 
       [SolrField("thumbnails")]
       public int Thumbnails { get; set; }
@@ -66,6 +69,6 @@ namespace MediaCurator.Models
       public long Height { get; set; }
 
       [SolrField("flags")]
-      public string[] Flags { get; set; }
+      public string[]? Flags { get; set; }
    }
 }
