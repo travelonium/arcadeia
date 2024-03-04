@@ -1,6 +1,8 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
+import Spinner from 'react-bootstrap/Spinner';
+import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
 import { Thumbnail } from './Thumbnail';
 import { clone, extract, querify } from '../utils';
@@ -18,6 +20,7 @@ export class HistoryDropdown extends Component {
         this.state = {
             open: false,
             loading: false,
+            status: "",
             items: [],
             views: {
                 "card": "Cards",
@@ -42,6 +45,11 @@ export class HistoryDropdown extends Component {
     onToggle(show) {
         if (show) this.search(this.props.limit ?? 0);
         this.setState({ open: show });
+    }
+
+    onClearHistory() {
+        console.log("Clearing...");
+        console.log("Just kidding, not implemented yet! :)");
     }
 
     search(limit = 0, start = 0, callback = undefined) {
@@ -183,7 +191,13 @@ export class HistoryDropdown extends Component {
                 </OverlayTrigger>
                 <Dropdown.Menu className="position-absolute">
                 {
-                    this.state.items.map((item, index) => {
+                    this.state.loading ?
+                    <Dropdown.Item className="d-flex justify-content-center" active={false} disabled={true}>
+                        <Spinner animation="grow" size="sm" role="status">
+                            <span className="visually-hidden">{this.state.status}</span>
+                        </Spinner>
+                    </Dropdown.Item>
+                    : this.state.items.map((item, index) => {
                         const id = extract(null, item, "id");
                         const name = extract(null, item, "name");
                         const description = extract(null, item, "description");
@@ -202,6 +216,24 @@ export class HistoryDropdown extends Component {
                             </Dropdown.Item>
                         )
                     })
+                }
+                {
+                    ((this.state.items.length === 0) && !this.state.loading) ?
+                    <Dropdown.Item active={false}>
+                        <div className="item-container d-flex flex-column justify-content-center">
+                            <span className="text-center">No History Available</span>
+                        </div>
+                    </Dropdown.Item>
+                    : <></>
+                }
+                {
+                    ((this.state.items.length > 0) && !this.state.loading) ?
+                    <Dropdown.Item active={false}>
+                        <div className="item-container d-flex flex-column justify-content-center">
+                            <Button onClick={this.onClearHistory.bind(this)} variant="danger">Clear History</Button>
+                        </div>
+                    </Dropdown.Item>
+                    : <></>
                 }
                 </Dropdown.Menu>
             </Dropdown>
