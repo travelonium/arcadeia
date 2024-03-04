@@ -480,8 +480,18 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
             @media all and (hover: hover) {
 
                 &:not(:hover) {
-                    :not(.thumbnail-container:has(.thumbnail.childless)) ~ .content-container {
-                        opacity: 0.0;
+                    // in case of drives, servers and folders, hide the name and description when not hovered only when they have a thumbnail
+                    @at-root .drive#{&}, .server#{&}, .folder#{&} {
+                        :not(.thumbnail-container:has(.thumbnail.childless)) ~ .content-container {
+                            opacity: 0.0;
+                        }
+                    }
+
+                    // in case of media files, hide the name and description unless hovered
+                    @at-root .photo#{&}, .video#{&}, .audio#{&} {
+                        .content-container {
+                            opacity: 0.0;
+                        }
                     }
                 }
 
