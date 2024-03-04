@@ -638,6 +638,53 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
+.history-dropdown {
+
+    .dropdown-menu {
+        overflow: auto;
+        max-height: 50vh;
+        max-width: 400px;
+
+        .dropdown-item {
+
+            .item-container {
+                overflow: hidden;
+
+                .thumbnail {
+                    width: 50px;
+                    height: 50px;
+
+                    .card-img {
+                        object-fit: cover;
+                        border-radius: 5px;
+                    }
+                }
+
+                .content {
+                    height: 50px;
+                    overflow: hidden;
+
+                    .name {
+                        height: 50%;
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        font-size: medium;
+                    }
+
+                    .date-last-viewed {
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        font-size: smaller;
+                        color: $secondary;
+                    }
+                }
+            }
+        }
+    }
+}
+
 .scroll-to-top {
 
     opacity: 0;

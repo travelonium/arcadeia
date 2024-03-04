@@ -71,7 +71,7 @@ export class SortDropdown extends Component {
                         <i className={cx("icon bi", icon, this.props.name, set)}></i>
                     </Dropdown.Toggle>
                 </OverlayTrigger>
-                <Dropdown.Menu>
+                <Dropdown.Menu className="position-absolute">
                     <ReactSortable list={clone(this.props.value.fields)} setList={this.onSetList.bind(this)}>
                     {
                         this.props.value.fields.map((field) => {

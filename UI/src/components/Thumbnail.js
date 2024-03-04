@@ -11,12 +11,13 @@ export class Thumbnail extends Component {
     constructor(props) {
         super(props);
         this.animateInterval = null;
+        const thumbnails = extract(0, this.props, 'source', 'thumbnails');
         this.state = {
             index: -1,
             loaded: true,
             id: extract(null, this.props, 'source', 'id'),
             type: extract(null, this.props, 'source', 'type'),
-            count: extract(0, this.props, 'source', 'thumbnails'),
+            count: (this.props.animated === false) ? Math.min(thumbnails, 1) : thumbnails,
             children: extract([], this.props, 'source', 'children').reverse().reduce((previous, item) => {
                 if ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) previous.push(item.id);
                 return previous;
@@ -47,7 +48,8 @@ export class Thumbnail extends Component {
 
     animate() {
         let index = this.state.index;
-        if (((!this.props.library.current.viewing) || (index === -1)) && (this.state.count > 0) && (this.state.loaded)) {
+        let viewing = extract(false, this.props, "library", "current", "viewing");
+        if (((!viewing) || (index === -1)) && (this.state.count > 0) && (this.state.loaded)) {
             this.setState({
                 index: (index < (this.state.count - 1)) ? ++index : 0,
                 loaded: false,
@@ -57,7 +59,7 @@ export class Thumbnail extends Component {
 
     render() {
         return (
-            <div className={cx("thumbnail", (this.state.children.length > 0) ? "" : "childless", "d-flex")}>
+            <div className={cx("thumbnail", this.props.className, (this.state.children.length > 0) ? "" : "childless", "d-flex")}>
                 <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
                     { ((this.state.type === "Folder") && (this.state.children.length === 0)) ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
                 </div>

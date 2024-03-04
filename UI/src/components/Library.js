@@ -9,7 +9,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { clone, extract, size, updateBit } from './../utils';
+import { clone, extract, size, updateBit, querify } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
@@ -317,7 +317,7 @@ class Library extends Component {
         }, () => {
             // change the url and the history before going any further
             if (!history && !start) window.history.pushState({path: path}, "", path);
-            fetch(solr + "?" + this.querify(input).toString(), {
+            fetch(solr + "?" + querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
                 headers: {
@@ -410,7 +410,7 @@ class Library extends Component {
         };
         this.controller.abort();
         this.controller = new AbortController();
-        fetch(solr + "?" + this.querify(input).toString(), {
+        fetch(solr + "?" + querify(input).toString(), {
             signal: this.controller.signal,
             credentials: 'include',
             headers: {
@@ -693,31 +693,6 @@ class Library extends Component {
             return count;
         }, 0);
         return (count === 0) ? '' : (count + ((count === 1) ? " File" : " Files"));
-    }
-
-    querify(dictionary, parentKey = '', query = new URLSearchParams()) {
-        for (const key in dictionary) {
-            const value = dictionary[key];
-            // Skip null or undefined values
-            if (value === null || value === undefined) continue;
-
-            // Construct a new key for nested dictionaries
-            const newKey = parentKey ? `${parentKey}.${key}` : key;
-
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                // Recursively handle nested objects
-                this.querify(value, newKey, query);
-            } else if (Array.isArray(value)) {
-                // Handle arrays
-                for (const item of value) {
-                    query.append(newKey, item);
-                }
-            } else {
-                // Handle single values
-                query.set(newKey, value);
-            }
-        }
-        return query;
     }
 
     sort(fields, direction) {

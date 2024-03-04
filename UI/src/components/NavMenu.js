@@ -4,9 +4,11 @@ import React, { Component } from 'react';
 import Navbar from 'react-bootstrap/Navbar';
 import { ViewDropdown } from './ViewDropdown';
 import { SortDropdown } from './SortDropdown';
-import { setQuery, setFavorite, setRecursive, setSort } from '../features/search/slice';
+import { HistoryDropdown } from './HistoryDropdown';
+import { setQuery, setFavorite, setRecursive, setSort, setPath } from '../features/search/slice';
 import { setTheme, setView } from '../features/ui/slice';
 import { connect } from "react-redux";
+import { extract } from '../utils';
 import { Flag } from './Flag';
 import _ from 'lodash';
 import './NavMenu.css';
@@ -74,6 +76,13 @@ class NavMenu extends Component {
         this.props.dispatch(setView(value));
     }
 
+    onHistorySelect(source) {
+        let fullPath = extract(null, source, "fullPath");
+        if (fullPath) {
+            this.props.dispatch(setPath(fullPath));
+        }
+    }
+
     onSortChange(value) {
         clearTimeout(this.searchTimeout);
         this.props.dispatch(setSort({
@@ -105,18 +114,19 @@ class NavMenu extends Component {
                     </Navbar.Brand>
                     <Navbar.Toggle onClick={this.toggleNavbar} className="me-2" label="responsive-navbar-nav" />
                     <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
-                        <Nav className={ "flex-row" + (this.state.collapsed ? "" : " mt-2") }>
+                        <Nav className={ "flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
                                     <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} />
                                     <ViewDropdown className="me-1" name="view" tooltip="View" value={this.props.ui.view} onChange={this.onViewChange.bind(this)} />
+                                    <HistoryDropdown className="me-1" name="history" tooltip="History" onSelect={this.onHistorySelect.bind(this)} />
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.props.search.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                     <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
                                 </div>
                             </Nav.Item>
                             <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className=" me-sm-2" />
+                                <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" />
                             </Nav.Item>
                         </Nav>
                     </Navbar.Collapse>
