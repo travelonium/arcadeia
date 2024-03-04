@@ -10,13 +10,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using System.Text.RegularExpressions;
+using MediaCurator.Solr;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]/{*path}")]
+   [Route("[controller]")]
    public class LibraryController : Controller
    {
       private readonly IServiceProvider _services;
@@ -57,6 +58,7 @@ namespace MediaCurator.Controllers
       }
 
       [HttpPatch]
+      [Route("{*path}")]
       [Produces("application/json")]
       public IActionResult Patch([FromBody] Models.MediaContainer modified, string path = "")
       {
@@ -101,6 +103,7 @@ namespace MediaCurator.Controllers
       /// <param name="path"></param>
       /// <returns></returns>
       [HttpPost]
+      [Route("{*path}")]
       [Produces("application/json")]
       [RequestSizeLimit(10L * 1024 * 1024 * 1024)]
       [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
@@ -234,11 +237,29 @@ namespace MediaCurator.Controllers
       }
 
       [HttpPut]
+      [Route("{*path}")]
       [Produces("application/json")]
       public IActionResult Put(List<IFormFile> files, string path = "")
       {
          // Upload a file overwriting existing files with the same name.
          return Ok();
+      }
+
+      [HttpGet]
+      [Route("history/clear")]
+      [Produces("application/json")]
+      public IActionResult ClearHistory()
+      {
+         using IServiceScope scope = _services.CreateScope();
+         ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+         if (solrIndexService.ClearHistory())
+         {
+            return Ok();
+         }
+         else
+         {
+            return Problem(title: "Clearing History Failed", detail: "Failed to clear the viewing history.", statusCode: 500);
+         }
       }
    }
 }

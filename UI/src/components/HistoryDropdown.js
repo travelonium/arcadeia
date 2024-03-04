@@ -1,13 +1,13 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import { extract, querify } from '../utils';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
 import { Thumbnail } from './Thumbnail';
-import { clone, extract, querify } from '../utils';
+import { toast } from 'react-toastify';
 import cx from 'classnames';
-import _ from 'lodash';
 
 export class HistoryDropdown extends Component {
 
@@ -20,6 +20,7 @@ export class HistoryDropdown extends Component {
         this.state = {
             open: false,
             loading: false,
+            clearing: false,
             status: "",
             items: [],
             views: {
@@ -48,8 +49,28 @@ export class HistoryDropdown extends Component {
     }
 
     onClearHistory() {
-        console.log("Clearing...");
-        console.log("Just kidding, not implemented yet! :)");
+        this.setState({ clearing: true }, () => {
+            fetch("/library/history/clear", {
+                method: "GET",
+                headers: {
+                    accept: "application/json",
+                }
+            })
+            .then((response) => {
+                if (!response.ok) {
+                    return response.json().then((error) => {
+                        throw new Error(error.message);
+                    });
+                } else {
+                    this.setState({ clearing: false });
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                toast.error(error.message);
+                this.setState({ clearing: false });
+            });
+        });
     }
 
     search(limit = 0, start = 0, callback = undefined) {
@@ -181,7 +202,7 @@ export class HistoryDropdown extends Component {
 
     render() {
         return (
-            <Dropdown className={cx("history-dropdown d-inline", this.props.className)} autoClose="true" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)} align={{ sm: "end", md: "start"}}>
+            <Dropdown className={cx("history-dropdown d-inline", this.props.className)} autoClose="true" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)} align={{ md: "end" }}>
                 <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                     (this.props.tooltip && !this.state.open) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
                 }>
@@ -200,7 +221,6 @@ export class HistoryDropdown extends Component {
                     : this.state.items.map((item, index) => {
                         const id = extract(null, item, "id");
                         const name = extract(null, item, "name");
-                        const description = extract(null, item, "description");
                         const dateLastViewed = extract(null, item, "dateLastViewed");
                         return (
                             <Dropdown.Item key={index} eventKey={id} active={false}>
@@ -230,7 +250,15 @@ export class HistoryDropdown extends Component {
                     ((this.state.items.length > 0) && !this.state.loading) ?
                     <Dropdown.Item active={false}>
                         <div className="item-container d-flex flex-column justify-content-center">
-                            <Button onClick={this.onClearHistory.bind(this)} variant="danger">Clear History</Button>
+                            <Button onClick={this.onClearHistory.bind(this)} variant="danger" disabled={this.state.clearing}>
+                            {
+                                (this.state.clearing) ?
+                                <Spinner animation="grow" size="sm" role="status">
+                                    <span className="visually-hidden">Clearing History</span>
+                                </Spinner>
+                                : "Clear History"
+                            }
+                            </Button>
                         </div>
                     </Dropdown.Item>
                     : <></>

@@ -13,6 +13,7 @@ namespace MediaCurator.Solr
       bool Update(T document);
       bool Delete(T document);
       bool Clear();
+      bool ClearHistory();
 
       Task<bool> Ping();
       Task<bool> AddFieldType(string name, Dictionary<string, object> definition);
