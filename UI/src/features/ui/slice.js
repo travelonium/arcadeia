@@ -8,6 +8,9 @@ const initialState = {
         simultaneous: 4,
         duplicate: true,
         overwrite: false,
+    },
+    history: {
+        items: 10,
     }
 };
 
@@ -44,6 +47,12 @@ export const uiSlice = createSlice({
         },
         setOverwriteUploads: (state, action) => {
             state.uploads.overwrite = action.payload ? action.payload : initialState.uploads.overwrite;
+        },
+        setHistory: (state, action) => {
+            state.history.items = action.payload?.items ? action.payload.items : initialState.history.items;
+        },
+        setHistoryItems: (state, action) => {
+            state.history.items = action.payload ? action.payload : initialState.history.items;
         },
     },
 });

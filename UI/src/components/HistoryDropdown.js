@@ -40,12 +40,12 @@ export class HistoryDropdown extends Component {
     }
 
     onToggle(show) {
-        if (show) this.search();
+        if (show) this.search(this.props.limit ?? 0);
         this.setState({ open: show });
     }
 
-    search(start = 0, callback = undefined) {
-        const rows = 100;
+    search(limit = 0, start = 0, callback = undefined) {
+        const rows = limit ? Math.min(limit, 1000) : 1000;
         let query = "dateLastViewed:*";
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
@@ -100,7 +100,7 @@ export class HistoryDropdown extends Component {
             .then((result) => {
                 const numFound = extract(0, result, "response", "numFound");
                 const docs = extract([], result, "response", "docs");
-                const more = numFound > (rows + start);
+                const more = (numFound > (rows + start)) && ((limit === 0) || ((rows + start) < limit));
                 this.items = this.items.concat(docs);
                 this.setState({
                     loading: more,
@@ -108,7 +108,7 @@ export class HistoryDropdown extends Component {
                     items: more ? this.state.items : this.items
                 }, () => {
                     if (more) {
-                        this.search(start + rows);
+                        this.search(limit, start + rows);
                     } else {
                         this.items = [];
                         if (callback !== undefined) {
