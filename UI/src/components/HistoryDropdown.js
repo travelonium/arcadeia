@@ -42,10 +42,14 @@ export class HistoryDropdown extends Component {
     }
 
     onSelect(eventKey, event) {
+        event.preventDefault();
+        event.stopPropagation();
         let source = this.state.items.find(item => extract(null, item, "id") === eventKey);
-        if (this.props.onSelect) {
-            this.props.onSelect(source, event);
-        }
+        this.setState({ open: false }, () => {
+            if (this.props.onSelect) {
+                this.props.onSelect(source, event);
+            }
+        });
     }
 
     onToggle(show) {
@@ -58,7 +62,9 @@ export class HistoryDropdown extends Component {
         }
     }
 
-    onClearHistory() {
+    onClearHistory(event) {
+        event.preventDefault();
+        event.stopPropagation();
         this.setState({ clearing: true }, () => {
             fetch("/library/history/clear", {
                 method: "GET",
@@ -214,7 +220,7 @@ export class HistoryDropdown extends Component {
 
     render() {
         return (
-            <Dropdown className={cx("history-dropdown d-inline", this.props.className)} autoClose="true" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)} align={{ md: "end" }}>
+            <Dropdown className={cx("history-dropdown d-inline", this.props.className)} autoClose="outside" show={this.state.open} onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)} align={{ md: "end" }}>
                 <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                     (this.props.tooltip && !this.state.open) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
                 }>
