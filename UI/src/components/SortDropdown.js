@@ -2,6 +2,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { ReactSortable } from "react-sortablejs";
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
+import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
 import { clone } from './../utils';
 import cx from 'classnames';
@@ -58,6 +59,10 @@ export class SortDropdown extends Component {
         return show;
     }
 
+    onReset() {
+        if (this.props.onReset) this.props.onReset();
+    }
+
     render() {
         let enabled = (this.props.value.fields.filter(field => field.active).length > 0) && this.props.value.direction;
         let set = enabled ? "set" : "";
@@ -96,6 +101,16 @@ export class SortDropdown extends Component {
                             </Dropdown.Item>
                         )
                     })
+                }
+                {
+                    (this.props.overridden) ? <>
+                    <Dropdown.Divider />
+                    <Dropdown.Item active={false}>
+                        <div className="d-flex flex-column justify-content-center">
+                            <Button onClick={this.onReset.bind(this)} variant="secondary">Reset</Button>
+                        </div>
+                    </Dropdown.Item>
+                    </> : <></>
                 }
                 </Dropdown.Menu>
             </Dropdown>

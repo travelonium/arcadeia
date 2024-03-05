@@ -5,7 +5,7 @@ import Navbar from 'react-bootstrap/Navbar';
 import { ViewDropdown } from './ViewDropdown';
 import { SortDropdown } from './SortDropdown';
 import { HistoryDropdown } from './HistoryDropdown';
-import { setQuery, setFavorite, setRecursive, setSort, setPath } from '../features/search/slice';
+import { setQuery, setFavorite, setRecursive, setSort, resetSort, setPath } from '../features/search/slice';
 import { setTheme, setView } from '../features/ui/slice';
 import { connect } from "react-redux";
 import { extract } from '../utils';
@@ -91,6 +91,13 @@ class NavMenu extends Component {
         }));
     }
 
+    onSortReset() {
+        clearTimeout(this.searchTimeout);
+        this.props.dispatch(resetSort({
+            path: this.props.search.path,
+        }));
+    }
+
     toggleNavbar() {
         this.setState({
             collapsed: !this.state.collapsed
@@ -117,7 +124,7 @@ class NavMenu extends Component {
                         <Nav className={ "flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
-                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} />
+                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} />
                                     <ViewDropdown className="me-1" name="view" tooltip="View" value={this.props.ui.view} onChange={this.onViewChange.bind(this)} />
                                     <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} />
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />

@@ -51,7 +51,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     .sort-dropdown {
 
         &.overridden {
-            button {
+            .dropdown-toggle {
                 color: black;
             }
         }
@@ -101,7 +101,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     .sort-dropdown {
 
         &.overridden {
-            button {
+            .dropdown-toggle {
                 color: white;
             }
         }
