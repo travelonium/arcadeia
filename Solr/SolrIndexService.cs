@@ -248,9 +248,9 @@ namespace MediaCurator.Solr
 				}
 			},
          {
-            "dateLastViewed", new Dictionary<string, object>
+            "dateAccessed", new Dictionary<string, object>
             {
-               { "name", "dateLastViewed" },
+               { "name", "dateAccessed" },
                { "type", "pdate" },
                { "multiValued", false },
                { "indexed", true },
@@ -444,7 +444,7 @@ namespace MediaCurator.Solr
       {
          try
          {
-            SolrQueryResults<T> documents = Solr.Query(new SolrHasValueQuery("dateLastViewed"), new QueryOptions
+            SolrQueryResults<T> documents = Solr.Query(new SolrHasValueQuery("dateAccessed"), new QueryOptions
 				{
 					Fields = new[] { "id" }
             });
@@ -453,7 +453,7 @@ namespace MediaCurator.Solr
 				{
                var response = Solr.AtomicUpdate(document, new[]
                {
-                  new AtomicUpdateSpec("dateLastViewed", AtomicUpdateType.Set, null as string),
+                  new AtomicUpdateSpec("dateAccessed", AtomicUpdateType.Set, null as string),
                });
 
                Solr.Commit();

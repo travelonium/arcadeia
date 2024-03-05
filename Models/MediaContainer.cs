@@ -41,8 +41,8 @@ namespace MediaCurator.Models
       [SolrField("views")]
       public long Views { get; set; }
 
-      [SolrField("dateLastViewed")]
-      public DateTime? DateLastViewed { get; set; }
+      [SolrField("dateAccessed")]
+      public DateTime? DateAccessed { get; set; }
 
       [SolrField("dateAdded")]
       public DateTime DateAdded { get; set; }

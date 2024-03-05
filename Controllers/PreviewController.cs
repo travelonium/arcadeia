@@ -59,13 +59,13 @@ namespace MediaCurator.Controllers
             if (pattern.IsMatch(range))
             {
                videoFile.Views += 1;
-               videoFile.DateLastViewed = DateTime.UtcNow;
+               videoFile.DateAccessed = DateTime.UtcNow;
             }
          }
          else
          {
             videoFile.Views += 1;
-            videoFile.DateLastViewed = DateTime.UtcNow;
+            videoFile.DateAccessed = DateTime.UtcNow;
          }
 
          if ((videoFile.Name != name) || (!videoFile.Exists()))
@@ -93,7 +93,7 @@ namespace MediaCurator.Controllers
          }
 
          photoFile.Views += 1;
-         photoFile.DateLastViewed = DateTime.UtcNow;
+         photoFile.DateAccessed = DateTime.UtcNow;
 
          return photoFile.Extension switch
          {
@@ -112,7 +112,7 @@ namespace MediaCurator.Controllers
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          videoFile.Views += 1;
-         videoFile.DateLastViewed = DateTime.UtcNow;
+         videoFile.DateAccessed = DateTime.UtcNow;
 
          if (!videoFile.Exists())
          {

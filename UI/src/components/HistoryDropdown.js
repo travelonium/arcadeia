@@ -75,7 +75,7 @@ export class HistoryDropdown extends Component {
 
     search(limit = 0, start = 0, callback = undefined) {
         const rows = limit ? Math.min(limit, 1000) : 1000;
-        let query = "dateLastViewed:*";
+        let query = "dateAccessed:*";
         let solr = "/search";
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
@@ -83,12 +83,12 @@ export class HistoryDropdown extends Component {
         const input = {
             q: query,
             fq: [
-                "-dateLastViewed:\"0001-01-01T00:00:00Z\""
+                "-dateAccessed:\"0001-01-01T00:00:00Z\""
             ],
             rows: rows,
             start: start,
             defType: "edismax",
-            sort: "dateLastViewed desc",
+            sort: "dateAccessed desc",
             wt: "json",
         };
         this.controller.abort();
@@ -221,15 +221,15 @@ export class HistoryDropdown extends Component {
                     : this.state.items.map((item, index) => {
                         const id = extract(null, item, "id");
                         const name = extract(null, item, "name");
-                        const dateLastViewed = extract(null, item, "dateLastViewed");
+                        const dateAccessed = extract(null, item, "dateAccessed");
                         return (
                             <Dropdown.Item key={index} eventKey={id} active={false}>
                                 <div className="item-container d-flex flex-row">
                                     <Thumbnail className="flex-shrink-0 pe-2" source={item} animated={false} />
                                     <div className="content d-flex flex-column justify-content-center flex-fill">
                                         <span className="name flex-shrink-1">{name}</span>
-                                        <span className="date-last-viewed flex-shrink-1" title={this.convertUtcDateToLocalDate(dateLastViewed)}>
-                                            <i className="bi bi-clock pe-1"></i>{this.timeAgo(dateLastViewed)}
+                                        <span className="date-accessed flex-shrink-1" title={this.convertUtcDateToLocalDate(dateAccessed)}>
+                                            <i className="bi bi-clock pe-1"></i>{this.timeAgo(dateAccessed)}
                                         </span>
                                     </div>
                                 </div>

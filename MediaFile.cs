@@ -136,26 +136,26 @@ namespace MediaCurator
          }
       }
 
-      private string _dateLastViewed = null;
+      private string _dateAccessed = null;
 
       /// <summary>
-      /// Gets or sets the date the file was viewed last.
+      /// Gets or sets the date the file was accessed last.
       /// </summary>
       /// <value>
-      /// The last view date in DateTime.
+      /// The last access date in DateTime.
       /// </value>
-      public DateTime DateLastViewed
+      public DateTime DateAccessed
       {
-         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateLastViewed, CultureInfo.InvariantCulture), DateTimeKind.Utc);
+         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateAccessed, CultureInfo.InvariantCulture), DateTimeKind.Utc);
 
          set
          {
-            TimeSpan difference = value - DateLastViewed;
+            TimeSpan difference = value - DateAccessed;
             if (difference >= TimeSpan.FromSeconds(1))
             {
                Modified = true;
 
-               _dateLastViewed = value.ToString(CultureInfo.InvariantCulture);
+               _dateAccessed = value.ToString(CultureInfo.InvariantCulture);
             }
          }
       }
@@ -174,7 +174,7 @@ namespace MediaCurator
             model.ContentType = ContentType;
             model.Extension = Extension;
             model.Views = Views;
-            model.DateLastViewed = DateLastViewed;
+            model.DateAccessed = DateAccessed;
 
             return model;
          }
@@ -188,9 +188,9 @@ namespace MediaCurator
             Size = value.Size;
             Views = value.Views;
 
-            if (value.DateLastViewed.HasValue)
+            if (value.DateAccessed.HasValue)
             {
-               DateLastViewed = value.DateLastViewed.Value;
+               DateAccessed = value.DateAccessed.Value;
             }
 
             Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
