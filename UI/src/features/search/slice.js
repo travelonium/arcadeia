@@ -27,33 +27,80 @@ export const searchSlice = createSlice({
     initialState: initialState,
     reducers: {
         setPath: (state, action) => {
-            state.path = action.payload;
-            state.query = initialState.query;
-        },
-        setQuery: (state, action) => {
-            state.query = action.payload;
-        },
-        setFavorite: (state, action) => {
-            state.favorite = action.payload;
-        },
-        setRecursive: (state, action) => {
-            state.recursive = action.payload;
-        },
-        setSort: (state, action) => {
-            const path = action.payload?.path;
-            state.sort.fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
-            state.sort.direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
-            if (path) {
-                state.sort[path] = {};
-                state.sort[path].fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
-                state.sort[path].direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
+            return {
+                ...state,
+                path: action.payload,
+                query: initialState.query,
             }
         },
+        setQuery: (state, action) => {
+            return {
+                ...state,
+                query: action.payload,
+            }
+        },
+        setFavorite: (state, action) => {
+            return {
+                ...state,
+                favorite: action.payload,
+            }
+        },
+        setRecursive: (state, action) => {
+            return {
+                ...state,
+                recursive: action.payload,
+            }
+        },
+        setSort: (state, action) => {
+            let newState = {
+                ...state,
+                sort: {
+                    ...state.sort,
+                    fields: action.payload?.fields ? action.payload.fields : initialState.sort.fields,
+                    direction: action.payload?.direction ? action.payload.direction : initialState.sort.direction,
+                }
+            }
+            const path = action.payload?.path;
+            if (path) {
+                newState.sort[path] = {};
+                newState.sort[path].fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
+                newState.sort[path].direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
+            }
+            return newState;
+        },
+        resetSort: (state, action) => {
+            const path = action.payload?.path;
+            let newState = {
+                ...state,
+                sort: {
+                    ...state.sort,
+                }
+            };
+            if (path && newState.sort.hasOwnProperty(path)) {
+                delete newState.sort[path];
+            } else {
+                newState.sort.fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;
+                newState.sort.direction = action.payload?.direction ? action.payload.direction : initialState.sort.direction;
+            }
+            return newState;
+        },
         setSortFields: (state, action) => {
-            state.sort.fields = action.payload ? action.payload : initialState.sort.fields;
+            return {
+                ...state,
+                sort: {
+                    ...state.sort,
+                    fields: action.payload ? action.payload : initialState.sort.fields,
+                }
+            }
         },
         setSortDirection: (state, action) => {
-            state.sort.direction = action.payload ? action.payload : initialState.sort.direction;
+            return {
+                ...state,
+                sort: {
+                    ...state.sort,
+                    direction: action.payload ? action.payload : initialState.sort.direction,
+                }
+            }
         },
         reset: (state, action) => {
             let path = action.payload?.split('?')[0];
@@ -62,24 +109,28 @@ export const searchSlice = createSlice({
             let flags = parseInt(params.get("flags"));
             let values = parseInt(params.get("values"));
             let recursive = params.get("recursive");
-            state.query = query ?? initialState.query;
-            state.path = path ?? initialState.path;
+            let newState = {
+                ...state,
+                query: query ?? initialState.query,
+                path: path ?? initialState.path
+            };
             if (flags && values) {
                 if (flags & (1 << 1)) {
-                    state.favorite = ((values & (1 << 1)) !== 0);
+                    newState.favorite = ((values & (1 << 1)) !== 0);
                 }
             } else {
-                state.favorite = initialState.favorite;
+                newState.favorite = initialState.favorite;
             }
             if (recursive) {
-                state.recursive = (recursive === "true");
+                newState.recursive = (recursive === "true");
             } else {
-                state.recursive = initialState.recursive;
+                newState.recursive = initialState.recursive;
             }
+            return newState;
         },
     },
 });
 
 const { actions, reducer } = searchSlice;
-export const { setPath, setQuery, setFavorite, setRecursive, setSort, setSortFields, setSortDirection, reset } = actions;
+export const { setPath, setQuery, setFavorite, setRecursive, setSort, resetSort, setSortFields, setSortDirection, reset } = actions;
 export default reducer;
