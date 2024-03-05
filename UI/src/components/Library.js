@@ -208,7 +208,7 @@ class Library extends Component {
         .then((response) => {
             if (!response.ok) {
                 return response.json().then((error) => {
-                    throw new Error(error.message);
+                    throw new Error(error.message ?? error.detail);
                 });
             } else {
                 return response.json();
@@ -217,7 +217,7 @@ class Library extends Component {
         .then((response) => {
             this.set(index, response, refresh, callback);
         })
-        .catch((error) => {
+        .catch(error => {
             console.error(error);
             toast.error(error.message);
             if (callback !== undefined) {
@@ -596,7 +596,7 @@ class Library extends Component {
                         }
                     })
                 })
-                .catch((error) => {
+                .catch(error => {
                     console.error(error);
                     let message = "Upload Failed";
                     let toastId = extract(null, this.state.uploads.active, file.name, 'toast');

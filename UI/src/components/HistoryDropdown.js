@@ -17,6 +17,7 @@ export class HistoryDropdown extends Component {
         super(props);
         this.items = [];    // temporary storage for the state.items while the full results are being retrieved
         this.controller = new AbortController();
+        this.refreshInterval = null;
         this.state = {
             open: false,
             loading: false,
@@ -36,6 +37,10 @@ export class HistoryDropdown extends Component {
     componentWillUnmount() {
     }
 
+    refresh() {
+        this.forceUpdate();
+    }
+
     onSelect(eventKey, event) {
         let source = this.state.items.find(item => extract(null, item, "id") === eventKey);
         if (this.props.onSelect) {
@@ -44,8 +49,13 @@ export class HistoryDropdown extends Component {
     }
 
     onToggle(show) {
-        if (show) this.search(this.props.limit ?? 0);
         this.setState({ open: show });
+        if (show) {
+            if (!this.state.clearing && !this.state.loading) this.search(this.props.limit ?? 0);
+            this.refreshInterval = setInterval(() => this.refresh(), 500);
+        } else {
+            clearInterval(this.refreshInterval);
+        }
     }
 
     onClearHistory() {
@@ -57,15 +67,17 @@ export class HistoryDropdown extends Component {
                 }
             })
             .then((response) => {
-                if (!response.ok) {
-                    return response.json().then((error) => {
-                        throw new Error(error.message);
+                if (response.ok) {
+                    this.setState({ clearing: false }, () => {
+                        if (this.state.open) this.search(this.props.limit ?? 0);
                     });
                 } else {
-                    this.setState({ clearing: false });
+                    return response.json().then((error) => {
+                        throw new Error(error.message ?? error.detail);
+                    });
                 }
             })
-            .catch((error) => {
+            .catch(error => {
                 console.error(error);
                 toast.error(error.message);
                 this.setState({ clearing: false });
