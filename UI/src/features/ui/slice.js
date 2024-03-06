@@ -8,6 +8,9 @@ const initialState = {
         simultaneous: 4,
         duplicate: true,
         overwrite: false,
+    },
+    history: {
+        items: 10,
     }
 };
 
@@ -16,34 +19,87 @@ export const uiSlice = createSlice({
     initialState: initialState,
     reducers: {
         setView: (state, action) => {
-            state.view = action.payload ?? initialState.view;
+            return {
+                ...state,
+                view: action.payload ?? initialState.view,
+            };
         },
         setTheme: (state, action) => {
-            state.theme = action.payload ?? initialState.theme;
-            document.documentElement.setAttribute('data-bs-theme', state.theme);
+            const theme = action.payload ?? initialState.theme;
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            return {
+                ...state,
+                theme: theme,
+            };
         },
         setScrollPosition: (state, action) => {
-            let path = action.payload.path;
-            let index = action.payload.index;
-            if (index) {
-                state.scrollPosition[path] = index;
-            } else if (state.scrollPosition.hasOwnProperty(path)) {
-                delete state.scrollPosition[path];
-            }
+            let newState = {
+                ...state,
+                scrollPosition: {
+                    ...state.scrollPosition,
+                },
+            };
+            const path = action.payload.path;
+            const index = action.payload.index;
+            if (index) newState.scrollPosition[path] = index;
+            else if (newState.scrollPosition.hasOwnProperty(path)) delete newState.scrollPosition[path];
+            return newState;
         },
         setUploads: (state, action) => {
-            state.uploads.simultaneous = action.payload?.simultaneous ? action.payload.simultaneous : initialState.uploads.simultaneous;
-            state.uploads.duplicate = action.payload?.duplicate ? action.payload.duplicate : initialState.uploads.duplicate;
-            state.uploads.overwrite = action.payload?.overwrite ? action.payload.overwrite : initialState.uploads.overwrite;
+            return {
+                ...state,
+                uploads: {
+                    ...state.uploads,
+                    simultaneous: action.payload?.simultaneous ? action.payload.simultaneous : initialState.uploads.simultaneous,
+                    duplicate: action.payload?.duplicate ? action.payload.duplicate : initialState.uploads.duplicate,
+                    overwrite: action.payload?.overwrite ? action.payload.overwrite : initialState.uploads.overwrite,
+                }
+            }
         },
         setSimultaneousUploads: (state, action) => {
-            state.uploads.simultaneous = action.payload ? action.payload : initialState.uploads.simultaneous;
+            return {
+                ...state,
+                uploads: {
+                    ...state.uploads,
+                    simultaneous: action.payload ? action.payload : initialState.uploads.simultaneous,
+                }
+            }
         },
         setDuplicateUploads: (state, action) => {
-            state.uploads.duplicate = action.payload ? action.payload : initialState.uploads.duplicate;
+            return {
+                ...state,
+                uploads: {
+                    ...state.uploads,
+                    duplicate: action.payload ? action.payload : initialState.uploads.duplicate,
+                }
+            }
         },
         setOverwriteUploads: (state, action) => {
-            state.uploads.overwrite = action.payload ? action.payload : initialState.uploads.overwrite;
+            return {
+                ...state,
+                uploads: {
+                    ...state.uploads,
+                    overwrite: action.payload ? action.payload : initialState.uploads.overwrite,
+                }
+            }
+        },
+        setHistory: (state, action) => {
+            return {
+                ...state,
+                history: {
+                    ...state.history,
+                    items: action.payload?.items ? action.payload.items : initialState.history.items,
+                }
+            }
+        },
+        setHistoryItems: (state, action) => {
+            return {
+                ...state,
+                history: {
+                    ...state.history,
+                    items: action.payload ? action.payload : initialState.history.items,
+                }
+            }
         },
     },
 });

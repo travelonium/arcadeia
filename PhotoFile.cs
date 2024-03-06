@@ -99,7 +99,11 @@ namespace MediaCurator
 
             base.Model = value;
 
-            DateTaken = value.DateTaken;
+            if (value.DateTaken.HasValue)
+            {
+               DateTaken = value.DateTaken.Value;
+            }
+
             Resolution = new(value.Width, value.Height);
          }
       }

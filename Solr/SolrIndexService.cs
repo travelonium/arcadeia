@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Collections.Generic;
 using System.Threading;
 using System.Xml.Linq;
+using SolrNet.Commands.Parameters;
 
 namespace MediaCurator.Solr
 {
@@ -246,8 +247,18 @@ namespace MediaCurator.Solr
 					{ "stored", true },
 				}
 			},
-			{
-				"contentType", new Dictionary<string, object>
+         {
+            "dateAccessed", new Dictionary<string, object>
+            {
+               { "name", "dateAccessed" },
+               { "type", "pdate" },
+               { "multiValued", false },
+               { "indexed", true },
+               { "stored", true },
+            }
+         },
+         {
+            "contentType", new Dictionary<string, object>
 				{
 					{ "name", "contentType" },
 					{ "type", "string" },
@@ -429,7 +440,38 @@ namespace MediaCurator.Solr
 			}
 		}
 
-		public async Task<bool> Ping()
+      public bool ClearHistory()
+      {
+         try
+         {
+            SolrQueryResults<T> documents = Solr.Query(new SolrHasValueQuery("dateAccessed"), new QueryOptions
+				{
+					Fields = new[] { "id" }
+            });
+
+				foreach (var document in documents)
+				{
+               var response = Solr.AtomicUpdate(document, new[]
+               {
+                  new AtomicUpdateSpec("dateAccessed", AtomicUpdateType.Set, null as string),
+               });
+
+               Solr.Commit();
+            }
+
+            Logger.LogInformation("View History Cleared For {} Document(s)!", documents.Count);
+
+            return true;
+         }
+         catch (SolrNetException e)
+         {
+            Logger.LogError("Failed To Clear, Because: {}", e.Message);
+
+            return false;
+         }
+      }
+
+      public async Task<bool> Ping()
       {
          try
          {

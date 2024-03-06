@@ -51,7 +51,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     .sort-dropdown {
 
         &.overridden {
-            button {
+            .dropdown-toggle {
                 color: black;
             }
         }
@@ -101,7 +101,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     .sort-dropdown {
 
         &.overridden {
-            button {
+            .dropdown-toggle {
                 color: white;
             }
         }
@@ -312,6 +312,18 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
                     left: 5px;
                 }
             }
+
+            .type {
+                color: $white;
+                text-shadow: 0 0 1px $black;
+                position: absolute;
+                bottom: 7px;
+                left: 10px;
+            }
+
+            .thumbnail.childless ~ .type {
+                display: none;
+            }
         }
 
         .content-container {
@@ -464,17 +476,22 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
                 }
             }
 
-            .content-container {
-                color: $white;
-                background-color: rgba($black, .3);
-            }
-
             // non-touch devices supporting a real hover effect
             @media all and (hover: hover) {
 
                 &:not(:hover) {
-                    .content-container {
-                        opacity: 0.0;
+                    // in case of drives, servers and folders, hide the name and description when not hovered only when they have a thumbnail
+                    @at-root .drive#{&}, .server#{&}, .folder#{&} {
+                        :not(.thumbnail-container:has(.thumbnail.childless)) ~ .content-container {
+                            opacity: 0.0;
+                        }
+                    }
+
+                    // in case of media files, hide the name and description unless hovered
+                    @at-root .photo#{&}, .video#{&}, .audio#{&} {
+                        .content-container {
+                            opacity: 0.0;
+                        }
                     }
                 }
 
@@ -497,6 +514,11 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
                                 transform: rotate(2deg);
                             }
                         }
+                    }
+
+                    .content-container {
+                        color: $white;
+                        background-color: rgba($black, .3);
                     }
                 }
             }
@@ -621,6 +643,53 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
         .dropdown-item {
             &.active:hover {
                 background-color: var(--bs-dropdown-link-hover-bg);
+            }
+        }
+    }
+}
+
+.history-dropdown {
+
+    .dropdown-menu {
+        overflow: auto;
+        max-height: 50vh;
+        max-width: 400px;
+
+        .dropdown-item {
+
+            .item-container {
+                overflow: hidden;
+
+                .thumbnail {
+                    width: 50px;
+                    height: 50px;
+
+                    .card-img {
+                        object-fit: cover;
+                        border-radius: 5px;
+                    }
+                }
+
+                .content {
+                    height: 50px;
+                    overflow: hidden;
+
+                    .name {
+                        height: 50%;
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        font-size: medium;
+                    }
+
+                    .date-accessed {
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        font-size: smaller;
+                        color: $secondary;
+                    }
+                }
             }
         }
     }

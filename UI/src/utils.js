@@ -60,3 +60,28 @@ export function clone(object, shallow = false) {
         return JSON.parse(JSON.stringify(object));
     }
 }
+
+export function querify(dictionary, parentKey = '', query = new URLSearchParams()) {
+    for (const key in dictionary) {
+        const value = dictionary[key];
+        // Skip null or undefined values
+        if (value === null || value === undefined) continue;
+
+        // Construct a new key for nested dictionaries
+        const newKey = parentKey ? `${parentKey}.${key}` : key;
+
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // Recursively handle nested objects
+            querify(value, newKey, query);
+        } else if (Array.isArray(value)) {
+            // Handle arrays
+            for (const item of value) {
+                query.append(newKey, item);
+            }
+        } else {
+            // Handle single values
+            query.set(newKey, value);
+        }
+    }
+    return query;
+}

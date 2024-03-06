@@ -130,7 +130,10 @@ export class MediaContainer extends Component {
                     <div className="thumbnail-container">
                         <Thumbnail source={source} library={this.props.library} />
                         <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
+                    {
+                        (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
                         <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
+                    }
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
@@ -168,7 +171,10 @@ export class MediaContainer extends Component {
                     <div className="thumbnail-container">
                         <Thumbnail source={source} library={this.props.library} />
                         <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
-                        <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
+                        {
+                            (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
+                            <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
+                        }
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>

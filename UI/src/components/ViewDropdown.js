@@ -53,7 +53,7 @@ export class ViewDropdown extends Component {
                         <i className={cx("icon bi set", icon, this.props.name)}></i>
                     </Dropdown.Toggle>
                 </OverlayTrigger>
-                <Dropdown.Menu>
+                <Dropdown.Menu className="position-absolute">
                 {
                     Object.keys(this.state.views).map((view) => {
                         return (
