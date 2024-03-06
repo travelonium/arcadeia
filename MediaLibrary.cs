@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -83,7 +84,7 @@ namespace MediaCurator
          Logger.LogInformation("Media Library Cache Cleared!");
       }
 
-      public MediaFile InsertMedia(string path)
+      public MediaFile InsertMediaFile(string path)
       {
          MediaFile mediaFile = null;
          MediaContainerType mediaType = GetMediaType(path);
@@ -126,6 +127,11 @@ namespace MediaCurator
          }
 
          return mediaFile;
+      }
+
+      public MediaFolder InsertMediaFolder(string path)
+      {
+         return new MediaFolder(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
       }
 
       /// <summary>

@@ -9,7 +9,7 @@ using MediaCurator.Services;
 
 namespace MediaCurator
 {
-   class MediaFolder : MediaContainer
+   public class MediaFolder : MediaContainer
    {
       #region Fields
 

@@ -12,6 +12,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using MediaCurator.Solr;
 using SolrNet;
+using System.Reflection.Metadata;
 
 namespace MediaCurator.Services
 {
@@ -263,6 +264,21 @@ namespace MediaCurator.Services
             }
          }
 
+         // Add the folders being watched or scanned to the MediaLibrary.
+         foreach (var folder in AvailableFolders.Concat(AvailableWatchedFolders).ToList())
+         {
+            try
+            {
+               // Add the folder itself to the MediaLibrary if it hasn't been added yet.
+               using MediaFolder _ = _mediaLibrary.InsertMediaFolder(folder);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Insert Folder: {}, Because: {}", folder, e.Message);
+               _logger.LogDebug("{}", e.ToString());
+            }
+         }
+
          // Start the startup scanning task if necessary.
          if (StartupScan)
          {
@@ -379,7 +395,7 @@ namespace MediaCurator.Services
                   try
                   {
                      // Add the file to the MediaLibrary.
-                     using MediaFile newMediaFile = _mediaLibrary.InsertMedia(file);
+                     using MediaFile newMediaFile = _mediaLibrary.InsertMediaFile(file);
                   }
                   catch (Exception e)
                   {
@@ -492,7 +508,7 @@ namespace MediaCurator.Services
 
       private void AddFile(string file)
       {
-         using MediaFile _ = _mediaLibrary.InsertMedia(file);
+         using MediaFile _ = _mediaLibrary.InsertMediaFile(file);
       }
 
       private void UpdateFile(string file)

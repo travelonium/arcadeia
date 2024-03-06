@@ -604,7 +604,7 @@ namespace MediaCurator.Solr
 
 		public void Initialize()
       {
-			uint retries = 10;
+			uint retries = 30;
 
 			Logger.LogInformation("Waiting For Solr Server...");
 

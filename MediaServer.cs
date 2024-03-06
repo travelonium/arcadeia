@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaCurator
 {
-   class MediaServer : MediaContainer
+   public class MediaServer : MediaContainer
    {
       #region Fields
 

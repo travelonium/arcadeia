@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace MediaCurator
 {
-   class MediaDrive : MediaContainer
+   public class MediaDrive : MediaContainer
    {
       #region Fields
 

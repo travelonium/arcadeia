@@ -218,7 +218,7 @@ namespace MediaCurator.Controllers
             try
             {
                // Add the file to the MediaLibrary.
-               using MediaFile newMediaFile = _mediaLibrary.InsertMedia(fullPath);
+               using MediaFile newMediaFile = _mediaLibrary.InsertMediaFile(fullPath);
                result.Add(newMediaFile.Model);
             }
             catch (Exception e)
