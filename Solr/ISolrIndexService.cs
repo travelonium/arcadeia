@@ -9,6 +9,7 @@ namespace MediaCurator.Solr
    {
       SolrQueryResults<T> Get(string field, string value);
       SolrQueryResults<T> Get(ISolrQuery query);
+      SolrQueryResults<T> Get(string query);
       bool Add(T document);
       bool Update(T document);
       bool Delete(T document);

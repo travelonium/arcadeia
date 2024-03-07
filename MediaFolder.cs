@@ -23,7 +23,7 @@ namespace MediaCurator
                          IThumbnailsDatabase thumbnailsDatabase,
                          IMediaLibrary mediaLibrary,
                          string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, EnsureTrailingSlash(path))
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -152,5 +152,19 @@ namespace MediaCurator
       }
 
       #endregion
+
+      #region Private Methods
+
+      private static string EnsureTrailingSlash(string path)
+      {
+         if (!string.IsNullOrEmpty(path) && !path.EndsWith("/"))
+         {
+            return path + "/";
+         }
+
+         return path;
+      }
+
+      #endregion // Private Methods
    }
 }
