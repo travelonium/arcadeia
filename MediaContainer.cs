@@ -1,4 +1,5 @@
 ﻿using System;
+using SolrNet;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
@@ -525,7 +526,7 @@ namespace MediaCurator
             solrIndexService.Initialize();
          }
 
-         var model = Load(id: id, path: path);
+         Models.MediaContainer? model = Load(id: id, path: path);
 
          if (model != null)
          {
@@ -896,22 +897,27 @@ namespace MediaCurator
 
       #region Protected Methods
 
-      protected Models.MediaContainer Load(string id = null, string path = null)
+      protected Models.MediaContainer? Load(string? id = null, string? path = null)
       {
          using IServiceScope scope = Services.CreateScope();
          ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
 
-         var value = id ?? path ?? "Library";
-         var field = (id != null) ? "id" : (path != null) ? "fullPath" : "type";
+         string value = id ?? path ?? "Library";
+         string field = (id != null) ? "id" : (path != null) ? "fullPath" : "type";
+         SolrQueryByField query = new(field, value);
+         SortOrder[] orders = new[]
+         {
+            new SortOrder("dateAdded", Order.ASC)
+         };
 
-         var results = solrIndexService.Get(field, value);
+         SolrQueryResults<Models.MediaContainer> results = solrIndexService.Get(query, orders);
 
          if (results.Count > 1)
          {
-            throw new Exception(String.Format("Found multiple entries in the Solr index having the same {0}: {1}", field, value));
+            Logger.LogWarning("{} Duplicate Solr Entries Detected: {}: {}", results.Count, field, value);
          }
 
-         if (results.Count == 1) return results.First();
+         if (results.Count > 0) return results.First();
 
          return null;
       }

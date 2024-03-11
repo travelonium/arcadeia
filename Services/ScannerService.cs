@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MediaCurator.Solr;
 using SolrNet;
 using System.Reflection.Metadata;
+using Newtonsoft.Json.Linq;
 
 namespace MediaCurator.Services
 {
@@ -165,15 +166,15 @@ namespace MediaCurator.Services
       }
 
       /// <summary>
-      /// A list of regex patterns specifying which file names to ignore when scanning.
+      /// A list of regex patterns specifying which file or folder names to ignore when scanning.
       /// </summary>
-      public List<String> IgnoredFileNames
+      public List<String> IgnoredPatterns
       {
          get
          {
-            if (_configuration.GetSection("Scanner:IgnoredFileNames").Exists())
+            if (_configuration.GetSection("Scanner:IgnoredPatterns").Exists())
             {
-               return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>();
+               return _configuration.GetSection("Scanner:IgnoredPatterns").Get<List<String>>();
             }
             else
             {
@@ -356,7 +357,7 @@ namespace MediaCurator.Services
       private void Scan(string path, string type)
       {
          var watch = new Stopwatch();
-         var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
+         var patterns = IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          var fileSystemService = _services.GetService<IFileSystemService>();
          if (fileSystemService.Mounts.Any(mount => (path.StartsWith(mount.Folder) && !mount.Available)))
@@ -471,6 +472,30 @@ namespace MediaCurator.Services
                {
                   if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                   {
+                     // Find any possible duplicate entries with the same FullPath and remove them.
+                     SolrQueryByField query = new("fullPath", document.FullPath);
+                     SortOrder[] orders = new[]
+                     {
+                        new SortOrder("dateAdded", Order.ASC)
+                     };
+
+                     SolrQueryResults<Models.MediaContainer> results = solrIndexService.Get(query, orders);
+
+                     if (results.Count > 1)
+                     {
+                        _logger.LogWarning("{} Duplicate Solr Entries Detected: {}: {}", results.Count, "fullPath", document.FullPath);
+
+                        for (int i = 1; i < results.Count; i++)
+                        {
+                           var result = results[i];
+
+                           if (solrIndexService.Delete(result))
+                           {
+                              _logger.LogInformation("Duplicate {} Removed: {}", result.Type, result.Id);
+                           }
+                        }
+                     }
+
                      // Make sure the path is located in a watched folder and that folder is available.
                      if (availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
                      {

@@ -7,6 +7,7 @@ namespace MediaCurator.Solr
 {
    public interface ISolrIndexService<T>
    {
+      SolrQueryResults<T> Get(ISolrQuery query, ICollection<SortOrder> orders);
       SolrQueryResults<T> Get(string field, string value);
       SolrQueryResults<T> Get(ISolrQuery query);
       SolrQueryResults<T> Get(string query);

@@ -382,6 +382,11 @@ namespace MediaCurator.Solr
          return Solr.Query(query);
       }
 
+      public SolrQueryResults<T> Get(ISolrQuery query, ICollection<SortOrder> orders)
+      {
+         return Solr.Query(query, orders);
+      }
+
       public SolrQueryResults<T> Get(string query)
       {
          return Solr.Query(query);
