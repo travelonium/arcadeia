@@ -1,18 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-
-const initialState = {
-    view: "card",
-    theme: "light",
-    scrollPosition: {},
-    uploads: {
-        simultaneous: 4,
-        duplicate: true,
-        overwrite: false,
-    },
-    history: {
-        items: 10,
-    }
-};
+import initialState from './initialState';
 
 export const uiSlice = createSlice({
     name: 'ui',
