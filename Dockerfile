@@ -17,7 +17,7 @@ RUN set -eux; \
     node --version; \
     npm version; \
     dotnet restore -a $TARGETARCH; \
-    dotnet publish -a $TARGETARCH --no-restore --configuration Release;
+    dotnet publish -a $TARGETARCH --no-restore --configuration Release -o /app;
 
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND noninteractive
@@ -35,7 +35,7 @@ RUN set -eux; \
     dpkg -l; \
     ffmpeg -version;
 
-COPY --from=builder /root/bin/Release/net${VERSION}/publish /var/lib/app/
+COPY --from=builder /app /var/lib/app/
 COPY entrypoint.sh /
 
 EXPOSE 80 443
