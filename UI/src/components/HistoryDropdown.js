@@ -282,6 +282,7 @@ export class HistoryDropdown extends Component {
                 }
                 {
                     ((this.state.items.length > 0) && !this.state.loading) ? <>
+                    <Dropdown.Divider/>
                     <Dropdown.Header>
                         <div className="item-container d-flex flex-column justify-content-center">
                             <Button onClick={this.onClearHistory.bind(this)} variant="danger" disabled={this.state.clearing}>
@@ -295,7 +296,6 @@ export class HistoryDropdown extends Component {
                             </Button>
                         </div>
                     </Dropdown.Header>
-                    <Dropdown.Divider/>
                     </> : <></>
                 }
                 </Dropdown.Menu>
