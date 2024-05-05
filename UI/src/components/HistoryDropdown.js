@@ -45,11 +45,27 @@ export class HistoryDropdown extends Component {
         event.preventDefault();
         event.stopPropagation();
         let source = this.state.items.find(item => extract(null, item, "id") === eventKey);
-        this.setState({ open: false }, () => {
-            if (this.props.onSelect) {
-                this.props.onSelect(source, event);
+        if (((event.type === 'click') && (event.metaKey || event.shiftKey)) ||
+            ((event.type === 'auxclick') && (event.button === 1))) {
+            switch (source.type) {
+                case "Photo":
+                    window.open(source.fullPath, "_blank");
+                    break;
+                case "Video":
+                    window.open(source.fullPath, "_blank");
+                    break;
+                default:
+                    break;
             }
-        });
+        } else if (event.type === 'click') {
+            this.setState({ open: false }, () => {
+                if (this.props.onSelect) {
+                    this.props.onSelect(source, event);
+                }
+            });
+        } else {
+            console.error("Unsupported event '" + event.type + "' when selecting the history item.");
+        }
     }
 
     onToggle(show) {
@@ -241,7 +257,7 @@ export class HistoryDropdown extends Component {
                         const name = extract(null, item, "name");
                         const dateAccessed = extract(null, item, "dateAccessed");
                         return (
-                            <Dropdown.Item key={index} eventKey={id} active={false}>
+                            <Dropdown.Item key={index} eventKey={id} active={false} onAuxClick={this.onSelect.bind(this, id)}>
                                 <div className="item-container d-flex flex-row">
                                     <Thumbnail className="flex-shrink-0 pe-2" source={item} animated={false} />
                                     <div className="content d-flex flex-column justify-content-center flex-fill">
