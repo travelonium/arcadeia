@@ -1,9 +1,10 @@
-ARG VERSION=6.0
+ARG VERSION=7.0
 ARG NODEJS_VERSION=20
 ARG DISTRO=bullseye-slim
 
-FROM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
 ARG NODEJS_VERSION
+ARG TARGETARCH
 WORKDIR /root/
 COPY ./ ./
 RUN set -eux; \
@@ -15,8 +16,8 @@ RUN set -eux; \
     apt-get -y install nodejs; \
     node --version; \
     npm version; \
-    dotnet restore; \
-    dotnet publish --configuration Release;
+    dotnet restore -a $TARGETARCH; \
+    dotnet publish -a $TARGETARCH --no-restore --configuration Release -o /app;
 
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND noninteractive
@@ -34,7 +35,7 @@ RUN set -eux; \
     dpkg -l; \
     ffmpeg -version;
 
-COPY --from=builder /root/bin/Release/net${VERSION}/publish /var/lib/app/
+COPY --from=builder /app /var/lib/app/
 COPY entrypoint.sh /
 
 EXPOSE 80 443
