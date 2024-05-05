@@ -8,7 +8,7 @@ const initialState = {
         overwrite: false,
     },
     history: {
-        items: 10,
+        items: 100,
     }
 };
 
