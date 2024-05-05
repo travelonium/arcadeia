@@ -94,7 +94,7 @@ export class HistoryDropdown extends Component {
     search(limit = 0, start = 0, callback = undefined) {
         const rows = limit ? Math.min(limit, 1000) : 1000;
         let query = "dateAccessed:*";
-        let solr = "/search";
+        let solr = "/solr/Library/select";
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
         }

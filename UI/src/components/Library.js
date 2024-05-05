@@ -263,7 +263,7 @@ class Library extends Component {
         if (values) {
             params.set("values", values);
         }
-        let solr = "/search";
+        let solr = "/solr/Library/select";
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
         }
@@ -397,7 +397,7 @@ class Library extends Component {
             return;
         }
         let query = "*";
-        let solr = "/search";
+        let solr = "/solr/Library/select";
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
         }

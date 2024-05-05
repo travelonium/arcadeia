@@ -85,3 +85,23 @@ export function querify(dictionary, parentKey = '', query = new URLSearchParams(
     }
     return query;
 }
+
+export async function getSolrUrl() {
+    return fetch("/settings/appsettings.json", {
+        method: "GET",
+        headers: {
+            accept: "application/json",
+        }
+    })
+    .then((response) => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then((error) => {
+                throw new Error(error.message ?? error.detail);
+            });
+        }
+    }).then(settings => {
+        return extract(null, settings, "Solr", "URL");
+    });
+}

@@ -124,9 +124,9 @@ class NavMenu extends Component {
                         <Nav className={ "flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
-                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} />
-                                    <ViewDropdown className="me-1" name="view" tooltip="View" value={this.props.ui.view} onChange={this.onViewChange.bind(this)} />
-                                    <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} />
+                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} />
+                                    <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={this.props.ui.view} onChange={this.onViewChange.bind(this)} />
+                                    <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} />
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.props.search.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                     <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
