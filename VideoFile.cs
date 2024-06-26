@@ -491,11 +491,22 @@ namespace MediaCurator
          {
             ffmpeg.StartInfo.FileName = executable;
 
+            // Start time
             ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", sequence * duration);
+            // Duration of 10 seconds
             ffmpeg.StartInfo.Arguments += String.Format("-t {0} ", count == 0 ? Duration - (double)(sequence * duration) : count * duration);
+            // Copy timestamps
             ffmpeg.StartInfo.Arguments += String.Format("-copyts ");
+            // Input file
             ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
-            ffmpeg.StartInfo.Arguments += String.Format("-map 0 -c:v libx264 -c:a aac ");
+            // Map all streams from the input
+            ffmpeg.StartInfo.Arguments += String.Format("-map 0 ");
+            // Exclude all subtitle streams
+            ffmpeg.StartInfo.Arguments += String.Format("-map -0:s ");
+            // Set video codec to libx264
+            ffmpeg.StartInfo.Arguments += String.Format("-c:v libx264 ");
+            // Set audio codec to AAC
+            ffmpeg.StartInfo.Arguments += String.Format("-c:a aac ");
 
             string template = "-vf scale=-1:{0} -b:v {1}k -maxrate {2}k -bufsize {3}k -b:a 128k ";
 
@@ -528,9 +539,23 @@ namespace MediaCurator
                   break;
             }
 
-            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} -reset_timestamps 0 -break_non_keyframes 1 ", duration);
+            // Segment duration in seconds
+            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} ", duration);
+            // Reset timestamps
+            ffmpeg.StartInfo.Arguments += String.Format("-reset_timestamps 0 ");
+            // Break segments at non-keyframes
+            ffmpeg.StartInfo.Arguments += String.Format("-break_non_keyframes 1 ");
+
             // ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
-            ffmpeg.StartInfo.Arguments += String.Format("-f segment -segment_format mpegts {0} -y", format);
+
+            // Output format: segment
+            ffmpeg.StartInfo.Arguments += String.Format("-f segment ");
+            // Segment format: MPEG-TS
+            ffmpeg.StartInfo.Arguments += String.Format("-segment_format mpegts ");
+            // Output file pattern
+            ffmpeg.StartInfo.Arguments += String.Format("{0} ", format);
+            // Overwrite output files without asking
+            ffmpeg.StartInfo.Arguments += String.Format("-y", format);
 
             Logger.LogDebug(String.Format("{0} {1}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments));
 
