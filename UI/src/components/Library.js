@@ -925,11 +925,12 @@ class Library extends Component {
                             ({ columnIndex, rowIndex, style }) => {
                                 let index = (rowIndex * columnCount) + columnIndex;
                                 let source = this.state.items[index];
+                                const view = this.props.ui.view[this.props.search.path] ?? this.props.ui.view.default;
                                 if (source !== undefined) {
                                     this.mediaContainers[index] = React.createRef();
                                     return (
                                         <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={this.props.ui.view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                         </div>
                                     );
                                 } else {

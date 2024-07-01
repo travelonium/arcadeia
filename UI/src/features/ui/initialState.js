@@ -1,5 +1,7 @@
 const initialState = {
-    view: "card",
+    view: {
+        default: "card",
+    },
     theme: "light",
     scrollPosition: {},
     uploads: {

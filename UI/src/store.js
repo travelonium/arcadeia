@@ -19,15 +19,23 @@ import createMigrate from 'redux-persist/es/createMigrate';
 const persistConfig = {
     key: 'root',
     blacklist: ['search'],
-    version: 2,
+    version: 3,
     storage,
     migrate: createMigrate({
         2: (state) => {
             const newState = {
                 ...state,
                 history: uiInitialState.history,
-            }
-        }
+            };
+            return newState;
+        },
+        3: (state) => {
+            const newState = {
+                ...state,
+                view: uiInitialState.view,
+            };
+            return newState;
+        },
     }, { debug: false })
 };
 
@@ -41,7 +49,8 @@ const searchPersistConfig = {
             const newState = {
                 ...state,
                 sort: searchInitialState.sort,
-            }
+            };
+            return newState;
         }
     }, { debug: false })
 };

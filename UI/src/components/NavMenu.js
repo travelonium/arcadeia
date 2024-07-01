@@ -6,7 +6,7 @@ import { ViewDropdown } from './ViewDropdown';
 import { SortDropdown } from './SortDropdown';
 import { HistoryDropdown } from './HistoryDropdown';
 import { setQuery, setFavorite, setRecursive, setSort, resetSort, setPath } from '../features/search/slice';
-import { setTheme, setView } from '../features/ui/slice';
+import { setTheme, setView, resetView } from '../features/ui/slice';
 import { connect } from "react-redux";
 import { extract } from '../utils';
 import { Flag } from './Flag';
@@ -73,7 +73,16 @@ class NavMenu extends Component {
     }
 
     onViewChange(value) {
-        this.props.dispatch(setView(value));
+        this.props.dispatch(setView({
+            path: this.props.search.path,
+            value: value
+        }));
+    }
+
+    onViewReset() {
+        this.props.dispatch(resetView({
+            path: this.props.search.path,
+        }));
     }
 
     onHistorySelect(source) {
@@ -106,8 +115,10 @@ class NavMenu extends Component {
 
     render() {
         const path = this.props.search.path;
+        const view = this.props.ui.view[path] ?? this.props.ui.view.default;
         const sort = this.props.search.sort[path] ?? this.props.search.sort;
-        const overridden = (path in this.props.search.sort);
+        const sortOverridden = (path in this.props.search.sort);
+        const viewOverridden = (path in this.props.ui.view);
         return (
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"} className="mb-3 p-2">
@@ -124,8 +135,8 @@ class NavMenu extends Component {
                         <Nav className={ "flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2") }>
                             <Nav.Item>
                                 <div className="toolbar d-flex align-items-center px-2">
-                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={overridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} />
-                                    <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={this.props.ui.view} onChange={this.onViewChange.bind(this)} />
+                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} />
+                                    <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} />
                                     <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} />
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.props.search.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.props.search.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />

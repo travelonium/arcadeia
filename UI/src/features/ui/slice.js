@@ -6,10 +6,34 @@ export const uiSlice = createSlice({
     initialState: initialState,
     reducers: {
         setView: (state, action) => {
-            return {
+            let newState = {
                 ...state,
-                view: action.payload ?? initialState.view,
-            };
+                view: {
+                    ...state.view,
+                    default: action.payload?.value ?? initialState.view.default
+                }
+            }
+            const path = action.payload?.path;
+            if (path) {
+                newState.view[path] = {};
+                newState.view[path] = action.payload?.value ?? initialState.view.default;
+            }
+            return newState;
+        },
+        resetView: (state, action) => {
+            const path = action.payload?.path;
+            let newState = {
+                ...state,
+                view: {
+                    ...state.view
+                }
+            }
+            if (path && newState.view.hasOwnProperty(path)) {
+                delete newState.view[path];
+            } else {
+                newState.view.default = action.payload?.value ?? initialState.view.default;
+            }
+            return newState;
         },
         setTheme: (state, action) => {
             const theme = action.payload ?? initialState.theme;
@@ -92,5 +116,5 @@ export const uiSlice = createSlice({
 });
 
 const { actions, reducer } = uiSlice;
-export const { setView, setTheme, setScrollPosition, setSimultaneousUploads } = actions;
+export const { setView, resetView, setTheme, setScrollPosition, setSimultaneousUploads } = actions;
 export default reducer;

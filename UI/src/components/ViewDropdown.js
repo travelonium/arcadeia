@@ -1,6 +1,7 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
+import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
 import { clone } from '../utils';
 import cx from 'classnames';
@@ -42,10 +43,14 @@ export class ViewDropdown extends Component {
         return show;
     }
 
+    onReset() {
+        if (this.props.onReset) this.props.onReset();
+    }
+
     render() {
         let icon = (this.props.value === "card") ? "bi-person-vcard" : "bi-card-image";
         return (
-            <Dropdown className={cx("sort-dropdown d-inline", this.props.className)} autoClose="outside" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)}>
+            <Dropdown className={cx("sort-dropdown d-inline", this.props.className, this.props.overridden ? "overridden" : "")} autoClose="outside" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)}>
                 <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                     (this.props.tooltip && !this.state.open) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
                 }>
@@ -64,6 +69,16 @@ export class ViewDropdown extends Component {
                             </Dropdown.Item>
                         )
                     })
+                }
+                {
+                    (this.props.overridden) ? <>
+                    <Dropdown.Divider />
+                    <Dropdown.Item active={false}>
+                        <div className="d-flex flex-column justify-content-center">
+                            <Button onClick={this.onReset.bind(this)} variant="secondary">Reset</Button>
+                        </div>
+                    </Dropdown.Item>
+                    </> : <></>
                 }
                 </Dropdown.Menu>
             </Dropdown>
