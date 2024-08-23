@@ -489,7 +489,7 @@ class Library extends Component {
             let process = (file, path) => {
                 // queue the file object and its destination path if not already queued or active
                 let key = file.webkitRelativePath ? path + file.webkitRelativePath : file.name;
-                if (!this.state.uploads.active.hasOwnProperty(key) && this.state.uploads.queued.findIndex(x => pb.join(x.path, x.name) === key) === -1) {
+                if (!this.state.uploads.active.hasOwnProperty(key) && this.state.uploads.queued.findIndex(x => pb.join(x.path, x.file.name) === key) === -1) {
                     if (file.webkitRelativePath) path = pb.normalize(pb.dirname(pb.join(path, file.webkitRelativePath)) + "/");
                     queue(file, path);
                 }
