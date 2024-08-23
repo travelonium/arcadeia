@@ -544,6 +544,7 @@ class Library extends Component {
         // yes, we can start one more
         const file = this.state.uploads.queued[0].file;
         const path = this.state.uploads.queued[0].path;
+        const key = pb.join(path, file.name);
         // dequeue the first file and start uploading it
         this.setState(prevState => {
             return {
@@ -557,7 +558,6 @@ class Library extends Component {
                 })
             }
         }, () => {
-            let key = pb.join(path, file.name);
             let config = {
                 headers: {
                     "Content-Type": "multipart/form-data",
@@ -652,7 +652,6 @@ class Library extends Component {
                     let failed = extract(null, this.state.uploads.active, key, 'file');
                     // remove the failed upload from the list of active uploads
                     this.setState(prevState => {
-                        let key = pb.join(path, file.name);
                         return {
                             ...prevState,
                             uploads: update(prevState.uploads, {
