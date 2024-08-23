@@ -120,7 +120,17 @@ namespace MediaCurator.Controllers
 
          if (!System.IO.Directory.Exists(path))
          {
-            return Problem(title: "Folder Not Found",detail: "Destination folder not found.", statusCode: 404);
+            try
+            {
+               System.IO.Directory.CreateDirectory(path);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Create Path: {}, Because: {}", path, e.Message);
+               _logger.LogDebug("{}", e.ToString());
+
+               return Problem(title: "Path Creation Failed", detail: "Failed to create the destination path.", statusCode: 500);
+            }
          }
 
          foreach (var file in files)
