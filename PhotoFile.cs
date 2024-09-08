@@ -221,7 +221,7 @@ namespace MediaCurator
 
                if ((width > 0) || (height > 0))
                {
-                  var size = new MagickGeometry(width, height)
+                  var size = new MagickGeometry((uint)width, (uint)height)
                   {
                      IgnoreAspectRatio = false,
                      Greater = true,
@@ -251,7 +251,7 @@ namespace MediaCurator
          {
             try
             {
-               var size = new MagickGeometry((width > 0) ? width : image.BaseWidth, (height > 0) ? height : image.BaseHeight)
+               var size = new MagickGeometry((width > 0) ? (uint)(width) : image.BaseWidth, (height > 0) ? (uint)(height) : image.BaseHeight)
                {
                   IgnoreAspectRatio = false,
                   FillArea = crop
