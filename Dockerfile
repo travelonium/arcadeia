@@ -20,7 +20,7 @@ RUN set -eux; \
     dotnet publish -a $TARGETARCH --no-restore --configuration Release -o /app;
 
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION
 RUN dpkg --print-architecture;
 RUN set -eux; \
