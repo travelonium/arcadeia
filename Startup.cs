@@ -128,7 +128,10 @@ namespace MediaCurator
          app.UseEndpoints(endpoints =>
          {
             endpoints.MapControllers();
-            endpoints.MapHub<SignalRHub>("/signalr");
+            endpoints.MapHub<SignalRHub>("/signalr", options =>
+            {
+               options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+            });
          });
 
          app.UseSpa(spa =>
