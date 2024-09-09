@@ -159,7 +159,7 @@ class Library extends Component {
     }
 
     setupSignalRConnection(callback = undefined) {
-        const connection = new signalR.HubConnectionBuilder().withUrl("/signalr").withAutomaticReconnect().configureLogging(signalR.LogLevel.Information).build();
+        const connection = new signalR.HubConnectionBuilder().withUrl("/signalr", { transport: signalR.HttpTransportType.WebSockets }).withAutomaticReconnect().configureLogging(signalR.LogLevel.Information).build();
         connection.start()
         .then(() => {
             this.signalRConnection = connection;

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Collections.Generic;
 using MediaCurator.Services;
@@ -30,7 +31,12 @@ namespace MediaCurator
          services.AddControllersWithViews();
 
          // Instantiate the SignalR Hub and NotificationService
-         services.AddSignalR();
+         services.AddSignalR(options =>
+         {
+            options.EnableDetailedErrors = true;
+            options.MaximumReceiveMessageSize = null;
+         }).AddMessagePackProtocol();
+
          services.AddSingleton<NotificationService>();
 
          // Instantiate and configure an HTTPClient
