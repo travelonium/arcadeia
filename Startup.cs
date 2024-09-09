@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Collections.Generic;
 using MediaCurator.Services;
+using MediaCurator.Hubs;
 using MediaCurator.Solr;
 using System.Net;
 using SolrNet;
@@ -49,6 +51,10 @@ namespace MediaCurator
 
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
+
+         // Instantiate the SignalR Hub and NotificationService
+         services.AddSignalR();
+         services.AddSingleton<NotificationService>();
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
@@ -116,6 +122,7 @@ namespace MediaCurator
          app.UseEndpoints(endpoints =>
          {
             endpoints.MapControllers();
+            endpoints.MapHub<SignalRHub>("/signalr");
          });
 
          app.UseSpa(spa =>

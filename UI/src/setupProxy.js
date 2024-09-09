@@ -10,6 +10,7 @@ const context = [
   "/preview",
   "/thumbnails",
   "/settings",
+  "/signalr",
 ];
 
 const onError = (err, req, resp, target) => {

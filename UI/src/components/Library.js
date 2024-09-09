@@ -13,6 +13,7 @@ import { clone, extract, size, updateBit, querify } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
+import * as signalR from '@microsoft/signalr';
 import { UploadZone } from './UploadZone';
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
@@ -41,6 +42,8 @@ class Library extends Component {
         this.ignoreScrollUpdateWasRequested = false;
         this.storeScrollPositionTimeout = null;
         this.uploadTimeout = null;
+        this.signalRConnection = null;
+        this.scannerProgressToast = null;
         this.state = {
             loading: false,
             status: "",
@@ -82,6 +85,8 @@ class Library extends Component {
             this.props.dispatch(reset(extract("", event, "state", "path")));
             this.mediaViewer.current.hide();
         };
+        // create the signalR connection and setup notifications
+        this.setupSignalRConnection(this.setupNotifications.bind(this));
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -110,6 +115,81 @@ class Library extends Component {
                 }
             })
         }
+    }
+
+    setupNotifications(connection) {
+        connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
+            let progress = (index + 1) / total;
+            if (!this.scannerProgressToast) {
+                this.scannerProgressToast = toast.info(this.renderScannerProgressToast(`${title}...`, this.shorten(item, 100)),
+                {
+                    theme: 'dark',
+                    progress: progress,
+                    icon: <div className="Toastify__spinner"></div>,
+                    type: (progress === 1) ? toast.TYPE.INFO : null,
+                });
+            } else {
+                toast.update(this.scannerProgressToast, {
+                    progress: progress,
+                    render: this.renderScannerProgressToast.bind(this, `${title}...`, this.shorten(item, 100)),
+                    type: (progress === 1) ? toast.TYPE.SUCCESS : null,
+                });
+            }
+            if (progress === 1) this.scannerProgressToast = null;
+        });
+        connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
+            let progress = (index + 1) / total;
+            if (!this.scannerProgressToast) {
+                this.scannerProgressToast = toast.info(this.renderScannerProgressToast(`${title}...`, this.shorten(item, 100)),
+                {
+                    theme: 'dark',
+                    progress: progress,
+                    icon: <div className="Toastify__spinner"></div>,
+                    type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+                });
+            } else {
+                toast.update(this.scannerProgressToast, {
+                    progress: progress,
+                    render: this.renderScannerProgressToast.bind(this, `${title}...`, this.shorten(item, 100)),
+                    type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+                });
+            }
+            if (progress === 1) this.scannerProgressToast = null;
+        });
+    }
+
+    setupSignalRConnection(callback = undefined) {
+        const connection = new signalR.HubConnectionBuilder().withUrl("/signalr").withAutomaticReconnect().configureLogging(signalR.LogLevel.Information).build();
+        connection.start()
+        .then(() => {
+            this.signalRConnection = connection;
+            if (callback !== undefined) {
+                callback(connection);
+            }
+        })
+        .catch(error => console.error("Error while starting a SignalR connection: ", error));
+    }
+
+    shorten(path, length) {
+        if (path.length <= length) return path;
+
+        const parts = path.split("/");
+        const fileName = parts.pop(); // get the file name (last part)
+        const remainingLength = length - fileName.length - 4; // subtract length for file name and '.../'
+        let shortenedPath = "";
+        let i = 0;
+
+        if (remainingLength <= 0) {
+            // if there's not enough room for the rest of the path
+            return '.../' + fileName;
+        }
+
+        while (shortenedPath.length + parts[i].length + 1 <= remainingLength && i < parts.length) {
+            shortenedPath += parts[i] + '/';
+            i++;
+        }
+
+        return shortenedPath + '.../' + fileName;
     }
 
     set(index, source, refresh = true, callback = undefined) {
@@ -937,6 +1017,17 @@ class Library extends Component {
                     <strong>{title}</strong>
                 </div>
                 <small>{subtitle}</small>
+            </>
+        );
+    }
+
+    renderScannerProgressToast(title, subtitle) {
+        return (
+            <>
+                <div className="mb-1">
+                    <strong>{title}</strong>
+                </div>
+                <small className="scanner-progress-subtitle">{subtitle}</small>
             </>
         );
     }
