@@ -29,6 +29,10 @@ namespace MediaCurator
       {
          services.AddControllersWithViews();
 
+         // Instantiate the SignalR Hub and NotificationService
+         services.AddSignalR();
+         services.AddSingleton<NotificationService>();
+
          // Instantiate and configure an HTTPClient
          services.AddHttpClient();
 
@@ -51,10 +55,6 @@ namespace MediaCurator
 
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
-
-         // Instantiate the SignalR Hub and NotificationService
-         services.AddSignalR();
-         services.AddSingleton<NotificationService>();
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
