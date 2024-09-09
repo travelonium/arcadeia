@@ -38,6 +38,6 @@ RUN set -eux; \
 COPY --from=builder /app /var/lib/app/
 COPY entrypoint.sh /
 
-EXPOSE 80 443
+EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["-D", "FOREGROUND"]
