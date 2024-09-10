@@ -138,48 +138,50 @@ class Library extends Component {
 
     setupNotifications(connection) {
         connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
+            const value = {
+                uuid: uuid,
+                title: title,
+                path: path,
+                item: item,
+                index: index,
+                total: total
+            };
             this.setState(prevState => {
                 return {
                     ...prevState,
                     scanner: update(prevState.scanner, {
                         $merge: {
                             scan: update(prevState.scanner.scan, {
-                                $merge: {
-                                    uuid: uuid,
-                                    title: title,
-                                    path: path,
-                                    item: item,
-                                    index: index,
-                                    total: total
-                                }
+                                $merge: value
                             })
                         }
                     })
                 }
             }, () => {
-                this.showScannerProgressToast(clone(this.state.scanner.scan));
+                this.showScannerProgressToast(value);
             });
         });
         connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
+            const value = {
+                uuid: uuid,
+                title: title,
+                item: item,
+                index: index,
+                total: total
+            };
             this.setState(prevState => {
                 return {
                     ...prevState,
                     scanner: update(prevState.scanner, {
                         $merge: {
                             update: update(prevState.scanner.update, {
-                                $merge: {
-                                    uuid: uuid,
-                                    title: title,
-                                    item: item,
-                                    index: index,
-                                    total: total
-                                }
+                                $merge: value
                             })
                         }
                     })
                 }
             }, () => {
-                this.showScannerProgressToast(clone(this.state.scanner.update));
+                this.showScannerProgressToast(value);
             });
         });
     }
