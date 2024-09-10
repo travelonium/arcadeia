@@ -70,6 +70,23 @@ class Library extends Component {
                         hasTooltip: true,
                     },
                 }
+            },
+            scanner: {
+                scan: {
+                    uuid: null,
+                    title: null,
+                    path: null,
+                    item: null,
+                    index: null,
+                    total: null
+                },
+                update: {
+                    uuid: null,
+                    title: null,
+                    item: null,
+                    index: null,
+                    total: null
+                }
             }
         };
     }
@@ -95,9 +112,9 @@ class Library extends Component {
         let selectedCurrentProps = this.props;
         let selectedNextState = clone(nextState);
         let selectedCurrentState = clone(this.state);
-        // ignore the uploads key as its changes shouldn't cause a reload
-        selectedNextState = _.omit(selectedNextState, ['uploads']);
-        selectedCurrentState = _.omit(selectedCurrentState, ['uploads']);
+        // ignore the keys that shouldn't cause a reload
+        selectedNextState = _.omit(selectedNextState, ['uploads', 'scanner']);
+        selectedCurrentState = _.omit(selectedCurrentState, ['uploads', 'scanner']);
         // ignore the scrollPosition key as its changes shouldn't cause a reload
         let should = (_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
                      (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
@@ -120,42 +137,49 @@ class Library extends Component {
 
     setupNotifications(connection) {
         connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
-            let progress = (index + 1) / total;
-            if (!this.scannerProgressToast) {
-                this.scannerProgressToast = toast.info(this.renderScannerProgressToast(`${title}...`, this.shorten(item, 100)),
-                {
-                    theme: 'dark',
-                    progress: progress,
-                    icon: <div className="Toastify__spinner"></div>,
-                    type: (progress === 1) ? toast.TYPE.INFO : null,
-                });
-            } else {
-                toast.update(this.scannerProgressToast, {
-                    progress: progress,
-                    render: this.renderScannerProgressToast.bind(this, `${title}...`, this.shorten(item, 100)),
-                    type: (progress === 1) ? toast.TYPE.SUCCESS : null,
-                });
-            }
-            if (progress === 1) this.scannerProgressToast = null;
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    scanner: update(prevState.scanner, {
+                        $merge: {
+                            scan: update(prevState.scanner.scan, {
+                                $merge: {
+                                    uuid: uuid,
+                                    title: title,
+                                    path: path,
+                                    item: item,
+                                    index: index,
+                                    total: total
+                                }
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.showScannerProgressToast(clone(this.state.scanner.scan));
+            });
         });
         connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
-            let progress = (index + 1) / total;
-            if (!this.scannerProgressToast) {
-                this.scannerProgressToast = toast.info(this.renderScannerProgressToast(`${title}...`, this.shorten(item, 100)),
-                {
-                    theme: 'dark',
-                    progress: progress,
-                    icon: <div className="Toastify__spinner"></div>,
-                    type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
-                });
-            } else {
-                toast.update(this.scannerProgressToast, {
-                    progress: progress,
-                    render: this.renderScannerProgressToast.bind(this, `${title}...`, this.shorten(item, 100)),
-                    type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
-                });
-            }
-            if (progress === 1) this.scannerProgressToast = null;
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    scanner: update(prevState.scanner, {
+                        $merge: {
+                            update: update(prevState.scanner.update, {
+                                $merge: {
+                                    uuid: uuid,
+                                    title: title,
+                                    item: item,
+                                    index: index,
+                                    total: total
+                                }
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.showScannerProgressToast(clone(this.state.scanner.update));
+            });
         });
     }
 
@@ -174,6 +198,30 @@ class Library extends Component {
             }
         })
         .catch(error => console.error("Error while starting a SignalR connection: ", error));
+    }
+
+    showScannerProgressToast(state) {
+        const progress = (state.index + 1) / state.total;
+        const render = this.renderScannerProgressToast(`${state.title}...`, this.shorten(state.item, 100));
+        if (!this.scannerProgressToast) {
+            this.scannerProgressToast = toast.info(render,
+            {
+                theme: 'dark',
+                progress: progress,
+                icon: <div className="Toastify__spinner"></div>,
+                type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+            });
+        } else {
+            toast.update(this.scannerProgressToast, {
+                render: render,
+                progress: progress,
+                type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+            });
+        }
+        if (progress === 1) {
+            toast.dismiss(this.scannerProgressToast);
+            this.scannerProgressToast = null;
+        }
     }
 
     shorten(path, length) {
