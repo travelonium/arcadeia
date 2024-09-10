@@ -383,6 +383,9 @@ namespace MediaCurator.Services
          try
          {
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
+
+            _logger.LogInformation("Calculating Files Count: {}", path);
+
             int total = files.Count();
             int index = -1;
 
@@ -394,6 +397,9 @@ namespace MediaCurator.Services
                   var name = Path.GetFileName(file);
                   int currentIndex = Interlocked.Increment(ref index);
 
+                  // Inform the client(s) of the current progress.
+                  await _notificationService.ShowScanProgressAsync(uuid, String.Format("{0} Scanning", type), path, file, currentIndex, total);
+
                   // Should the file name be ignored
                   foreach (Regex pattern in patterns)
                   {
@@ -404,9 +410,6 @@ namespace MediaCurator.Services
                         return;
                      }
                   }
-
-                  // Inform the client(s) of the current progress.
-                  await _notificationService.ShowScanProgressAsync(uuid, String.Format("{0} Scanning", type), path, file, currentIndex, total);
 
                   try
                   {
@@ -475,6 +478,9 @@ namespace MediaCurator.Services
 
          var documents = solrIndexService.Get(SolrQuery.All);
          var availableFolders = AvailableFolders.Concat(AvailableWatchedFolders).ToList();
+
+         _logger.LogInformation("Calculating Documents Count...");
+
          int total = documents.Count;
          int index = -1;
 

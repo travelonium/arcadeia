@@ -45,6 +45,7 @@ class Library extends Component {
         this.uploadTimeout = null;
         this.signalRConnection = null;
         this.scannerProgressToast = null;
+        this.lastScannerProgressToastShowed = 0;
         this.state = {
             loading: false,
             status: "",
@@ -201,6 +202,10 @@ class Library extends Component {
     }
 
     showScannerProgressToast(state) {
+        console.log(state);
+        const interval = 10; // the throttling interval in ms
+        const now = Date.now();
+        if ((now - this.lastScannerProgressToastShowed < interval) && (state.index > 0) && ((state.index + 1) < state.total)) return;
         const progress = (state.index + 1) / state.total;
         const render = this.renderScannerProgressToast(`${state.title}...`, this.shorten(state.item, 100));
         if (!this.scannerProgressToast) {
@@ -222,6 +227,7 @@ class Library extends Component {
             toast.dismiss(this.scannerProgressToast);
             this.scannerProgressToast = null;
         }
+        this.lastScannerProgressToastShowed = now;
     }
 
     shorten(path, length) {

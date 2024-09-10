@@ -35,8 +35,6 @@ namespace MediaCurator
          {
             options.EnableDetailedErrors = true;
             options.MaximumReceiveMessageSize = null;
-            // Avoid message backlog
-            options.StreamBufferCapacity = 50;
          }).AddMessagePackProtocol();
 
          services.AddSingleton<NotificationService>();
