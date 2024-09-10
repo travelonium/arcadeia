@@ -384,10 +384,12 @@ namespace MediaCurator.Services
          {
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
 
-            _logger.LogInformation("Calculating Files Count: {}", path);
+            _logger.LogInformation("Calculating Files Count...");
 
             int total = files.Count();
             int index = -1;
+
+            _logger.LogInformation("Scanning {} Files...", total);
 
             // Loop through the files in the specific MediaLocation in parallel.
             try
