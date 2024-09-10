@@ -142,10 +142,10 @@ namespace MediaCurator
          {
             spa.Options.SourcePath = "UI";
 
-            /*if (env.IsDevelopment())
+            if (env.IsDevelopment())
             {
                spa.UseReactDevelopmentServer(npmScript: "start");
-            }*/
+            }
          });
       }
    }
