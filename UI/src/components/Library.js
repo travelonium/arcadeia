@@ -202,7 +202,6 @@ class Library extends Component {
     }
 
     showScannerProgressToast(state) {
-        console.log(state);
         const interval = 10; // the throttling interval in ms
         const now = Date.now();
         if ((now - this.lastScannerProgressToastShowed < interval) && (state.index > 0) && ((state.index + 1) < state.total)) return;
