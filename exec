@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+# Execute a command in a container.
+
+if [ $# -eq 1 ]; then
+    docker compose -f docker-compose.yml exec $@ bash
+else
+    docker compose -f docker-compose.yml exec $@
+fi

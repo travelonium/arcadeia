@@ -9,6 +9,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
+import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 import { clone, extract, size, updateBit, querify } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
@@ -159,7 +160,12 @@ class Library extends Component {
     }
 
     setupSignalRConnection(callback = undefined) {
-        const connection = new signalR.HubConnectionBuilder().withUrl("/signalr", { transport: signalR.HttpTransportType.WebSockets }).withAutomaticReconnect().configureLogging(signalR.LogLevel.Information).build();
+        const connection = new signalR.HubConnectionBuilder()
+                                      .withUrl("/signalr", { transport: signalR.HttpTransportType.WebSockets })
+                                      .withAutomaticReconnect()
+                                      .withHubProtocol(new MessagePackHubProtocol())
+                                      .configureLogging(signalR.LogLevel.Information)
+                                      .build();
         connection.start()
         .then(() => {
             this.signalRConnection = connection;

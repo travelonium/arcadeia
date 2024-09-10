@@ -35,6 +35,8 @@ namespace MediaCurator
          {
             options.EnableDetailedErrors = true;
             options.MaximumReceiveMessageSize = null;
+            // Avoid message backlog
+            options.StreamBufferCapacity = 50;
          }).AddMessagePackProtocol();
 
          services.AddSingleton<NotificationService>();
@@ -130,13 +132,20 @@ namespace MediaCurator
             endpoints.MapControllers();
             endpoints.MapHub<SignalRHub>("/signalr", options =>
             {
-               options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+               options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets
+                                    | Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents
+                                    | Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
             });
          });
 
          app.UseSpa(spa =>
          {
             spa.Options.SourcePath = "UI";
+
+            /*if (env.IsDevelopment())
+            {
+               spa.UseReactDevelopmentServer(npmScript: "start");
+            }*/
          });
       }
    }
