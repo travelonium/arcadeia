@@ -9,6 +9,7 @@ import _ from 'lodash';
 export class VideoPlayer extends React.Component {
 
     componentDidMount() {
+        this.attempt = 0;
         let options = this.props.options;
         let sources = this.sources(this.props.sources);
         options.sources = sources;
@@ -16,6 +17,7 @@ export class VideoPlayer extends React.Component {
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
         this.player.on('loadstart', this.onPlayerLoadStart.bind(this));
         this.player.on('loadeddata', this.onPlayerLoadedData.bind(this));
+        this.player.on('error', this.onPlayerError.bind(this));
         if (this.props.sources.length === 1) {
             let source = this.props.sources[0];
             this.player.vttThumbnails({
@@ -43,10 +45,7 @@ export class VideoPlayer extends React.Component {
                 if (currentIndex >= this.props.sources.length) return true;
                 return (previousValue | (extract(null, currentValue, "fullPath") !== extract(null, this.props.sources, currentIndex, "fullPath")))
             }, false)
-            if (reload) {
-                let sources = this.sources(this.props.sources);
-                this.player.src(sources);
-            }
+            if (reload) this.reload();
         }
     }
 
@@ -56,8 +55,21 @@ export class VideoPlayer extends React.Component {
 
     onPlayerLoadedData() {}
 
-    sources(items) {
+    onPlayerError() {
+        let error = this.player.error();
+        // check if the error code is 4 (MEDIA_ERR_SRC_NOT_SUPPORTED)
+        if (error && error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+            this.player.error(null); // clear the error state
+            this.reload(true); // try to reload the player forcing format conversion
+        }
+    }
+
+    sources(items, force = false) {
+        this.attempt++;
+        // a maximum of two attempts are enough to give up
+        if (this.attempt > 2) return null;
         return items.map((item) => {
+            if (force) return "/preview/video/" + item.id + "/original.m3u8";
             switch (item.extension) {
                 case "wmv":
                 case "flv":
@@ -71,6 +83,11 @@ export class VideoPlayer extends React.Component {
                     return "/preview/video/" + item.id + "/" + item.name;
             }
         });
+    }
+
+    reload(force = false) {
+        let sources = this.sources(this.props.sources, force);
+        if (sources ) this.player.src(sources);
     }
 
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't create additional wrapper in the DOM
