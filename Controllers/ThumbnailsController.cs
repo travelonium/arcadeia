@@ -108,8 +108,8 @@ namespace MediaCurator.Controllers
          var item = ThumbnailsConfiguration.Value.GetValueOrDefault(label);
 
          int count = 0;
-         int width = -1;
-         int height = -1;
+         long width = -1;
+         long height = -1;
          bool sprite = false;
          string from = "00:00:00";
          double duration = videoFile.Duration;
@@ -133,8 +133,8 @@ namespace MediaCurator.Controllers
 
          var info = new MagickImageInfo(thumbnail);
 
-         if ((width <= 0) && (info.Width > 0)) width = (int)(info.Width / count);
-         if ((height <= 0) && (info.Height > 0)) height = info.Height;
+         if ((width <= 0) && (info.Width > 0)) width = (long)(info.Width / count);
+         if ((height <= 0) && (info.Height > 0)) height = (long)(info.Height);
 
          content.AppendLine("WEBVTT" + Environment.NewLine);
 

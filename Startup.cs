@@ -4,9 +4,12 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Collections.Generic;
 using MediaCurator.Services;
+using MediaCurator.Hubs;
 using MediaCurator.Solr;
 using System.Net;
 using SolrNet;
@@ -26,6 +29,16 @@ namespace MediaCurator
       public void ConfigureServices(IServiceCollection services)
       {
          services.AddControllersWithViews();
+
+         // Instantiate the SignalR Hub and NotificationService
+         services.AddSignalR(options =>
+         {
+            options.EnableDetailedErrors = true;
+            options.MaximumReceiveMessageSize = null;
+            options.StreamBufferCapacity = 50;
+         }).AddMessagePackProtocol();
+
+         services.AddSingleton<NotificationService>();
 
          // Instantiate and configure an HTTPClient
          services.AddHttpClient();
@@ -116,11 +129,22 @@ namespace MediaCurator
          app.UseEndpoints(endpoints =>
          {
             endpoints.MapControllers();
+            endpoints.MapHub<SignalRHub>("/signalr", options =>
+            {
+               options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets
+                                    | Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents
+                                    | Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+            });
          });
 
          app.UseSpa(spa =>
          {
             spa.Options.SourcePath = "UI";
+
+            if (env.IsDevelopment())
+            {
+               spa.UseReactDevelopmentServer(npmScript: "start");
+            }
          });
       }
    }

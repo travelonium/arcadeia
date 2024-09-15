@@ -3,7 +3,6 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
-import { clone } from '../utils';
 import cx from 'classnames';
 import _ from 'lodash';
 

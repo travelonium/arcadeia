@@ -770,7 +770,7 @@ namespace MediaCurator
 
          if (Skipped)
          {
-            Logger.LogInformation("{} Skipped: {}", Type, FullPath);
+            Logger.LogDebug("{} Skipped: {}", Type, FullPath);
 
             return false;
          }

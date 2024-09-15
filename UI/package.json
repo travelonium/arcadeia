@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@microsoft/signalr": "^8.0.7",
+    "@microsoft/signalr-protocol-msgpack": "^8.0.7",
     "@reduxjs/toolkit": "^2.0.1",
     "animate.css": "^4.1.1",
     "axios": "^1.6.2",

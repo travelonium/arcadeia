@@ -9,10 +9,12 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
+import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 import { clone, extract, size, updateBit, querify } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
+import * as signalR from '@microsoft/signalr';
 import { UploadZone } from './UploadZone';
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
@@ -41,6 +43,9 @@ class Library extends Component {
         this.ignoreScrollUpdateWasRequested = false;
         this.storeScrollPositionTimeout = null;
         this.uploadTimeout = null;
+        this.signalRConnection = null;
+        this.scannerProgressToast = null;
+        this.lastScannerProgressToastShowed = 0;
         this.state = {
             loading: false,
             status: "",
@@ -66,6 +71,23 @@ class Library extends Component {
                         hasTooltip: true,
                     },
                 }
+            },
+            scanner: {
+                scan: {
+                    uuid: null,
+                    title: null,
+                    path: null,
+                    item: null,
+                    index: null,
+                    total: null
+                },
+                update: {
+                    uuid: null,
+                    title: null,
+                    item: null,
+                    index: null,
+                    total: null
+                }
             }
         };
     }
@@ -82,6 +104,8 @@ class Library extends Component {
             this.props.dispatch(reset(extract("", event, "state", "path")));
             this.mediaViewer.current.hide();
         };
+        // create the signalR connection and setup notifications
+        this.setupSignalRConnection(this.setupNotifications.bind(this));
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -89,9 +113,9 @@ class Library extends Component {
         let selectedCurrentProps = this.props;
         let selectedNextState = clone(nextState);
         let selectedCurrentState = clone(this.state);
-        // ignore the uploads key as its changes shouldn't cause a reload
-        selectedNextState = _.omit(selectedNextState, ['uploads']);
-        selectedCurrentState = _.omit(selectedCurrentState, ['uploads']);
+        // ignore the keys that shouldn't cause a reload
+        selectedNextState = _.omit(selectedNextState, ['uploads', 'scanner']);
+        selectedCurrentState = _.omit(selectedCurrentState, ['uploads', 'scanner']);
         // ignore the scrollPosition key as its changes shouldn't cause a reload
         let should = (_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
                      (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
@@ -110,6 +134,123 @@ class Library extends Component {
                 }
             })
         }
+    }
+
+    setupNotifications(connection) {
+        connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
+            const value = {
+                uuid: uuid,
+                title: title,
+                path: path,
+                item: item,
+                index: index,
+                total: total
+            };
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    scanner: update(prevState.scanner, {
+                        $merge: {
+                            scan: update(prevState.scanner.scan, {
+                                $merge: value
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.showScannerProgressToast(value);
+            });
+        });
+        connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
+            const value = {
+                uuid: uuid,
+                title: title,
+                item: item,
+                index: index,
+                total: total
+            };
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    scanner: update(prevState.scanner, {
+                        $merge: {
+                            update: update(prevState.scanner.update, {
+                                $merge: value
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.showScannerProgressToast(value);
+            });
+        });
+    }
+
+    setupSignalRConnection(callback = undefined) {
+        const connection = new signalR.HubConnectionBuilder()
+                                      .withUrl("/signalr", { transport: signalR.HttpTransportType.WebSockets })
+                                      .withAutomaticReconnect()
+                                      .withHubProtocol(new MessagePackHubProtocol())
+                                      .configureLogging(signalR.LogLevel.Information)
+                                      .build();
+        connection.start()
+        .then(() => {
+            this.signalRConnection = connection;
+            if (callback !== undefined) {
+                callback(connection);
+            }
+        })
+        .catch(error => console.error("Error while starting a SignalR connection: ", error));
+    }
+
+    showScannerProgressToast(state) {
+        const interval = 10; // the throttling interval in ms
+        const now = Date.now();
+        if ((now - this.lastScannerProgressToastShowed < interval) && (state.index > 0) && ((state.index + 1) < state.total)) return;
+        const progress = (state.index + 1) / state.total;
+        const render = this.renderScannerProgressToast(`${state.title}...`, this.shorten(state.item, 100));
+        if (!this.scannerProgressToast) {
+            this.scannerProgressToast = toast.info(render,
+            {
+                theme: 'dark',
+                progress: progress,
+                icon: <div className="Toastify__spinner"></div>,
+                type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+            });
+        } else {
+            toast.update(this.scannerProgressToast, {
+                render: render,
+                progress: progress,
+                type: (progress === 1) ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+            });
+        }
+        if (progress === 1) {
+            toast.dismiss(this.scannerProgressToast);
+            this.scannerProgressToast = null;
+        }
+        this.lastScannerProgressToastShowed = now;
+    }
+
+    shorten(path, length) {
+        if (path.length <= length) return path;
+
+        const parts = path.split("/");
+        const fileName = parts.pop(); // get the file name (last part)
+        const remainingLength = length - fileName.length - 4; // subtract length for file name and '.../'
+        let shortenedPath = "";
+        let i = 0;
+
+        if (remainingLength <= 0) {
+            // if there's not enough room for the rest of the path
+            return '.../' + fileName;
+        }
+
+        while (shortenedPath.length + parts[i].length + 1 <= remainingLength && i < parts.length) {
+            shortenedPath += parts[i] + '/';
+            i++;
+        }
+
+        return shortenedPath + '.../' + fileName;
     }
 
     set(index, source, refresh = true, callback = undefined) {
@@ -937,6 +1078,17 @@ class Library extends Component {
                     <strong>{title}</strong>
                 </div>
                 <small>{subtitle}</small>
+            </>
+        );
+    }
+
+    renderScannerProgressToast(title, subtitle) {
+        return (
+            <>
+                <div className="mb-1">
+                    <strong>{title}</strong>
+                </div>
+                <small className="scanner-progress-subtitle">{subtitle}</small>
             </>
         );
     }

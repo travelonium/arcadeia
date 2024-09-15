@@ -2,18 +2,19 @@
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-using MediaCurator.Solr;
-using SolrNet;
+using Microsoft.AspNetCore.SignalR;
 using System.Reflection.Metadata;
 using Newtonsoft.Json.Linq;
+using MediaCurator.Solr;
+using SolrNet;
 
 namespace MediaCurator.Services
 {
@@ -27,9 +28,12 @@ namespace MediaCurator.Services
 
       private readonly IMediaLibrary _mediaLibrary;
 
+      private readonly NotificationService _notificationService;
+
       private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
 
       private readonly IBackgroundTaskQueue _taskQueue;
+
 
       private readonly CancellationToken _cancellationToken;
 
@@ -206,13 +210,15 @@ namespace MediaCurator.Services
                             IConfiguration configuration,
                             IBackgroundTaskQueue taskQueue,
                             IHostApplicationLifetime applicationLifetime,
-                            IMediaLibrary mediaLibrary)
+                            IMediaLibrary mediaLibrary,
+                            NotificationService notificationService)
       {
          _logger = logger;
          _services = services;
          _taskQueue = taskQueue;
          _mediaLibrary = mediaLibrary;
          _configuration = configuration;
+         _notificationService = notificationService;
          _cancellationToken = applicationLifetime.ApplicationStopping;
       }
 
@@ -290,7 +296,8 @@ namespace MediaCurator.Services
                // Queue the folder startup folder scan.
                _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
                {
-                  return Task.Run(() => Scan(folder, "Startup"), cancellationToken);
+                  string uuid = System.Guid.NewGuid().ToString();
+                  return Task.Run(() => Scan(uuid, folder, "Startup", _cancellationToken), cancellationToken);
                });
             }
          }
@@ -307,7 +314,8 @@ namespace MediaCurator.Services
                   // Queue the folder periodic scan.
                   _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
                   {
-                     return Task.Run(() => Scan(folder, "Periodic"), cancellationToken);
+                     string uuid = System.Guid.NewGuid().ToString();
+                     return Task.Run(() => Scan(uuid, folder, "Periodic", _cancellationToken), cancellationToken);
                   });
                }
             }, null, PeriodicScanInterval, PeriodicScanInterval);
@@ -319,7 +327,8 @@ namespace MediaCurator.Services
             // Queue the startup update task.
             _taskQueue.QueueBackgroundTask("Startup Update", cancellationToken =>
             {
-               return Task.Run(() => Update(_cancellationToken), cancellationToken);
+               string uuid = System.Guid.NewGuid().ToString();
+               return Task.Run(() => Update(uuid, _cancellationToken), cancellationToken);
             });
 
             _logger.LogInformation("Startup Update Queued.");
@@ -354,13 +363,13 @@ namespace MediaCurator.Services
          _logger.LogInformation("Scanner Service Background Task Processor Stopped.");
       }
 
-      private void Scan(string path, string type)
+      private void Scan(string uuid, string path, string type, CancellationToken cancellationToken)
       {
          var watch = new Stopwatch();
          var patterns = IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          var fileSystemService = _services.GetService<IFileSystemService>();
-         if (fileSystemService.Mounts.Any(mount => (path.StartsWith(mount.Folder) && !mount.Available)))
+         if ((fileSystemService != null) && fileSystemService.Mounts.Any(mount => (path.StartsWith(mount.Folder) && !mount.Available)))
          {
             _logger.LogWarning("{} Scanning Cancelled: {}", type, path);
 
@@ -375,12 +384,23 @@ namespace MediaCurator.Services
          {
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
 
+            _logger.LogInformation("Calculating Files Count...");
+
+            int total = files.Count();
+            int index = -1;
+
+            _logger.LogInformation("Scanning {} Files...", total);
+
             // Loop through the files in the specific MediaLocation in parallel.
             try
             {
-               Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, (file) =>
+               Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, async (file) =>
                {
                   var name = Path.GetFileName(file);
+                  int currentIndex = Interlocked.Increment(ref index);
+
+                  // Inform the client(s) of the current progress.
+                  await _notificationService.ShowScanProgressAsync(uuid, String.Format("{0} Scanning", type), path, file, currentIndex, total);
 
                   // Should the file name be ignored
                   foreach (Regex pattern in patterns)
@@ -441,13 +461,13 @@ namespace MediaCurator.Services
          }
       }
 
-      private void Update(CancellationToken cancellationToken)
+      private void Update(string uuid, CancellationToken cancellationToken)
       {
          var watch = new Stopwatch();
 
          _logger.LogInformation("Startup Update Started.");
 
-         // It's now time to go through the MediaLibrary itself and check for changes on the disk. 
+         // It's now time to go through the MediaLibrary itself and check for changes on the disk.
 
          watch.Start();
 
@@ -461,23 +481,33 @@ namespace MediaCurator.Services
          var documents = solrIndexService.Get(SolrQuery.All);
          var availableFolders = AvailableFolders.Concat(AvailableWatchedFolders).ToList();
 
-         _logger.LogInformation("Updating {} Media Library Entries...", documents.Count);
+         _logger.LogInformation("Calculating Documents Count...");
+
+         int total = documents.Count;
+         int index = -1;
+
+         _logger.LogInformation("Updating {} Media Library Entries...", total);
 
          try
          {
             // Loop through the documents in the index in parallel.
-            Parallel.ForEach(documents, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, (document) =>
+            Parallel.ForEach(documents, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, async (document) =>
             {
+               int currentIndex = Interlocked.Increment(ref index);
+
+               // Inform the client(s) of the current progress.
+               await _notificationService.ShowUpdateProgressAsync(uuid, "Updating Media Library", document.FullPath, currentIndex, total);
+
                try
                {
                   if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
                   {
                      // Find any possible duplicate entries with the same FullPath and remove them.
                      SolrQueryByField query = new("fullPath", document.FullPath);
-                     SortOrder[] orders = new[]
-                     {
+                     SortOrder[] orders =
+                     [
                         new SortOrder("dateAdded", Order.ASC)
-                     };
+                     ];
 
                      SolrQueryResults<Models.MediaContainer> results = solrIndexService.Get(query, orders);
 
