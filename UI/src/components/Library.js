@@ -409,7 +409,7 @@ class Library extends Component {
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
         }
-        const sort = this.props.search.sort[this.props.search.path] ?? this.props.search.sort;
+        const sort = (browse ? this.props.search.sort[this.props.search.path] : this.props.search.sort['search']) ?? this.props.search.sort;
         const input = {
             q: query,
             fq: [],
@@ -1110,7 +1110,7 @@ class Library extends Component {
                             ({ columnIndex, rowIndex, style }) => {
                                 let index = (rowIndex * columnCount) + columnIndex;
                                 let source = this.state.items[index];
-                                const view = this.props.ui.view[this.props.search.path] ?? this.props.ui.view.default;
+                                const view = this.props.ui.view[this.props.search.query ? "search" : this.props.search.path] ?? this.props.ui.view.default;
                                 if (source !== undefined) {
                                     this.mediaContainers[index] = React.createRef();
                                     return (

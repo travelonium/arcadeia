@@ -31,15 +31,17 @@ export const searchSlice = createSlice({
             }
         },
         setSort: (state, action) => {
+            const path = action.payload?.path;
+            const search = path === "search";
             let newState = {
                 ...state,
                 sort: {
                     ...state.sort,
-                    fields: action.payload?.fields ? action.payload.fields : initialState.sort.fields,
-                    direction: action.payload?.direction ? action.payload.direction : initialState.sort.direction,
+                    // don't store the sort settings as default when searching
+                    fields: (search ? state.sort.fields : action.payload?.fields) ?? initialState.sort.fields,
+                    direction: (search ? state.sort.direction : action.payload?.direction) ?? initialState.sort.direction,
                 }
             }
-            const path = action.payload?.path;
             if (path) {
                 newState.sort[path] = {};
                 newState.sort[path].fields = action.payload?.fields ? action.payload.fields : initialState.sort.fields;

@@ -74,14 +74,14 @@ class NavMenu extends Component {
 
     onViewChange(value) {
         this.props.dispatch(setView({
-            path: this.props.search.path,
+            path: this.props.search.query ? "search" : this.props.search.path,
             value: value
         }));
     }
 
     onViewReset() {
         this.props.dispatch(resetView({
-            path: this.props.search.path,
+            path: this.props.search.query ? "search" : this.props.search.path,
         }));
     }
 
@@ -95,7 +95,7 @@ class NavMenu extends Component {
     onSortChange(value) {
         clearTimeout(this.searchTimeout);
         this.props.dispatch(setSort({
-            path: this.props.search.path,
+            path: this.props.search.query ? "search" : this.props.search.path,
             ...value
         }));
     }
@@ -103,7 +103,7 @@ class NavMenu extends Component {
     onSortReset() {
         clearTimeout(this.searchTimeout);
         this.props.dispatch(resetSort({
-            path: this.props.search.path,
+            path: this.props.search.query ? "search" : this.props.search.path,
         }));
     }
 
@@ -114,7 +114,7 @@ class NavMenu extends Component {
     }
 
     render() {
-        const path = this.props.search.path;
+        const path = this.props.search.query ? "search" : this.props.search.path;
         const view = this.props.ui.view[path] ?? this.props.ui.view.default;
         const sort = this.props.search.sort[path] ?? this.props.search.sort;
         const sortOverridden = (path in this.props.search.sort);

@@ -6,14 +6,16 @@ export const uiSlice = createSlice({
     initialState: initialState,
     reducers: {
         setView: (state, action) => {
+            const path = action.payload?.path;
+            const search = path === "search";
             let newState = {
                 ...state,
                 view: {
                     ...state.view,
-                    default: action.payload?.value ?? initialState.view.default
+                    // don't store the view settings as default when searching
+                    default: (search ? state.view.default : action.payload?.value) ?? initialState.view.default,
                 }
             }
-            const path = action.payload?.path;
             if (path) {
                 newState.view[path] = {};
                 newState.view[path] = action.payload?.value ?? initialState.view.default;
