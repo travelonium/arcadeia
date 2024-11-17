@@ -100,7 +100,7 @@ namespace MediaCurator.Controllers
 
          VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
-         if ((videoFile.Type != MediaContainerType.Video.ToString()) || (videoFile.Duration <= 0))
+         if ((videoFile.Type != MediaContainerType.Video.ToString()) || (videoFile.Duration <= 0))
          {
             return NotFound();
          }

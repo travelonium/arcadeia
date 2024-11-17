@@ -63,6 +63,10 @@ namespace MediaCurator
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
 
+         // Instantiate the Download Service
+         services.AddSingleton<IDownloadService, DownloadService>();
+         services.AddHostedService<DownloadService>(provider => (DownloadService)provider.GetService<IDownloadService>());
+
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
          {

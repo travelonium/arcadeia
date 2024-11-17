@@ -1,16 +1,10 @@
 ﻿using System;
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using System.Text.RegularExpressions;
+using MediaCurator.Services;
 using MediaCurator.Solr;
+using System.Text.Json;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -18,13 +12,17 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("[controller]")]
-   public class LibraryController : Controller
+   public class LibraryController(ILogger<MediaContainer> logger,
+                                  IServiceProvider services,
+                                  IConfiguration configuration,
+                                  IThumbnailsDatabase thumbnailsDatabase,
+                                  IMediaLibrary mediaLibrary) : Controller
    {
-      private readonly IServiceProvider _services;
-      private readonly IMediaLibrary _mediaLibrary;
-      private readonly IConfiguration _configuration;
-      private readonly ILogger<MediaContainer> _logger;
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
+      private readonly IServiceProvider _services = services;
+      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
+      private readonly IConfiguration _configuration = configuration;
+      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
 
       /// <summary>
       /// A list of regex patterns specifying which file names to ignore when scanning.
@@ -35,26 +33,19 @@ namespace MediaCurator.Controllers
          {
             if (_configuration.GetSection("Scanner:IgnoredFileNames").Exists())
             {
-               return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>();
+               return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>() ?? [];
             }
             else
             {
-               return new List<String>();
+               return [];
             }
          }
       }
 
-      public LibraryController(ILogger<MediaContainer> logger,
-                               IServiceProvider services,
-                               IConfiguration configuration,
-                               IThumbnailsDatabase thumbnailsDatabase,
-                               IMediaLibrary mediaLibrary)
+      private async Task WriteAsync(HttpResponse response, string text)
       {
-         _logger = logger;
-         _services = services;
-         _mediaLibrary = mediaLibrary;
-         _configuration = configuration;
-         _thumbnailsDatabase = thumbnailsDatabase;
+         await response.WriteAsync(text);
+         await response.Body.FlushAsync();
       }
 
       [HttpPatch]
@@ -77,7 +68,7 @@ namespace MediaCurator.Controllers
             var type = modified.Type.ToEnum<MediaContainerType>().ToType();
 
             // Create the parent container of the right type.
-            using IMediaContainer mediaContainer = (MediaContainer) Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null);
+            using IMediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null);
 
             // Reset the Views to its currently stored value as the UI is not allowed to update it.
             modified.Views = mediaContainer.Model.Views;
@@ -87,11 +78,11 @@ namespace MediaCurator.Controllers
 
             return Ok(mediaContainer.Model);
          }
-         catch (Exception e)
+         catch (Exception ex)
          {
             return StatusCode((int)HttpStatusCode.InternalServerError, new
             {
-               message = e.Message
+               message = ex.Message
             });
          }
       }
@@ -124,10 +115,10 @@ namespace MediaCurator.Controllers
             {
                System.IO.Directory.CreateDirectory(path);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-               _logger.LogWarning("Failed To Create Path: {}, Because: {}", path, e.Message);
-               _logger.LogDebug("{}", e.ToString());
+               _logger.LogWarning("Failed To Create Path: {}, Because: {}", path, ex.Message);
+               _logger.LogDebug("{}", ex.ToString());
 
                return Problem(title: "Path Creation Failed", detail: "Failed to create the destination path.", statusCode: 500);
             }
@@ -147,7 +138,7 @@ namespace MediaCurator.Controllers
                }
                else if (duplicate)
                {
-                  Regex pattern = new Regex(@"(.*)(\s+\(\d+\))");
+                  Regex pattern = new(@"(.*)(\s+\(\d+\))");
                   var extension = Path.GetExtension(file.FileName);
                   var fileName = Path.GetFileNameWithoutExtension(file.FileName);
                   var match = pattern.Match(fileName);
@@ -180,7 +171,7 @@ namespace MediaCurator.Controllers
             }
 
             // Shouldn't the file name be ignored?
-            if ((file.Length <= 0) || patterns.Any(pattern => (pattern.IsMatch(fullPath) || pattern.IsMatch(name))))
+            if ((file.Length <= 0) || patterns.Any(pattern => pattern.IsMatch(fullPath) || pattern.IsMatch(name)))
             {
                _logger.LogDebug("File Ignored: {}", fullPath);
 
@@ -210,10 +201,10 @@ namespace MediaCurator.Controllers
 
                _logger.LogInformation("File Uploaded: {}", fullPath);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-               _logger.LogWarning("Failed To Copy: {}, Because: {}", file, e.Message);
-               _logger.LogDebug("{}", e.ToString());
+               _logger.LogWarning("Failed To Copy: {}, Because: {}", file, ex.Message);
+               _logger.LogDebug("{}", ex.ToString());
 
                if (files.Count == 1)
                {
@@ -231,14 +222,14 @@ namespace MediaCurator.Controllers
                using MediaFile newMediaFile = _mediaLibrary.InsertMediaFile(fullPath);
                result.Add(newMediaFile.Model);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-               _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
-               _logger.LogDebug("{}", e.ToString());
+               _logger.LogWarning("Failed To Insert: {}, Because: {}", file, ex.Message);
+               _logger.LogDebug("{}", ex.ToString());
 
                if (files.Count == 1)
                {
-                  return Problem(detail: e.Message, statusCode: 500);
+                  return Problem(detail: ex.Message, statusCode: 500);
                }
             }
          }
@@ -253,6 +244,68 @@ namespace MediaCurator.Controllers
       {
          // Upload a file overwriting existing files with the same name.
          return Ok();
+      }
+
+      [HttpGet]
+      [Route("download")]
+      public async Task Download([FromQuery] String url, [FromQuery] string path = "", [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
+      {
+         if (string.IsNullOrWhiteSpace(url))
+         {
+            await WriteAsync(Response, "Error: URL is required.\n");
+            return;
+         }
+
+         path = Platform.Separator.Path + path;
+
+         IDownloadService? mediaFileDownloadService = _services.GetService<IDownloadService>();
+
+         if (mediaFileDownloadService == null)
+         {
+            await WriteAsync(Response, "Error: Download service is unavailable.\n");
+            return;
+         }
+
+         Response.ContentType = "text/event-stream";
+
+         OrderedAsyncProgress<string> progress = new(async value => await WriteAsync(Response, value));
+
+         try
+         {
+            string? filename = await mediaFileDownloadService.GetMediaFileNameAsync(url);
+
+            if (filename != null)
+            {
+               await WriteAsync(Response, $"Name: {filename}\n");
+            }
+
+            string? file = await mediaFileDownloadService.DownloadMediaFile(url, path, progress);
+
+            if (file != null)
+            {
+               await WriteAsync(Response, $"Processing...\n");
+               using MediaFile mediaFile = _mediaLibrary.InsertMediaFile(file);
+               string mediaFileJson = JsonSerializer.Serialize(mediaFile.Model);
+               await WriteAsync(Response, $"Result: {mediaFileJson}\n");
+            }
+            else
+            {
+               await WriteAsync(Response, "Error: Media file Download failed.\n");
+            }
+         }
+         catch (DownloadService.FileAlreadyDownloadedException ex)
+         {
+            await WriteAsync(Response, $"Error: {ex.Message}\n");
+            _logger.LogError("Failed To Download URL: {}, Because: {}", url, ex.Message);
+            _logger.LogDebug("{Exception}", ex.ToString());
+         }
+         catch (System.Exception ex)
+         {
+            await WriteAsync(Response, $"Error: {ex.Message}\n");
+            _logger.LogError("Failed To Download URL: {}, Because: {}", url, ex.Message);
+            _logger.LogDebug("{Exception}", ex.ToString());
+            throw;
+         }
       }
 
       [HttpGet]
