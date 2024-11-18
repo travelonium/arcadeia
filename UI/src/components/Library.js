@@ -885,6 +885,15 @@ class Library extends Component {
                 })
             }
         }, async () => {
+            let title;
+            let result;
+            let fileName;
+            let subtitle = url;
+            let progress = null;
+            let type = undefined;
+            let icon = undefined;
+            let autoClose = false;
+            let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
             let params = new URLSearchParams();
             params.set('url', url);
             params.set('path', path);
@@ -892,15 +901,6 @@ class Library extends Component {
             params.set('duplicate', this.props.ui.uploads.duplicate);
             fetch("/library/download?" + params.toString())
             .then((response) => {
-                let title;
-                let result;
-                let fileName;
-                let subtitle = url;
-                let progress = null;
-                let type = undefined;
-                let icon = undefined;
-                let autoClose = false;
-                let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
                 const reader = response.body.getReader();
                 const process = ({ done, value: chunk }) => {
                     if (done) {
@@ -934,7 +934,7 @@ class Library extends Component {
                         return;
                     }
                     const lines = new TextDecoder('utf-8').decode(chunk).trim().split('\n');
-                    lines.forEach((line) => {
+                    for (const line of lines) {
                         const regex = /^([\w\s]+):\s(.+)$/;
                         const match = line.trim().match(regex);
                         if (match) {
@@ -966,18 +966,56 @@ class Library extends Component {
                                 type =  'success';
                                 title = "Complete";
                                 result = JSON.parse(v);
+                            } else if (k === 'Error') {
+                                // reject the promise to propagate the error
+                                return Promise.reject(new Error(v));
                             }
                             // Update the toast
                             this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon, autoClose);
                         }
-                    });
-                    reader.read().then(process);
+                    };
+                    return reader.read().then(process);
                 };
-
-                reader.read().then(process);
+                return reader.read().then(process);
             })
             .catch(error => {
                 console.error(error);
+                title = error.message;
+                this.onUploadUrlProgress(key, null, title, subtitle, undefined, 'error', null, null, 5000);
+                let failed = extract(null, this.state.uploads.active, key, 'url');
+                // remove the failed upload from the list of active uploads
+                this.setState(prevState => {
+                    return {
+                        ...prevState,
+                        uploads: update(prevState.uploads, {
+                            $merge: {
+                                active: update(prevState.uploads.active, {
+                                    $unset: [key]
+                                })
+                            }
+                        })
+                    }
+                }, () => {
+                    // add the failed upload to the list of failed uploads
+                    this.setState(prevState => {
+                        return {
+                            ...prevState,
+                            uploads: update(prevState.uploads, {
+                                $merge: {
+                                    failed: update(prevState.uploads.failed, {
+                                        $push: [{
+                                            url: failed,
+                                            path: path
+                                        }]
+                                    }),
+                                }
+                            })
+                        }
+                    }, () => {
+                        // process any remaining queued items
+                        this.upload(null, true);
+                    });
+                });
             });
             // process any remaining queued items
             this.upload(null, true);
@@ -1160,7 +1198,7 @@ class Library extends Component {
     }
 
     onUploadUrlProgress(key, index, title, subtitle, progress = undefined, type = undefined, theme = undefined, icon = undefined, autoClose = undefined) {
-        const prefix = "[" + index + " / " + this.state.uploads.total + "] ";
+        let prefix = (index != null) ? "[" + index + " / " + this.state.uploads.total + "] " : "";
         let options = {
             render: this.renderUploadToast.bind(this, prefix + title, subtitle),
         };
