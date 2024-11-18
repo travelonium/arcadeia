@@ -117,8 +117,9 @@ namespace MediaCurator
                        IConfiguration configuration,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
-                       string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
+                       string? id = null, string? path = null,
+                       IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -193,8 +194,8 @@ namespace MediaCurator
 
          if (profile != null)
          {
-            IExifValue value = profile.Values.FirstOrDefault(val => val.Tag == ExifTag.DateTimeOriginal) ??
-                               profile.Values.FirstOrDefault(val => val.Tag == ExifTag.DateTimeDigitized);
+            IExifValue? value = profile.Values.FirstOrDefault(val => val.Tag == ExifTag.DateTimeOriginal) ??
+                                profile.Values.FirstOrDefault(val => val.Tag == ExifTag.DateTimeDigitized);
 
             if (value != null)
             {
@@ -206,9 +207,9 @@ namespace MediaCurator
          }
       }
 
-      public byte[] Preview(int width = 0, int height = 0, MagickFormat format = MagickFormat.Jpeg)
+      public byte[]? Preview(int width = 0, int height = 0, MagickFormat format = MagickFormat.Jpeg)
       {
-         byte[] output = null;
+         byte[]? output = null;
 
          using (var image = new MagickImage(FullPath))
          {
@@ -243,9 +244,9 @@ namespace MediaCurator
          return output;
       }
 
-      private byte[] GenerateThumbnail(string path, int width, int height, bool crop)
+      private byte[]? GenerateThumbnail(string path, int width, int height, bool crop)
       {
-         byte[] output = null;
+         byte[]? output = null;
 
          using (var image = new MagickImage(path))
          {
@@ -297,22 +298,33 @@ namespace MediaCurator
       /// <returns>The count of successfully generated thumbnails.</returns>
       public override int GenerateThumbnails(bool force = false)
       {
-         int total = 0;
-         var nullColums = Thumbnails.NullColumns;
+         int thumbnails = 0, total = 0, generated = 0;
+         string[] nullColumns = Thumbnails?.NullColumns ?? [];
 
          // Make sure the photo file is valid and not corrupted or empty.
          if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
          {
-            return total;
+            return thumbnails;
          }
 
          /*----------------------------------------------------------------------------------
                                          GENERATE THUMBNAILS
          ----------------------------------------------------------------------------------*/
 
-         // Debug.Write("GENERATING THUMBNAILS: " + FullPath);
+         // Calculate the total number of thumbnails to be generated used for progress reporting
+         foreach (var item in ThumbnailsConfiguration.Value)
+         {
+            if (item.Value.TryGetValue("Count", out var value))
+            {
+               total += value;
+            }
+            else
+            {
+               total += 1;
+            }
+         }
 
-         // Debug.Write(" [");
+         Progress?.Report(0.0f);
 
          foreach (var item in ThumbnailsConfiguration.Value)
          {
@@ -329,19 +341,22 @@ namespace MediaCurator
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
-               byte[] thumbnail = null;
+               byte[]? thumbnail = null;
                string column = (count >= 1) ? String.Format("{0}{1}", item.Key, counter) : label;
 
                if (!force)
                {
                   // Skip the thumbnail generation for this specific thumbnail if it already exists.
-                  if (!nullColums.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
+                  if (!nullColumns.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
                Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
                thumbnail = GenerateThumbnail(FullPath, width, height, crop);
+
+               // Report the progress
+               Progress?.Report((float)++generated / (float)total);
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {
@@ -355,19 +370,19 @@ namespace MediaCurator
                      Thumbnails[label] = thumbnail;
                   }
 
-                  total++;
+                  thumbnails++;
                }
             }
          }
 
-         // Debug.WriteLine("]");
+         Progress?.Report(1.0f);
 
-         if (total > 0)
+         if (thumbnails > 0)
          {
             Modified = true;
          }
 
-         return total;
+         return thumbnails;
       }
 
       #endregion // Photo File Operations

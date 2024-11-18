@@ -22,8 +22,9 @@ namespace MediaCurator
                          IConfiguration configuration,
                          IThumbnailsDatabase thumbnailsDatabase,
                          IMediaLibrary mediaLibrary,
-                         string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, EnsureTrailingSlash(path))
+                         string? id = null, string? path = null,
+                         IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, EnsureTrailingSlash(path), progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.

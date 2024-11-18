@@ -25,6 +25,8 @@ namespace MediaCurator
 
       protected readonly IMediaLibrary MediaLibrary;
 
+      protected readonly IProgress<float>? Progress;
+
       private bool _disposed;
 
       #region Fields
@@ -149,7 +151,7 @@ namespace MediaCurator
                {
                   var id = item.Id;
                   var type = item.Type.ToEnum<MediaContainerType>().ToType();
-                  using MediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id, null);
+                  using MediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id, null, Progress);
                   result.Add(mediaContainer);
                }
             }
@@ -478,7 +480,7 @@ namespace MediaCurator
                   var type = value.ParentType.ToEnum<MediaContainerType>().ToType();
 
                   // Create the parent container of the right type.
-                  parent = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null);
+                  parent = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null, Progress);
                }
 
                Parent = parent;
@@ -503,9 +505,10 @@ namespace MediaCurator
                             IServiceProvider services,
                             IConfiguration configuration,
                             IThumbnailsDatabase thumbnailsDatabase,
-                            IMediaLibrary mediaLibrary,
+                            IMediaLibrary? mediaLibrary,
                             // Optional Named Arguments
-                            string id = null, string path = null
+                            string? id = null, string? path = null,
+                            IProgress<float>? progress = null
       )
       {
          Logger = logger;
@@ -513,6 +516,7 @@ namespace MediaCurator
          Configuration = configuration;
          ThumbnailsDatabase = thumbnailsDatabase;
          MediaLibrary = mediaLibrary ?? (IMediaLibrary)this;
+         Progress = progress;
 
          // The Solr service needs to be initialized only once when the MediaLibrary is instantiated
          // but before the Load() is called and therefore we do it here.
@@ -556,7 +560,7 @@ namespace MediaCurator
                if (parentType != null)
                {
                   // Now let's instantiate the Parent.
-                  Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent);
+                  Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress);
                   ParentType = parentType.ToMediaContainerType().ToString();
                }
             }

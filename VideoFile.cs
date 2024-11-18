@@ -121,8 +121,9 @@ namespace MediaCurator
                        IConfiguration configuration,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
-                       string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
+                       string? id = null, string? path = null,
+                       IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -192,9 +193,9 @@ namespace MediaCurator
          }
       }
 
-      private byte[] GenerateThumbnail(string path, int position, int width, int height, bool crop)
+      private byte[]? GenerateThumbnail(string path, int position, int width, int height, bool crop)
       {
-         byte[] output = null;
+         byte[]? output = null;
          string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
 
          int waitInterval = 100;
@@ -243,28 +244,6 @@ namespace MediaCurator
                   baseStream.CopyTo(memoryStream);
                   output = memoryStream.ToArray();
                }
-
-               /*
-               if (output.Length > 0)
-               {
-                  Debug.Write(".");
-               }
-               else
-               {
-                  var error = ffmpeg.StandardError.ReadToEnd();
-
-                  if (error.Length > 0)
-                  {
-                     Debug.WriteLine("o");
-                     Debug.WriteLine("Arguments: " + ffmpeg.StartInfo.Arguments);
-                     Debug.WriteLine(error);
-                  }
-                  else
-                  {
-                     Debug.Write("o");
-                  }
-               }
-               */
             }
             else
             {
@@ -285,13 +264,13 @@ namespace MediaCurator
       /// <returns>The count of successfully generated thumbnails.</returns>
       public override int GenerateThumbnails(bool force = false)
       {
-         int total = 0;
-         var nullColums = Thumbnails.NullColumns;
+         int thumbnails = 0, total = 0, generated = 0;
+         string[] nullColumns = Thumbnails?.NullColumns ?? [];
 
          // Make sure the video file is valid and not corrupted or empty.
          if ((Size == 0) || (Resolution.Height == 0) || (Resolution.Width == 0))
          {
-            return total;
+            return thumbnails;
          }
 
          // TODO: Improve the thumbnail generation by generating a .webm file:
@@ -301,9 +280,20 @@ namespace MediaCurator
                                          GENERATE THUMBNAILS
          ----------------------------------------------------------------------------------*/
 
-         // Debug.Write("GENERATING THUMBNAILS: " + FullPath);
+         // Calculate the total number of thumbnails to be generated used for progress reporting
+         foreach (var item in ThumbnailsConfiguration.Value)
+         {
+            if (item.Value.TryGetValue("Count", out var value))
+            {
+               total += (int)Math.Min(value, Math.Floor(Duration));
+            }
+            else
+            {
+               total += 1;
+            }
+         }
 
-         // Debug.Write(" [");
+         Progress?.Report(0.0f);
 
          foreach (var item in ThumbnailsConfiguration.Value)
          {
@@ -330,13 +320,16 @@ namespace MediaCurator
                if (!force)
                {
                   // Skip the thumbnail generation for this specific thumbnail if it already exists.
-                  if (!nullColums.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
+                  if (!nullColumns.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
                if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
-               byte[] thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
+               byte[]? thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
+
+               // Report the progress
+               Progress?.Report((float)++generated / (float)total);
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {
@@ -357,7 +350,7 @@ namespace MediaCurator
                      Thumbnails[label] = thumbnail;
                   }
 
-                  total++;
+                  thumbnails++;
                }
                else
                {
@@ -380,14 +373,14 @@ namespace MediaCurator
             }
          }
 
-         // Debug.WriteLine("]");
+         Progress?.Report(1.0f);
 
-         if (total > 0)
+         if (thumbnails > 0)
          {
             Modified = true;
          }
 
-         return total;
+         return thumbnails;
       }
 
       public string GeneratePlaylist()

@@ -78,7 +78,7 @@ namespace MediaCurator
       /// <value>
       /// The thumbnail(s).
       /// </value>
-      public MediaFileThumbnails Thumbnails
+      public MediaFileThumbnails? Thumbnails
       {
          get;
          set;
@@ -87,11 +87,11 @@ namespace MediaCurator
       /// <summary>
       /// Gets the content type (MIME type) of the file.
       /// </summary>
-      public string ContentType
+      public string? ContentType
       {
          get
          {
-            new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string contentType);
+            new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string? contentType);
 
             return contentType;
          }
@@ -136,7 +136,7 @@ namespace MediaCurator
          }
       }
 
-      private string _dateAccessed = null;
+      private string? _dateAccessed = null;
 
       /// <summary>
       /// Gets or sets the date the file was accessed last.
@@ -208,8 +208,9 @@ namespace MediaCurator
                        IConfiguration configuration,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
-                       string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
+                       string? id = null, string? path = null,
+                       IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -402,7 +403,7 @@ namespace MediaCurator
             // Update the MediaFile's Name.
             Name = pathComponents.Child;
 
-            // Now that the MediFile has succesfully been moved, update its Parent if needed.
+            // Now that the MediaFile has successfully been moved, update its Parent if needed.
             if (pathComponents.Parent != null)
             {
                // Determine whether the Parent needs to be updated.
@@ -414,7 +415,7 @@ namespace MediaCurator
                   if (parentType != null)
                   {
                      // Now let's instantiate the new Parent.
-                     Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent);
+                     Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress);
                      ParentType = Parent.Type;
                   }
                }

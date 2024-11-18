@@ -102,7 +102,7 @@ namespace MediaCurator.Controllers
             var type = modified.Type.ToEnum<MediaContainerType>().ToType();
 
             // Create the parent container of the right type.
-            using IMediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null);
+            using IMediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null);
 
             // Reset the Views to its currently stored value as the UI is not allowed to update it.
             modified.Views = mediaContainer.Model.Views;
@@ -280,7 +280,9 @@ namespace MediaCurator.Controllers
 
          Response.ContentType = "text/event-stream";
 
-         OrderedAsyncProgress<string> progress = new(async value => await WriteAsync(Response, value));
+         OrderedAsyncProgress<string> downloadingProgress = new(async value => await WriteAsync(Response, value));
+
+         Progress<float> processingProgress = new(async value => await WriteAsync(Response, $"Processing: {value:0.000}"));
 
          try
          {
@@ -304,12 +306,12 @@ namespace MediaCurator.Controllers
                fileName = "%(title)s.%(ext)s";
             }
 
-            string? file = await mediaFileDownloadService.DownloadMediaFileAsync(url, path, progress, fileName, overwrite);
+            string? file = await mediaFileDownloadService.DownloadMediaFileAsync(url, path, downloadingProgress, fileName, overwrite);
 
             if (file != null)
             {
                await WriteAsync(Response, $"Processing: {file}\n");
-               using MediaFile mediaFile = _mediaLibrary.InsertMediaFile(file);
+               using MediaFile mediaFile = _mediaLibrary.InsertMediaFile(file, processingProgress);
                if (mediaFile != null) {
                   string mediaFileJson = JsonSerializer.Serialize(mediaFile.Model);
                   await WriteAsync(Response, $"Result: {mediaFileJson}\n");

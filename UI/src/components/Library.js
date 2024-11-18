@@ -956,6 +956,9 @@ class Library extends Component {
                                 subtitle = fileName = v;
                             } else if (k === 'Processing') {
                                 title = "Processing...";
+                                if (!isNaN(v)) {
+                                    progress = parseFloat(v);
+                                }
                             } else if (k === 'Result') {
                                 icon = null;
                                 theme = null;

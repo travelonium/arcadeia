@@ -30,8 +30,9 @@ namespace MediaCurator
                           IServiceProvider services,
                           IConfiguration configuration,
                           IThumbnailsDatabase thumbnailsDatabase,
-                          string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, null, id, path)
+                          string? id = null, string? path = null,
+                          IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, null, id, path, progress)
       {
          // Read and store the supported extensions from the configuration file.
          SupportedExtensions = new SupportedExtensions(Configuration);
@@ -52,7 +53,7 @@ namespace MediaCurator
 
       #region Public Methods
 
-      public string GenerateUniqueId(string path, out bool reused)
+      public string GenerateUniqueId(string? path, out bool reused)
       {
          lock (_lock)
          {
@@ -84,9 +85,9 @@ namespace MediaCurator
          Logger.LogInformation("Media Library Cache Cleared!");
       }
 
-      public MediaFile InsertMediaFile(string path)
+      public MediaFile? InsertMediaFile(string path, IProgress<float>? progress = null)
       {
-         MediaFile mediaFile = null;
+         MediaFile? mediaFile = null;
          MediaContainerType mediaType = GetMediaType(path);
 
          switch (mediaType)
@@ -96,7 +97,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Audio:
-               /* mediaFile = new AudioFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path); */
+               /* mediaFile = new AudioFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress); */
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -104,7 +105,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Video:
-               mediaFile = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
+               mediaFile = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -112,7 +113,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Photo:
-               mediaFile = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
+               mediaFile = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -138,7 +139,7 @@ namespace MediaCurator
       /// Checks an already present element in the MediaLibrary against its physical form to see if
       /// anything has changed and if the element needs to be updated or deleted.
       /// </summary>
-      public MediaContainer UpdateMediaContainer(string id = null, string type = null, string path = null)
+      public MediaContainer? UpdateMediaContainer(string? id = null, string? type = null, string? path = null)
       {
          Debug.Assert(((id != null) && (type != null)) || (path != null));
          Debug.Assert(((id == null) && (type == null)) || (path == null));
