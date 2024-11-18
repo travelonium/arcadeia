@@ -282,7 +282,7 @@ namespace MediaCurator.Controllers
 
          OrderedAsyncProgress<string> downloadingProgress = new(async value => await WriteAsync(Response, value));
 
-         Progress<float> processingProgress = new(async value => await WriteAsync(Response, $"Processing: {value:0.000}"));
+         Progress<float> processingProgress = new(async value => await WriteAsync(Response, $"Processing: {value:0.000}\n"));
 
          try
          {
