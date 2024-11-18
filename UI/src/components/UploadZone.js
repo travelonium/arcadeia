@@ -64,56 +64,19 @@ export class UploadZone extends Component {
         this.setState({
             dragging: false
         }, () => {
+            let items = [];
             const dataTransfer = event.dataTransfer;
             for (const item of dataTransfer.items) {
                 if (item.kind === 'string' && item.type.match('^text/plain')) {
-                    // If the item is the URL of the image
+                    // the item is a URL
                     item.getAsString(async (url) => {
                         if (!this.isValidHttpUrl(url)) return;
-                        try {
-                            const response = await fetch(url);
-                            const blob = await response.blob();
-                            // MIME to extension mapping for images and videos
-                            const mimeExtension = {
-                                'image/jpeg': '.jpg',
-                                'image/png': '.png',
-                                'image/gif': '.gif',
-                                'image/bmp': '.bmp',
-                                'image/svg+xml': '.svg',
-                                'image/webp': '.webp',
-                                'image/tiff': '.tiff',
-                                'image/heic': '.heic',
-                                'video/mp4': '.mp4',
-                                'video/mpeg': '.mpeg',
-                                'video/quicktime': '.mov',
-                                'video/webm': '.webm',
-                                'video/ogg': '.ogv',
-                                'video/x-msvideo': '.avi',
-                                'video/x-ms-wmv': '.wmv',
-                                'video/3gpp': '.3gp',
-                                'video/3gpp2': '.3g2',
-                                'video/x-matroska': '.mkv'
-                            };
-                            // Attempt to extract a filename from the URL
-                            const urlComponents = new URL(url);
-                            let filename = urlComponents.pathname.split('/').pop();
-                            // Check if URL derived filename seems valid
-                            if (!filename.includes('.')) {
-                                // If no extension in filename, append one based on MIME type
-                                const defaultExt = mimeExtension[blob.type] || '.bin';
-                                filename += defaultExt;
-                            }
-                            let file = new File([blob], filename, { type: blob.type });
-                            if (this.props.onUpload !== undefined) this.props.onUpload([file]);
-                        } catch (error) {
-                            let title = "Fetch Error";
-                            console.error("Error fetching or processing the dropped link:", error.message);
-                            toast.error(this.renderErrorToast(title,  error.message));
-                        }
+                        if (this.props.onUpload !== undefined) this.props.onUpload([url]);
                     });
+                } else {
+                    items.push(item);
                 }
             }
-            let items = Array.from(dataTransfer.items || []);
             if (this.props.onUpload !== undefined) this.props.onUpload(items);
         });
     }
