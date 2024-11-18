@@ -113,10 +113,7 @@ namespace MediaCurator.Services
             {
                if (!string.IsNullOrEmpty(e.Data))
                {
-                  Console.WriteLine(e.Data);
-
-                  // Response.WriteAsync($"{e.Data}\n");
-                  // Response.Body.FlushAsync();
+                  _logger.LogDebug(e.Data);
 
                   // extract and output the download progress
                   Match match = ProgressRegex().Match(e.Data);
