@@ -205,11 +205,13 @@ class Library extends Component {
     }
 
     showScannerProgressToast(state) {
+        const { index, total, title, item } = state || {};
+        if ([index, total, title, item].some(value => value == null)) return;
         const interval = 10; // the throttling interval in ms
         const now = Date.now();
-        if ((now - this.lastScannerProgressToastShowed < interval) && (state.index > 0) && ((state.index + 1) < state.total)) return;
-        const progress = (state.index + 1) / state.total;
-        const render = this.renderScannerProgressToast(`${state.title}...`, this.shorten(state.item, 100));
+        if ((now - this.lastScannerProgressToastShowed < interval) && (index > 0) && ((index + 1) < total)) return;
+        const progress = (index + 1) / total;
+        const render = this.renderScannerProgressToast(`${title}...`, this.shorten(item, 100));
         if (!this.scannerProgressToast) {
             this.scannerProgressToast = toast.info(render,
             {
