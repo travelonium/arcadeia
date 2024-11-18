@@ -48,6 +48,40 @@ namespace MediaCurator.Controllers
          await response.Body.FlushAsync();
       }
 
+      public string GetUniqueFileName(string path, string fileName, bool absolute = true)
+      {
+         if (!System.IO.File.Exists(Path.Combine(path, fileName))) {
+            return absolute ? Path.Combine(path, fileName) : fileName;
+         }
+
+         // Extract the file extension and base name
+         var extension = Path.GetExtension(fileName);
+         var name = Path.GetFileNameWithoutExtension(fileName);
+
+         // Regex pattern to identify existing index suffix
+         Regex pattern = new(@"(.*)(\s+\(\d+\))");
+         var match = pattern.Match(name);
+
+         if (match.Success)
+         {
+            // Remove the existing index suffix if present
+            name = match.Groups[1].Value;
+         }
+
+         // Find a unique file name by incrementing the index
+         for (int i = 1; i < Int32.MaxValue; i++)
+         {
+            if (!System.IO.File.Exists(Path.Combine(path, $"{name}({i}){extension}")) &&
+                !System.IO.File.Exists(Path.Combine(path, $"{name} ({i}){extension}")))
+            {
+               // Return the unique file name
+               return absolute ? Path.Combine(path, $"{name} ({i}){extension}") : $"{name} ({i}){extension}";
+            }
+         }
+
+         throw new InvalidOperationException("Unable to generate a unique file name.");
+      }
+
       [HttpPatch]
       [Route("{*path}")]
       [Produces("application/json")]
@@ -138,27 +172,7 @@ namespace MediaCurator.Controllers
                }
                else if (duplicate)
                {
-                  Regex pattern = new(@"(.*)(\s+\(\d+\))");
-                  var extension = Path.GetExtension(file.FileName);
-                  var fileName = Path.GetFileNameWithoutExtension(file.FileName);
-                  var match = pattern.Match(fileName);
-
-                  if (match.Success)
-                  {
-                     // The file name already has an (x) index in the end.
-                     fileName = match.Groups[1].Value;
-                  }
-
-                  // Try to find an index that is unique.
-                  for (int i = 1; i < Int32.MaxValue; i++)
-                  {
-                     if (!System.IO.File.Exists(Path.Combine(path, fileName + "(" + i + ")" + extension)) &&
-                         !System.IO.File.Exists(Path.Combine(path, fileName + " (" + i + ")" + extension)))
-                     {
-                        fullPath = Path.Combine(path, fileName + " (" + i + ")" + extension);
-                        break;
-                     }
-                  }
+                  fullPath = GetUniqueFileName(path, file.FileName);
                }
                else
                {
@@ -248,15 +262,13 @@ namespace MediaCurator.Controllers
 
       [HttpGet]
       [Route("download")]
-      public async Task Download([FromQuery] String url, [FromQuery] string path = "", [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
+      public async Task Download([FromQuery] String url, [FromQuery] string path, [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
       {
          if (string.IsNullOrWhiteSpace(url))
          {
             await WriteAsync(Response, "Error: URL is required.\n");
             return;
          }
-
-         path = Platform.Separator.Path + path;
 
          IDownloadService? mediaFileDownloadService = _services.GetService<IDownloadService>();
 
@@ -272,21 +284,40 @@ namespace MediaCurator.Controllers
 
          try
          {
-            string? filename = await mediaFileDownloadService.GetMediaFileNameAsync(url);
+            string? fileName = await mediaFileDownloadService.GetMediaFileNameAsync(url);
 
-            if (filename != null)
+            if (fileName != null)
             {
-               await WriteAsync(Response, $"Name: {filename}\n");
+               if (overwrite)
+               {
+                  // It shall be overwritten then.
+               }
+               else if (duplicate)
+               {
+                  fileName = GetUniqueFileName(path, fileName, false);
+               }
+
+               await WriteAsync(Response, $"Name: {fileName}\n");
+            }
+            else
+            {
+               fileName = "%(title)s.%(ext)s";
             }
 
-            string? file = await mediaFileDownloadService.DownloadMediaFile(url, path, progress);
+            string? file = await mediaFileDownloadService.DownloadMediaFileAsync(url, path, progress, fileName, overwrite);
 
             if (file != null)
             {
-               await WriteAsync(Response, $"Processing...\n");
+               await WriteAsync(Response, $"Processing: {file}\n");
                using MediaFile mediaFile = _mediaLibrary.InsertMediaFile(file);
-               string mediaFileJson = JsonSerializer.Serialize(mediaFile.Model);
-               await WriteAsync(Response, $"Result: {mediaFileJson}\n");
+               if (mediaFile != null) {
+                  string mediaFileJson = JsonSerializer.Serialize(mediaFile.Model);
+                  await WriteAsync(Response, $"Result: {mediaFileJson}\n");
+               }
+               else
+               {
+                  await WriteAsync(Response, "Error: Failed to process the media file.\n");
+               }
             }
             else
             {

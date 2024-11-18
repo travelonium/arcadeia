@@ -215,7 +215,7 @@ namespace MediaCurator
             return MediaContainerType.Video;
          }
 
-         // Check if it's a recognized photo format.         
+         // Check if it's a recognized photo format.
          if (SupportedExtensions[MediaContainerType.Photo].Contains(fileExtension))
          {
             // Looks like the file is a recognized photo format.

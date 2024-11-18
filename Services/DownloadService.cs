@@ -32,11 +32,10 @@ namespace MediaCurator.Services
          public FileAlreadyDownloadedException(string message, Exception innerException) : base(message, innerException) { }
       }
 
-      public async Task<string?> GetMediaFileNameAsync(string url)
+      public async Task<string?> GetMediaFileNameAsync(string url, string template = "%(title)s.%(ext)s")
       {
          if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-         string template = "%(title)s.%(ext)s";
          string executable = Path.Combine(_configuration["yt-dlp:Path"], $"yt-dlp{Platform.Extension.Executable}");
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
@@ -71,7 +70,7 @@ namespace MediaCurator.Services
          return output.Trim();
       }
 
-      public async Task<string?> DownloadMediaFile(string url, string path, IProgress<string>? progress = null)
+      public async Task<string?> DownloadMediaFileAsync(string url, string path, IProgress<string>? progress = null, string template = "%(title)s.%(ext)s", bool overwrite = false)
       {
          if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
@@ -81,13 +80,22 @@ namespace MediaCurator.Services
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
-         string template = "%(title)s.%(ext)s";
          string options = _configuration.GetSection("yt-dlp:Options")?.Get<List<string>>()?.Aggregate((a, x) => $"{a} {x}") ?? string.Empty;
+
+         string[] arguments = [
+            $"-o \"{template}\"",
+            $"--paths \"{path}\"",
+            $"--paths \"temp:/tmp\"",
+            overwrite ? "--force-overwrites" : "",
+            $"--fixup force",
+            $"{options}",
+            $"\"{url}\""
+         ];
 
          ProcessStartInfo processStartInfo = new()
          {
             FileName = executable,
-            Arguments = $"-o \"{template}\" --paths \"{path}\" --paths \"temp:/tmp\" --fixup force {options} \"{url}\"",
+            Arguments = arguments.Aggregate((a, x) => $"{a} {x}"),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = false,
