@@ -53,6 +53,8 @@ namespace MediaCurator.Services
          using Process process = new() { StartInfo = processStartInfo };
          process.Start();
 
+         _logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+
          string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
          string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
 
@@ -113,7 +115,7 @@ namespace MediaCurator.Services
             {
                if (!string.IsNullOrEmpty(e.Data))
                {
-                  _logger.LogDebug(e.Data);
+                  _logger.LogTrace(e.Data);
 
                   // extract and output the download progress
                   Match match = ProgressRegex().Match(e.Data);
@@ -164,6 +166,8 @@ namespace MediaCurator.Services
                tcs.TrySetException(ex);
             }
          };
+
+         _logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
          process.Start();
          process.BeginOutputReadLine();
