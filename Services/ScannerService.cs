@@ -369,7 +369,7 @@ namespace MediaCurator.Services
          var patterns = IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          var fileSystemService = _services.GetService<IFileSystemService>();
-         if ((fileSystemService != null) && fileSystemService.Mounts.Any(mount => (path.StartsWith(mount.Folder) && !mount.Available)))
+         if ((fileSystemService != null) && fileSystemService.Mounts.Any(mount => path.StartsWith(mount.Folder) && !mount.Available))
          {
             _logger.LogWarning("{} Scanning Cancelled: {}", type, path);
 
@@ -382,12 +382,15 @@ namespace MediaCurator.Services
 
          try
          {
-            var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories);
+            _logger.LogInformation("Enumerating Files...");
 
-            _logger.LogInformation("Calculating Files Count...");
-
-            int total = files.Count();
+            var files = new DirectoryInfo(path).GetFiles("*.*", SearchOption.AllDirectories)
+                                               .AsParallel()
+                                               .OrderBy(file => file.LastWriteTime)
+                                               .Select(file => file.FullName)
+                                               .ToList();
             int index = -1;
+            int total = files.Count;
 
             _logger.LogInformation("Scanning {} Files...", total);
 
