@@ -225,7 +225,11 @@ namespace MediaCurator
             ffmpeg.StartInfo.RedirectStandardError = true;
             ffmpeg.StartInfo.RedirectStandardOutput = true;
 
+            Logger.LogTrace("{FileName} {Arguments}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments);
+
             ffmpeg.Start();
+
+            Task<string> errorTask = ffmpeg.StandardError.ReadToEndAsync();
 
             do
             {
@@ -237,20 +241,24 @@ namespace MediaCurator
 
             if (ffmpeg.HasExited)
             {
-               Stream baseStream = ffmpeg.StandardOutput.BaseStream;
-
-               using (var memoryStream = new MemoryStream())
+               if (ffmpeg.ExitCode != 0)
                {
-                  baseStream.CopyTo(memoryStream);
-                  output = memoryStream.ToArray();
+                  Logger.LogDebug("{Errors}", errorTask.Result);
+
+                  return null;
                }
+
+               Stream baseStream = ffmpeg.StandardOutput.BaseStream;
+               using var memoryStream = new MemoryStream();
+               baseStream.CopyTo(memoryStream);
+               output = memoryStream.ToArray();
             }
             else
             {
                // It's been too long. Kill it!
                ffmpeg.Kill();
 
-               // Debug.Write("x");
+               Logger.LogDebug("Thumbnail Generation Timeout For: {FullPath}", FullPath);
             }
          }
 
