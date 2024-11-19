@@ -196,6 +196,7 @@ namespace MediaCurator
       private byte[]? GenerateThumbnail(string path, int position, int width, int height, bool crop)
       {
          byte[]? output = null;
+
          string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
 
          int waitInterval = 100;
@@ -258,7 +259,7 @@ namespace MediaCurator
                // It's been too long. Kill it!
                ffmpeg.Kill();
 
-               Logger.LogDebug("Thumbnail Generation Timeout For: {FullPath}", FullPath);
+               Logger.LogDebug("Thumbnail Generation Timeout: {FullPath}", FullPath);
             }
          }
 
@@ -305,6 +306,9 @@ namespace MediaCurator
 
          foreach (var item in ThumbnailsConfiguration.Value)
          {
+            // No point in generating thumbnails for a zero-length file
+            if (Duration == 0.0f) break;
+
             int count = 0;
             int width = -1;
             int height = -1;
@@ -314,26 +318,27 @@ namespace MediaCurator
 
             if (item.Value.ContainsKey("Width")) width = item.Value["Width"];
             if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
-            if (item.Value.ContainsKey("Crop")) crop = (item.Value["Crop"] > 0);
-            if (item.Value.ContainsKey("Sprite")) sprite = (item.Value["Sprite"] > 0);
+            if (item.Value.ContainsKey("Crop")) crop = item.Value["Crop"] > 0;
+            if (item.Value.ContainsKey("Sprite")) sprite = item.Value["Sprite"] > 0;
             if (item.Value.ContainsKey("Count")) count = (int)Math.Min(item.Value["Count"], Math.Floor(Duration));
 
             using var collection = new MagickImageCollection();
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
-               int position = (int)((counter + 0.5) * Duration / count);
+               int position = (int)((counter + 0.5) * Duration / (count != 0 ? count : Math.Min(24, Math.Floor(Duration))));
                string column = ((count >= 1) && !sprite) ? String.Format("{0}{1}", item.Key, counter) : label;
 
                if (!force)
                {
-                  // Skip the thumbnail generation for this specific thumbnail if it already exists.
+                  // Skip the thumbnail generation for this specific thumbnail if it already exists
                   if (!nullColumns.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
                if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+               else if (sprite && (counter == 0)) Logger.LogDebug("Generating The Sprites For: {}", FullPath);
 
-               // Generate the thumbnail.
+               // Generate the thumbnail
                byte[]? thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
 
                // Report the progress
@@ -341,7 +346,7 @@ namespace MediaCurator
 
                if ((thumbnail != null) && (thumbnail.Length > 0))
                {
-                  // Add the newly generated thumbnail to the database.
+                  // Add the newly generated thumbnail to the database
                   if (count >= 1)
                   {
                      if (sprite)
