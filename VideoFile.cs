@@ -145,20 +145,33 @@ namespace MediaCurator
             throw new DirectoryNotFoundException("ffprobe not found at the specified path: " + executable);
          }
 
-         using (Process ffprobe = new Process())
+         using (Process process = new())
          {
-            ffprobe.StartInfo.FileName = executable;
-            ffprobe.StartInfo.Arguments = "-v quiet -print_format json -show_format ";
-            ffprobe.StartInfo.Arguments += "-show_streams -select_streams v:0 " + "\"" + path + "\"";
-            ffprobe.StartInfo.CreateNoWindow = true;
-            ffprobe.StartInfo.UseShellExecute = false;
-            ffprobe.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.FileName = executable;
+            process.StartInfo.Arguments = "-v quiet -print_format json -show_format ";
+            process.StartInfo.Arguments += "-show_streams -select_streams v:0 " + "\"" + path + "\"";
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
 
-            ffprobe.Start();
+            Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
-            output = ffprobe.StandardOutput.ReadToEnd();
+            process.Start();
 
-            ffprobe.WaitForExit(Configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
+            Task<string> errorTask = process.StandardError.ReadToEndAsync();
+
+            output = process.StandardOutput.ReadToEnd();
+
+            process.WaitForExit(Configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
+
+            if (process.HasExited)
+            {
+               if (process.ExitCode != 0) Logger.LogDebug("{Errors}", errorTask.Result);
+            }
+            else
+            {
+               Logger.LogDebug("File Info Retrieval Timeout: {FullPath}", FullPath);
+            }
          }
 
          var fileInfo = JsonDocument.Parse(output).RootElement;
@@ -207,49 +220,49 @@ namespace MediaCurator
             throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
          }
 
-         using (Process ffmpeg = new())
+         using (Process process = new())
          {
-            ffmpeg.StartInfo.FileName = executable;
+            process.StartInfo.FileName = executable;
 
-            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} -i \"{1}\" ", position.ToString(), path);
-            ffmpeg.StartInfo.Arguments += String.Format("-y -vf select=\"eq(pict_type\\,I),scale={0}:{1}", width.ToString(), height.ToString());
+            process.StartInfo.Arguments = String.Format("-ss {0} -i \"{1}\" ", position.ToString(), path);
+            process.StartInfo.Arguments += String.Format("-y -vf select=\"eq(pict_type\\,I),scale={0}:{1}", width.ToString(), height.ToString());
 
             if (crop)
             {
-               ffmpeg.StartInfo.Arguments += String.Format(",crop=iw:'min({0},ih)'", (height > 0) ? height.ToString() : "iw/16*9");
+               process.StartInfo.Arguments += String.Format(",crop=iw:'min({0},ih)'", (height > 0) ? height.ToString() : "iw/16*9");
             }
 
-            ffmpeg.StartInfo.Arguments += "\" -vframes 1 -f image2 -";
+            process.StartInfo.Arguments += "\" -vframes 1 -f image2 -";
 
-            ffmpeg.StartInfo.CreateNoWindow = true;
-            ffmpeg.StartInfo.UseShellExecute = false;
-            ffmpeg.StartInfo.RedirectStandardError = true;
-            ffmpeg.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.RedirectStandardOutput = true;
 
-            Logger.LogTrace("{FileName} {Arguments}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments);
+            Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
-            ffmpeg.Start();
+            process.Start();
 
-            Task<string> errorTask = ffmpeg.StandardError.ReadToEndAsync();
+            Task<string> errorTask = process.StandardError.ReadToEndAsync();
 
             do
             {
                Thread.Sleep(waitInterval);
                totalWaitTime += waitInterval;
             }
-            while ((!ffmpeg.HasExited) &&
+            while ((!process.HasExited) &&
                    (totalWaitTime < Configuration.GetSection("FFmpeg:Timeout").Get<Int32>()));
 
-            if (ffmpeg.HasExited)
+            if (process.HasExited)
             {
-               if (ffmpeg.ExitCode != 0)
+               if (process.ExitCode != 0)
                {
                   Logger.LogDebug("{Errors}", errorTask.Result);
 
                   return null;
                }
 
-               Stream baseStream = ffmpeg.StandardOutput.BaseStream;
+               Stream baseStream = process.StandardOutput.BaseStream;
                using var memoryStream = new MemoryStream();
                baseStream.CopyTo(memoryStream);
                output = memoryStream.ToArray();
@@ -257,7 +270,7 @@ namespace MediaCurator
             else
             {
                // It's been too long. Kill it!
-               ffmpeg.Kill();
+               process.Kill();
 
                Logger.LogDebug("Thumbnail Generation Timeout: {FullPath}", FullPath);
             }
