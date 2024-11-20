@@ -25,15 +25,9 @@ namespace MediaCurator.Controllers
 
       private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
       {
-         var section = _configuration.GetSection("Thumbnails:Video");
+         var comparer = StringComparer.OrdinalIgnoreCase;
 
-         if (section.Exists())
-         {
-            var comparer = StringComparer.OrdinalIgnoreCase;
-            return new Dictionary<string, Dictionary<string, int>>(section.Get<Dictionary<string, Dictionary<string, int>>>(), comparer);
-         }
-
-         return new Dictionary<string, Dictionary<string, int>>();
+         return new Dictionary<string, Dictionary<string, int>>(_configuration.GetSection("Thumbnails:Video").Get<Dictionary<string, Dictionary<string, int>>>() ?? [], comparer);
       });
 
       #endregion // Constants
@@ -79,7 +73,8 @@ namespace MediaCurator.Controllers
 
          if (thumbnail.Length > 0)
          {
-            Response.Headers.Add("Cache-Control", "max-age=86400");
+            Response.Headers.CacheControl = "max-age=86400";
+
             return File(thumbnail, "image/jpeg");
          }
 
@@ -108,16 +103,16 @@ namespace MediaCurator.Controllers
          var item = ThumbnailsConfiguration.Value.GetValueOrDefault(label);
 
          int count = 0;
-         long width = -1;
-         long height = -1;
-         bool sprite = false;
          string from = "00:00:00";
          double duration = videoFile.Duration;
+         long width = item?.GetValueOrDefault("Width") ?? -1;
+         long height = item?.GetValueOrDefault("Height") ?? -1;
+         bool sprite = item?.GetValueOrDefault("Sprite") > 0;
 
-         if (item.ContainsKey("Width")) width = item["Width"];
-         if (item.ContainsKey("Height")) height = item["Height"];
-         if (item.ContainsKey("Sprite")) sprite = (item["Sprite"] > 0);
-         if (item.ContainsKey("Count")) count = (int)Math.Min(item["Count"], Math.Floor(duration));
+         if (item?.ContainsKey("Count") == true)
+         {
+            count = (int)Math.Min(item["Count"], Math.Floor(duration));
+         }
 
          if (!sprite || (count <= 1))
          {

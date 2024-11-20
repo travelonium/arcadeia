@@ -135,8 +135,18 @@ namespace MediaCurator.Controllers
 
             var type = modified.Type.ToEnum<MediaContainerType>().ToType();
 
+            if (type == null) return StatusCode((int)HttpStatusCode.InternalServerError, new
+            {
+               message = "Failed to instantiate the MediaContainer instance."
+            });
+
             // Create the parent container of the right type.
-            using IMediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null);
+            using IMediaContainer? mediaContainer = Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null) as IMediaContainer;
+
+            if (mediaContainer == null) return StatusCode((int)HttpStatusCode.InternalServerError, new
+            {
+               message = "Failed to instantiate the MediaContainer instance."
+            });
 
             // Reset the Views to its currently stored value as the UI is not allowed to update it.
             modified.Views = mediaContainer.Model.Views;
@@ -144,7 +154,7 @@ namespace MediaCurator.Controllers
             // Update the container with the modified version.
             mediaContainer.Model = modified;
 
-            return Ok(mediaContainer.Model);
+            return Ok(mediaContainer?.Model);
          }
          catch (Exception ex)
          {
@@ -267,8 +277,12 @@ namespace MediaCurator.Controllers
             try
             {
                // Add the file to the MediaLibrary.
-               using MediaFile newMediaFile = _mediaLibrary.InsertMediaFile(fullPath);
-               result.Add(newMediaFile.Model);
+               using MediaFile? newMediaFile = _mediaLibrary.InsertMediaFile(fullPath);
+
+               if (newMediaFile != null) result.Add(newMediaFile.Model);
+               else {
+                  _logger.LogWarning("Failed To Insert: {}", file);
+               }
             }
             catch (Exception ex)
             {
@@ -345,7 +359,7 @@ namespace MediaCurator.Controllers
             if (file != null)
             {
                await WriteAsync(Response, $"Processing: {file}\n");
-               using MediaFile mediaFile = _mediaLibrary.InsertMediaFile(file, processingProgress);
+               using MediaFile? mediaFile = _mediaLibrary.InsertMediaFile(file, processingProgress);
                if (mediaFile != null)
                {
                   string mediaFileJson = JsonSerializer.Serialize(mediaFile.Model);

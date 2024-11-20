@@ -5,15 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MediaCurator
 {
-   public class MediaFileThumbnails
+   public class MediaFileThumbnails(IThumbnailsDatabase database, string id)
    {
-      private IThumbnailsDatabase _database { get; }
+      private readonly IThumbnailsDatabase _database = database;
 
-      private string _id
-      {
-         get;
-         set;
-      }
+      private readonly string _id = id;
 
       /// <summary>
       /// Get or Set a specific thumbnail related to the current file using the provided index.
@@ -27,6 +23,7 @@ namespace MediaCurator
          get
          {
             byte[] thumbnail = _database.GetThumbnail(_id, index);
+
             return thumbnail;
          }
 
@@ -45,6 +42,7 @@ namespace MediaCurator
          get
          {
             byte[] thumbnail = _database.GetThumbnail(_id, label);
+
             return thumbnail;
          }
 
@@ -87,35 +85,10 @@ namespace MediaCurator
          }
       }
 
-      #region Constructors
-
-      public MediaFileThumbnails(IThumbnailsDatabase database, string id)
-      {
-         // Associate the current instance with the Id of the owner.
-         _id = id;
-
-         // Associate the instance with the thumbnails database.
-         _database = database;
-      }
-
-      /// <summary>
-      /// Parameterless constructor used for deserialization of JSON values.
-      /// </summary>
-      public MediaFileThumbnails()
-      {
-
-      }
-
-      ~MediaFileThumbnails()
-      {
-
-      }
-
-      #endregion // Constructors
-
       public async Task<byte[]> GetAsync(int index, CancellationToken cancellationToken)
       {
          byte[] thumbnail = await _database.GetThumbnailAsync(_id, index, cancellationToken);
+
          return thumbnail;
       }
 

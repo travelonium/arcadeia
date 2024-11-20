@@ -36,7 +36,7 @@ namespace MediaCurator.Services
       {
          if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-         string executable = Path.Combine(_configuration["yt-dlp:Path"], $"yt-dlp{Platform.Extension.Executable}");
+         string executable = Path.Combine(_configuration["yt-dlp:Path"] ?? string.Empty, $"yt-dlp{Platform.Extension.Executable}");
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
@@ -78,7 +78,7 @@ namespace MediaCurator.Services
 
          if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be null or empty.", nameof(path));
 
-         string executable = Path.Combine(_configuration["yt-dlp:Path"], $"yt-dlp{Platform.Extension.Executable}");
+         string executable = Path.Combine(_configuration["yt-dlp:Path"] ?? string.Empty, $"yt-dlp{Platform.Extension.Executable}");
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
