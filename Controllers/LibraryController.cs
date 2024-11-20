@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using MediaCurator.Services;
 using MediaCurator.Solr;
 using System.Text.Json;
+using System.Globalization;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -55,7 +56,8 @@ namespace MediaCurator.Controllers
          foreach (var character in fileName)
          {
             // Only include characters within the Basic Multilingual Plane (BMP)
-            if (character <= 0xFFFF)
+            var category = CharUnicodeInfo.GetUnicodeCategory(character);
+            if (category != UnicodeCategory.OtherSymbol && !char.IsSurrogate(character))
             {
                result.Append(character);
             }
