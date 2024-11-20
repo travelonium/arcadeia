@@ -1,43 +1,36 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.SignalR;
-using System.Reflection.Metadata;
-using Newtonsoft.Json.Linq;
 using MediaCurator.Solr;
 using SolrNet;
 
 namespace MediaCurator.Services
 {
-   public class ScannerService : IHostedService
+   public class ScannerService(ILogger<ScannerService> logger,
+                               IServiceProvider services,
+                               IConfiguration configuration,
+                               IBackgroundTaskQueue taskQueue,
+                               IHostApplicationLifetime applicationLifetime,
+                               IMediaLibrary mediaLibrary,
+                               NotificationService notificationService) : IHostedService
    {
-      private readonly IServiceProvider _services;
+      private readonly IServiceProvider _services = services;
 
-      protected readonly IConfiguration _configuration;
+      protected readonly IConfiguration _configuration = configuration;
 
-      private readonly ILogger<ScannerService> _logger;
+      private readonly ILogger<ScannerService> _logger = logger;
 
-      private readonly IMediaLibrary _mediaLibrary;
+      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
 
-      private readonly NotificationService _notificationService;
+      private readonly NotificationService _notificationService = notificationService;
 
       private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
 
-      private readonly IBackgroundTaskQueue _taskQueue;
+      private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
 
 
-      private readonly CancellationToken _cancellationToken;
+      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
-      private Timer _periodicScanTimer;
+      private Timer? _periodicScanTimer;
 
       /// <summary>
       /// The lists of folders to be scanned for changes.
@@ -46,14 +39,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:Folders").Exists())
-            {
-               return _configuration.GetSection("Scanner:Folders").Get<List<string>>();
-            }
-            else
-            {
-               return new List<string>();
-            }
+            return _configuration.GetSection("Scanner:Folders").Get<List<string>>() ?? [];
          }
       }
 
@@ -75,14 +61,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:WatchedFolders").Exists())
-            {
-               return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>();
-            }
-            else
-            {
-               return new List<string>();
-            }
+            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>() ?? [];
          }
       }
 
@@ -104,14 +83,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:StartupScan").Exists())
-            {
-               return _configuration.GetSection("Scanner:StartupScan").Get<bool>();
-            }
-            else
-            {
-               return false;
-            }
+            return _configuration.GetSection("Scanner:StartupScan").Get<bool?>() ?? false;
          }
       }
 
@@ -122,14 +94,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:PeriodicScanInterval").Exists())
-            {
-               return _configuration.GetSection("Scanner:PeriodicScanInterval").Get<long>();
-            }
-            else
-            {
-               return 0;
-            }
+            return _configuration.GetSection("Scanner:PeriodicScanInterval").Get<long>();
          }
       }
 
@@ -140,14 +105,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:StartupUpdate").Exists())
-            {
-               return _configuration.GetSection("Scanner:StartupUpdate").Get<bool>();
-            }
-            else
-            {
-               return false;
-            }
+            return _configuration.GetSection("Scanner:StartupUpdate").Get<bool?>() ?? false;
          }
       }
 
@@ -158,14 +116,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:StartupCleanup").Exists())
-            {
-               return _configuration.GetSection("Scanner:StartupCleanup").Get<bool>();
-            }
-            else
-            {
-               return false;
-            }
+            return _configuration.GetSection("Scanner:StartupCleanup").Get<bool?>() ?? false;
          }
       }
 
@@ -176,14 +127,7 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:IgnoredPatterns").Exists())
-            {
-               return _configuration.GetSection("Scanner:IgnoredPatterns").Get<List<String>>();
-            }
-            else
-            {
-               return new List<String>();
-            }
+            return _configuration.GetSection("Scanner:IgnoredPatterns").Get<List<String>>() ?? [];
          }
       }
 
@@ -194,35 +138,11 @@ namespace MediaCurator.Services
       {
          get
          {
-            if (_configuration.GetSection("Scanner:ParallelScannerTasks").Exists())
-            {
-               return _configuration.GetSection("Scanner:ParallelScannerTasks").Get<int>();
-            }
-            else
-            {
-               return -1;
-            }
+            return _configuration.GetSection("Scanner:ParallelScannerTasks").Get<int?>() ?? -1;
          }
       }
 
-      public ScannerService(ILogger<ScannerService> logger,
-                            IServiceProvider services,
-                            IConfiguration configuration,
-                            IBackgroundTaskQueue taskQueue,
-                            IHostApplicationLifetime applicationLifetime,
-                            IMediaLibrary mediaLibrary,
-                            NotificationService notificationService)
-      {
-         _logger = logger;
-         _services = services;
-         _taskQueue = taskQueue;
-         _mediaLibrary = mediaLibrary;
-         _configuration = configuration;
-         _notificationService = notificationService;
-         _cancellationToken = applicationLifetime.ApplicationStopping;
-      }
-
-      public Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
       {
          foreach (string folder in WatchedFolders)
          {
@@ -419,7 +339,7 @@ namespace MediaCurator.Services
                   try
                   {
                      // Add the file to the MediaLibrary.
-                     using MediaFile newMediaFile = _mediaLibrary.InsertMediaFile(file);
+                     using MediaFile? newMediaFile = _mediaLibrary.InsertMediaFile(file);
                   }
                   catch (Exception e)
                   {
@@ -533,7 +453,7 @@ namespace MediaCurator.Services
                      if (availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
                      {
                         // Update the current media container.
-                        using MediaContainer mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                        using MediaContainer? mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
                      }
                   }
                }
@@ -566,12 +486,12 @@ namespace MediaCurator.Services
 
       private void AddFile(string file)
       {
-         using MediaFile _ = _mediaLibrary.InsertMediaFile(file);
+         using MediaFile? _ = _mediaLibrary.InsertMediaFile(file);
       }
 
       private void UpdateFile(string file)
       {
-         using MediaContainer _ = _mediaLibrary.UpdateMediaContainer(path: file);
+         using MediaContainer? _ = _mediaLibrary.UpdateMediaContainer(path: file);
       }
 
       public Task StopAsync(CancellationToken cancellationToken)
@@ -585,7 +505,7 @@ namespace MediaCurator.Services
 
       private void OnError(object source, ErrorEventArgs e)
       {
-         // Specify what is done when an error has occured.
+         // Specify what is done when an error has occurred.
          Debug.WriteLine($"Error: {e}");
       }
 

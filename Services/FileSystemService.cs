@@ -24,19 +24,16 @@ namespace MediaCurator.Services
       {
          List<FileSystemMount> mounts = new();
 
-         if (_configuration.GetSection("Mounts").Exists())
+         foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [])
          {
-            foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>())
+            try
             {
-               try
-               {
-                  FileSystemMount mount = new(item);
-                  mounts.Add(mount);
-               }
-               catch (Exception e)
-               {
-                  _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
-               }
+               FileSystemMount mount = new(item);
+               mounts.Add(mount);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
             }
          }
 
