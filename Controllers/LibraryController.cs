@@ -48,9 +48,41 @@ namespace MediaCurator.Controllers
          await response.Body.FlushAsync();
       }
 
+      public string RemoveEmojis(string fileName)
+      {
+         var result = new System.Text.StringBuilder();
+
+         foreach (var character in fileName)
+         {
+            // Only include characters within the Basic Multilingual Plane (BMP)
+            if (character <= 0xFFFF)
+            {
+               result.Append(character);
+            }
+         }
+
+         return result.ToString();
+      }
+
+      public string RemoveSpaces(string fileName)
+      {
+         // Normalize spaces in the file name
+         fileName = Regex.Replace(fileName, @"\s+", " ");
+
+         // Split into components (name and extension)
+         string name = Path.GetFileNameWithoutExtension(fileName);
+         string extension = Path.GetExtension(fileName);
+
+         // Trim each component and join back
+         return $"{name.Trim()}{extension.Trim()}";
+      }
+
       public string GetUniqueFileName(string path, string fileName, bool absolute = true)
       {
-         if (!System.IO.File.Exists(Path.Combine(path, fileName))) {
+         fileName = RemoveSpaces(RemoveEmojis(fileName));
+
+         if (!System.IO.File.Exists(Path.Combine(path, fileName)))
+         {
             return absolute ? Path.Combine(path, fileName) : fileName;
          }
 
@@ -312,7 +344,8 @@ namespace MediaCurator.Controllers
             {
                await WriteAsync(Response, $"Processing: {file}\n");
                using MediaFile mediaFile = _mediaLibrary.InsertMediaFile(file, processingProgress);
-               if (mediaFile != null) {
+               if (mediaFile != null)
+               {
                   string mediaFileJson = JsonSerializer.Serialize(mediaFile.Model);
                   await WriteAsync(Response, $"Result: {mediaFileJson}\n");
                }
