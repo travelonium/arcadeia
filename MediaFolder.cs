@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using MediaCurator.Services;
+﻿using MediaCurator.Services;
 
 namespace MediaCurator
 {
@@ -31,12 +24,12 @@ namespace MediaCurator
 
          if (Skipped) return;
 
-         var fileSystemService = Services.GetService<IFileSystemService>();
+         var fileSystemService = Services.GetRequiredService<IFileSystemService>();
 
          if (!Exists())
          {
             // Avoid updating or removing the folder if it was located in a network mount that is currently unavailable.
-            if (fileSystemService.Mounts.Any(mount => (FullPath.StartsWith(mount.Folder) && !mount.Available)))
+            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Available))
             {
                Skipped = true;
             }
@@ -50,6 +43,8 @@ namespace MediaCurator
 
          try
          {
+            if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
+
             // Acquire the common directory information.
             DirectoryInfo directoryInfo = new(FullPath);
 
@@ -89,7 +84,7 @@ namespace MediaCurator
       /// <summary>
       /// Moves (or Renames) the MediaFolder from one location or name to another.
       /// </summary>
-      /// <param name="destination">The fullpath of the new name and location.</param>
+      /// <param name="destination">The full path of the new name and location.</param>
       public override void Move(string destination)
       {
          // TODO: Moving folders need a bit more work:
@@ -110,7 +105,10 @@ namespace MediaCurator
 
          foreach (var child in Children)
          {
+            if (string.IsNullOrEmpty(child.Name)) throw new ArgumentNullException(nameof(child.Name), "The child Name cannot be null or empty.");
+
             child.Move(System.IO.Path.Combine(destination, child.Name));
+
             child.Save();
          }
 
@@ -118,12 +116,14 @@ namespace MediaCurator
          {
             try
             {
+               if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
+
                // Attempt to delete the folder in its old location if it is empty now.
                Directory.Delete(FullPath);
             }
             catch (IOException e)
             {
-               Logger.LogDebug("Folder Not Deleted: {}, Beacuse: {}", FullPath, e.ToString());
+               Logger.LogDebug("Folder Not Deleted: {}, Because: {}", FullPath, e.ToString());
             };
 
             // Flag the old MediaFolder as Deleted to be removed from the index since it lacks any children.
@@ -156,9 +156,9 @@ namespace MediaCurator
 
       #region Private Methods
 
-      private static string EnsureTrailingSlash(string path)
+      private static string? EnsureTrailingSlash(string? path)
       {
-         if (!string.IsNullOrEmpty(path) && !path.EndsWith("/"))
+         if (!string.IsNullOrEmpty(path) && !path.EndsWith('/'))
          {
             return path + "/";
          }

@@ -16,19 +16,14 @@ namespace MediaCurator
       {
          var section = Configuration.GetSection("Thumbnails:Photo");
 
-         if (section.Exists())
-         {
-            return section.Get<Dictionary<string, Dictionary<string, int>>>();
-         }
-
-         return new Dictionary<string, Dictionary<string, int>>();
+         return section.Exists() ? section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [] : [];
       });
 
       #endregion // Constants
 
       #region Fields
 
-      protected string _dateTaken = null;
+      protected string? _dateTaken = null;
 
       /// <summary>
       /// Gets or sets the date the photo was originally taken.
@@ -131,13 +126,8 @@ namespace MediaCurator
 
       #region Photo File Operations
 
-      public MagickImageInfo GetImageInfo(string path = null)
+      public MagickImageInfo? GetImageInfo(string path)
       {
-         if (path == null)
-         {
-            path = FullPath;
-         }
-
          try
          {
             return new MagickImageInfo(path);
@@ -150,23 +140,16 @@ namespace MediaCurator
          return null;
       }
 
-      public IExifProfile GetImageExifProfile(string path = null)
+      public IExifProfile? GetImageExifProfile(string path)
       {
-         if (path == null)
+         try
          {
-            path = FullPath;
+            using var image = new MagickImage(path);
+            return image.GetExifProfile();
          }
-
-         using (var image = new MagickImage(path))
+         catch (Exception e)
          {
-            try
-            {
-               return image.GetExifProfile();
-            }
-            catch (Exception e)
-            {
-               Logger.LogDebug("Failed To Retrieve Exif Profile For: {}, Because: {}", path, e.Message);
-            }
+            Logger.LogDebug("Failed To Retrieve Exif Profile For: {}, Because: {}", path, e.Message);
          }
 
          return null;
@@ -210,6 +193,8 @@ namespace MediaCurator
       public byte[]? Preview(int width = 0, int height = 0, MagickFormat format = MagickFormat.Jpeg)
       {
          byte[]? output = null;
+
+         if (FullPath is null) return null;
 
          using (var image = new MagickImage(FullPath))
          {
@@ -270,21 +255,10 @@ namespace MediaCurator
                }
 
                output = image.ToByteArray();
-
-               /*
-               if (output.Length > 0)
-               {
-                  Debug.Write(".");
-               }
-               else
-               {
-                  Debug.Write("o");
-               }
-               */
             }
-            catch (Exception)
+            catch (Exception e)
             {
-               // Debug.Write("x");
+               Logger.LogDebug("Thumbnail Generation Failed For: {}, Because: {}", path, e.Message);
             }
          }
 
@@ -353,7 +327,7 @@ namespace MediaCurator
                Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
-               thumbnail = GenerateThumbnail(FullPath, width, height, crop);
+               if (!string.IsNullOrEmpty(FullPath)) thumbnail = GenerateThumbnail(FullPath, width, height, crop);
 
                // Report the progress
                Progress?.Report((float)++generated / (float)total);
@@ -363,11 +337,11 @@ namespace MediaCurator
                   // Add the newly generated thumbnail to the database.
                   if (count >= 1)
                   {
-                     Thumbnails[counter] = thumbnail;
+                     if (Thumbnails is not null) Thumbnails[counter] = thumbnail;
                   }
                   else
                   {
-                     Thumbnails[label] = thumbnail;
+                     if (Thumbnails is not null) Thumbnails[label] = thumbnail;
                   }
 
                   thumbnails++;

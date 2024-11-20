@@ -68,7 +68,7 @@ namespace MediaCurator.Controllers
             videoFile.DateAccessed = DateTime.UtcNow;
          }
 
-         if ((videoFile.Name != name) || (!videoFile.Exists()))
+         if (string.IsNullOrEmpty(videoFile.FullPath) || (videoFile.Name != name) || (!videoFile.Exists()))
          {
             videoFile.Skipped = true;
 

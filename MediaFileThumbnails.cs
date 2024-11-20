@@ -31,7 +31,7 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Get or Set a specific thumbnail related to the current file using the provided laebl.
+      /// Get or Set a specific thumbnail related to the current file using the provided label.
       /// </summary>
       /// <param name="label">The thumbnail label.</param>
       /// <returns>

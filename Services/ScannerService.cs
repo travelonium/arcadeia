@@ -418,12 +418,19 @@ namespace MediaCurator.Services
             {
                int currentIndex = Interlocked.Increment(ref index);
 
+               if (string.IsNullOrEmpty(document.FullPath))
+               {
+                  _logger.LogWarning("Invalid Media Container Detected: Id: {}, FullPath: {}", document.Id, document.FullPath);
+
+                  return;
+               }
+
                // Inform the client(s) of the current progress.
                await _notificationService.ShowUpdateProgressAsync(uuid, "Updating Media Library", document.FullPath, currentIndex, total);
 
                try
                {
-                  if (!String.IsNullOrEmpty(document.Id) && !String.IsNullOrEmpty(document.FullPath))
+                  if (!string.IsNullOrEmpty(document.Id) && !string.IsNullOrEmpty(document.FullPath))
                   {
                      // Find any possible duplicate entries with the same FullPath and remove them.
                      SolrQueryByField query = new("fullPath", document.FullPath);

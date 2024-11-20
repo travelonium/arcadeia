@@ -117,7 +117,7 @@ namespace MediaCurator
             }
             catch (Exception e)
             {
-               _logger.LogError("Thumbnails Database Creation Failed! Becasue: {}", e.Message);
+               _logger.LogError("Thumbnails Database Creation Failed! Because: {}", e.Message);
             }
          }
 
@@ -586,7 +586,7 @@ namespace MediaCurator
       /// </summary>
       /// <param name="table">The table name to modify.</param>
       /// <param name="column">The column name to add to the table.</param>
-      /// <param name="type">The type colmn type to add to the table.</param>
+      /// <param name="type">The type column type to add to the table.</param>
       private void AddColumn(string table, string column, string type)
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;

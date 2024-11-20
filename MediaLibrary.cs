@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing.Imaging;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
 
 namespace MediaCurator
 {
@@ -53,7 +48,7 @@ namespace MediaCurator
 
       #region Public Methods
 
-      public string GenerateUniqueId(string? path, out bool reused)
+      public string? GenerateUniqueId(string? path, out bool reused)
       {
          lock (_lock)
          {
@@ -63,10 +58,10 @@ namespace MediaCurator
                return null;
             }
 
-            if (_cache.ContainsKey(path))
+            if (_cache.TryGetValue(path, out string? cached))
             {
                reused = true;
-               return _cache[path];
+               return cached;
             }
             else
             {
@@ -150,12 +145,12 @@ namespace MediaCurator
          {
             mediaContainer = new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: null, path: path);
 
-            if (String.IsNullOrEmpty(mediaContainer.Type))
+            if (string.IsNullOrEmpty(mediaContainer.Type))
             {
                throw new ArgumentNullException(mediaContainer.Type, String.Format("Failed to determine the MediaContainer type: {0}", mediaContainer.FullPath));
             }
 
-            if (String.IsNullOrEmpty(mediaContainer.Id))
+            if (string.IsNullOrEmpty(mediaContainer.Id))
             {
                throw new ArgumentNullException(mediaContainer.Id, String.Format("Failed to determine the MediaContainer id: {0}", mediaContainer.FullPath));
             }
@@ -164,7 +159,7 @@ namespace MediaCurator
             type = mediaContainer.Type;
          }
 
-         switch (type.ToEnum<MediaContainerType>())
+         switch (type?.ToEnum<MediaContainerType>() ?? MediaContainerType.Unknown)
          {
             case MediaContainerType.Audio:
                throw new NotImplementedException("Audio files cannot yet be handled!");

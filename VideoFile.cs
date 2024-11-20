@@ -25,12 +25,8 @@ namespace MediaCurator
       {
          var section = Configuration.GetSection("Thumbnails:Video");
 
-         if (section.Exists())
-         {
-            return section.Get<Dictionary<string, Dictionary<string, int>>>();
-         }
+         return section.Exists() ? section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [] : [];
 
-         return new Dictionary<string, Dictionary<string, int>>();
       });
 
       #endregion // Constants
@@ -137,7 +133,7 @@ namespace MediaCurator
 
       public override void GetFileInfo(string path)
       {
-         string output = null;
+         string? output = null;
          string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
 
          if (!File.Exists(executable))
@@ -183,8 +179,16 @@ namespace MediaCurator
 
          try
          {
-            Duration = Double.Parse(fileInfo.GetProperty("format").GetProperty("duration").GetString(),
-                                    CultureInfo.InvariantCulture);
+            var duration = fileInfo.GetProperty("format").GetProperty("duration").GetString();
+
+            if (!string.IsNullOrEmpty(duration))
+            {
+               Duration = double.Parse(duration, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+               Logger.LogDebug("Duration Property Missing Or Null For: {}", FullPath);
+            }
          }
          catch (Exception e)
          {
@@ -340,6 +344,7 @@ namespace MediaCurator
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
+               byte[]? thumbnail = null;
                int position = (int)((counter + 0.5) * Duration / (count != 0 ? count : Math.Min(24, Math.Floor(Duration))));
                string column = ((count >= 1) && !sprite) ? String.Format("{0}{1}", item.Key, counter) : label;
 
@@ -350,10 +355,9 @@ namespace MediaCurator
                }
 
                if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
-               else if (sprite && (counter == 0)) Logger.LogDebug("Generating The Sprites For: {}", FullPath);
 
                // Generate the thumbnail
-               byte[]? thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
+               if (!string.IsNullOrEmpty(FullPath)) thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);
 
                // Report the progress
                Progress?.Report((float)++generated / (float)total);
@@ -369,12 +373,12 @@ namespace MediaCurator
                      }
                      else
                      {
-                        Thumbnails[counter] = thumbnail;
+                        if (Thumbnails is not null) Thumbnails[counter] = thumbnail;
                      }
                   }
                   else
                   {
-                     Thumbnails[label] = thumbnail;
+                     if (Thumbnails is not null) Thumbnails[label] = thumbnail;
                   }
 
                   thumbnails++;
@@ -396,7 +400,8 @@ namespace MediaCurator
             if (collection.Count > 0)
             {
                using var output = collection.AppendHorizontally();
-               Thumbnails[label] = output.ToByteArray();
+
+               if (Thumbnails is not null) Thumbnails[label] = output.ToByteArray();
             }
          }
 
@@ -471,7 +476,7 @@ namespace MediaCurator
          for (double index = 0; (index * interval) < Duration; index++)
          {
             content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
-            if (!String.IsNullOrEmpty(quality)) content.AppendLine(String.Format("{0}/{1:00000}.ts", quality, index));
+            if (!string.IsNullOrEmpty(quality)) content.AppendLine(String.Format("{0}/{1:00000}.ts", quality, index));
             else content.AppendLine(String.Format("{0:00000}.ts", index));
          }
 

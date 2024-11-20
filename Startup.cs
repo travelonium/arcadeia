@@ -1,13 +1,5 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.HttpOverrides;
-using System.Collections.Generic;
 using MediaCurator.Services;
 using MediaCurator.Hubs;
 using MediaCurator.Solr;
@@ -58,14 +50,14 @@ namespace MediaCurator
 
          // Start the FileSystem Service
          services.AddSingleton<IFileSystemService, FileSystemService>();
-         services.AddHostedService<FileSystemService>(provider => (FileSystemService)provider.GetService<IFileSystemService>());
+         services.AddHostedService<FileSystemService>(provider => (FileSystemService)provider.GetRequiredService<IFileSystemService>());
 
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
 
          // Instantiate the Download Service
          services.AddSingleton<IDownloadService, DownloadService>();
-         services.AddHostedService<DownloadService>(provider => (DownloadService)provider.GetService<IDownloadService>());
+         services.AddHostedService<DownloadService>(provider => (DownloadService)provider.GetRequiredService<IDownloadService>());
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
@@ -89,7 +81,7 @@ namespace MediaCurator
          // list in appsettings.json.
          if (Configuration.GetSection("KnownProxies").Exists())
          {
-            foreach (var address in Configuration.GetSection("KnownProxies").Get<IEnumerable<string>>())
+            foreach (var address in Configuration.GetSection("KnownProxies").Get<IEnumerable<string>>() ?? [])
             {
                services.Configure<ForwardedHeadersOptions>(options =>
                {

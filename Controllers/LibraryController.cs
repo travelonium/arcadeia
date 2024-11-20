@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using MediaCurator.Services;
@@ -125,7 +124,7 @@ namespace MediaCurator.Controllers
 
          try
          {
-            if ((!System.IO.Directory.Exists(path) && !System.IO.File.Exists(path)) || String.IsNullOrEmpty(modified.Id) || String.IsNullOrEmpty(modified.Type))
+            if ((!System.IO.Directory.Exists(path) && !System.IO.File.Exists(path)) || string.IsNullOrEmpty(modified.Id) || string.IsNullOrEmpty(modified.Type))
             {
                return NotFound(new
                {

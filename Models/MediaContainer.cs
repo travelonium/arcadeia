@@ -6,28 +6,28 @@ namespace MediaCurator.Models
    public class MediaContainer
    {
       [SolrUniqueKey("id")]
-      public string Id { get; set; }
+      public string? Id { get; set; }
 
       [SolrField("name")]
-      public string Name { get; set; }
+      public string? Name { get; set; }
 
       [SolrField("type")]
-      public string Type { get; set; }
+      public string? Type { get; set; }
 
       [SolrUniqueKey("parent")]
-      public string Parent { get; set; }
+      public string? Parent { get; set; }
 
       [SolrUniqueKey("parentType")]
-      public string ParentType { get; set; }
+      public string? ParentType { get; set; }
 
       [SolrField("description")]
       public string? Description { get; set; }
 
       [SolrField("path")]
-      public string Path { get; set; }
+      public string? Path { get; set; }
 
       [SolrField("fullPath")]
-      public string FullPath { get; set; }
+      public string? FullPath { get; set; }
 
       [SolrField("size")]
       public long Size { get; set; }

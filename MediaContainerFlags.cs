@@ -101,7 +101,7 @@ namespace MediaCurator
       /// <param name="self">The node element representing the current MediaContainer.</param>
       /// <exception cref="NullReferenceException">The MediaContainerFlags cannot be initialized using
       /// a non-existing element!</exception>
-      public MediaContainerFlags(IEnumerable<string> flags)
+      public MediaContainerFlags(IEnumerable<string>? flags)
       {
          if (flags == null) return;
 
