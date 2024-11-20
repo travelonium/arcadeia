@@ -228,7 +228,7 @@ class Library extends Component {
             });
         }
         if (progress === 1) {
-            toast.dismiss(this.scannerProgressToast);
+            if (toast.isActive(null)) toast.dismiss(this.scannerProgressToast);
             this.scannerProgressToast = null;
         }
         this.lastScannerProgressToastShowed = now;
