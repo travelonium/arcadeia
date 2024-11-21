@@ -365,7 +365,7 @@ namespace MediaCurator
                sql += "OFF;";
                break;
             default:
-               throw new ArgumentException(String.Format("The {0} is an invalid journal mode!", mode));
+               throw new ArgumentException(string.Format("The {0} is an invalid journal mode!", mode));
          }
 
          using SqliteConnection connection = new(_connectionString.Value);
@@ -379,7 +379,7 @@ namespace MediaCurator
 
       public void Checkpoint(string argument = "TRUNCATE")
       {
-         string sql = String.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
+         string sql = string.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
 
          using SqliteConnection connection = new(_connectionString.Value);
 

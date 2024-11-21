@@ -97,7 +97,7 @@ namespace MediaCurator.Services
          ProcessStartInfo processStartInfo = new()
          {
             FileName = executable,
-            Arguments = arguments.Aggregate((a, x) => $"{a} {x}"),
+            Arguments = string.Join(" ", arguments),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = false,
@@ -109,6 +109,9 @@ namespace MediaCurator.Services
          TaskCompletionSource tcs = new();
 
          using Process process = new() { StartInfo = processStartInfo };
+
+         _logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+
          process.OutputDataReceived += (sender, e) =>
          {
             try

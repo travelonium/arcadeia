@@ -141,29 +141,43 @@ namespace MediaCurator
             throw new DirectoryNotFoundException("ffprobe not found at the specified path: " + executable);
          }
 
+         string[] arguments =
+         [
+            "-v quiet",                      // Suppress output messages
+            "-print_format json",            // Set output format to JSON
+            "-show_format",                  // Show file format information
+            "-show_streams",                 // Show stream information
+            "-select_streams v:0",           // Select the first video stream
+            $"\"{path}\""                    // Input file path
+         ];
+
          using (Process process = new())
          {
-            process.StartInfo.FileName = executable;
-            process.StartInfo.Arguments = "-v quiet -print_format json -show_format ";
-            process.StartInfo.Arguments += "-show_streams -select_streams v:0 " + "\"" + path + "\"";
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo = new ProcessStartInfo
+            {
+               FileName = executable,
+               Arguments = string.Join(" ", arguments),
+               CreateNoWindow = true,
+               UseShellExecute = false,
+               RedirectStandardOutput = true,
+               RedirectStandardError = true
+            };
 
             Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
             process.Start();
 
             Task<string> errorTask = process.StandardError.ReadToEndAsync();
-
             output = process.StandardOutput.ReadToEnd();
 
             process.WaitForExit(Configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
 
             if (process.HasExited)
             {
-               if (process.ExitCode != 0) Logger.LogDebug("{Errors}", errorTask.Result);
+               if (process.ExitCode != 0)
+               {
+                  Logger.LogDebug("{Errors}", errorTask.Result);
+               }
             }
             else
             {
@@ -201,7 +215,7 @@ namespace MediaCurator
 
          try
          {
-            Resolution = new ResolutionType(String.Format("{0}x{1}",
+            Resolution = new ResolutionType(string.Format("{0}x{1}",
                                             fileInfo.GetProperty("streams")[0].GetProperty("width").GetUInt32(),
                                             fileInfo.GetProperty("streams")[0].GetProperty("height").GetUInt32()));
          }
@@ -225,24 +239,37 @@ namespace MediaCurator
             throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
          }
 
+         string[] arguments =
+         [
+            // Seek to the specified position
+            $"-ss {position}",
+            // Input file
+            $"-i \"{path}\"",
+            // Overwrite output files
+            "-y",
+            // Select I-frames and set scale
+            $"-vf select=\"eq(pict_type\\,I),scale={width}:{height}" +
+            // Add cropping if requested
+            (crop ? (height > 0 ? $",crop=iw:'min({height},ih)'\"" : $",crop=iw:'min(iw/16*9,ih)'\"") : "\""),
+            // Output only one frame
+            "-vframes 1",
+            // Output format: image
+            "-f image2",
+            // Output to stdout
+            "-",
+         ];
+
          using (Process process = new())
          {
-            process.StartInfo.FileName = executable;
-
-            process.StartInfo.Arguments = String.Format("-ss {0} -i \"{1}\" ", position.ToString(), path);
-            process.StartInfo.Arguments += String.Format("-y -vf select=\"eq(pict_type\\,I),scale={0}:{1}", width.ToString(), height.ToString());
-
-            if (crop)
+            process.StartInfo = new ProcessStartInfo
             {
-               process.StartInfo.Arguments += String.Format(",crop=iw:'min({0},ih)'", (height > 0) ? height.ToString() : "iw/16*9");
-            }
-
-            process.StartInfo.Arguments += "\" -vframes 1 -f image2 -";
-
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.RedirectStandardOutput = true;
+               FileName = executable,
+               Arguments = string.Join(" ", arguments),
+               CreateNoWindow = true,
+               UseShellExecute = false,
+               RedirectStandardError = true,
+               RedirectStandardOutput = true
+            };
 
             Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
@@ -346,7 +373,7 @@ namespace MediaCurator
             {
                byte[]? thumbnail = null;
                int position = (int)((counter + 0.5) * Duration / (count != 0 ? count : Math.Min(24, Math.Floor(Duration))));
-               string column = ((count >= 1) && !sprite) ? String.Format("{0}{1}", item.Key, counter) : label;
+               string column = ((count >= 1) && !sprite) ? string.Format("{0}{1}", item.Key, counter) : label;
 
                if (!force)
                {
@@ -424,37 +451,37 @@ namespace MediaCurator
 
          if (Resolution.Height >= 2160)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=45000000,RESOLUTION={0}x2160,CODECS=\"avc1.640033,mp4a.40.2\"", (long)((Resolution.Width * 2160) / Resolution.Height)));
+            content.AppendLine(string.Format("#EXT-X-STREAM-INF:BANDWIDTH=45000000,RESOLUTION={0}x2160,CODECS=\"avc1.640033,mp4a.40.2\"", (long)((Resolution.Width * 2160) / Resolution.Height)));
             content.AppendLine("2160.m3u8\n");
          }
 
          if (Resolution.Height >= 1080)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION={0}x1080,CODECS=\"avc1.640028,mp4a.40.2\"", (long)((Resolution.Width * 1080) / Resolution.Height)));
+            content.AppendLine(string.Format("#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION={0}x1080,CODECS=\"avc1.640028,mp4a.40.2\"", (long)((Resolution.Width * 1080) / Resolution.Height)));
             content.AppendLine("1080.m3u8\n");
          }
 
          if (Resolution.Height >= 720)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION={0}x720,CODECS=\"avc1.64001f,mp4a.40.2\"", (long)((Resolution.Width * 720) / Resolution.Height)));
+            content.AppendLine(string.Format("#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION={0}x720,CODECS=\"avc1.64001f,mp4a.40.2\"", (long)((Resolution.Width * 720) / Resolution.Height)));
             content.AppendLine("720.m3u8\n");
          }
 
          if (Resolution.Height >= 480)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION={0}x480,CODECS=\"avc1.64001e,mp4a.40.2\"", (long)((Resolution.Width * 480) / Resolution.Height)));
+            content.AppendLine(string.Format("#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION={0}x480,CODECS=\"avc1.64001e,mp4a.40.2\"", (long)((Resolution.Width * 480) / Resolution.Height)));
             content.AppendLine("480.m3u8\n");
          }
 
          if (Resolution.Height >= 360)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION={0}x360,CODECS=\"avc1.640015,mp4a.40.2\"", (long)((Resolution.Width * 360) / Resolution.Height)));
+            content.AppendLine(string.Format("#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION={0}x360,CODECS=\"avc1.640015,mp4a.40.2\"", (long)((Resolution.Width * 360) / Resolution.Height)));
             content.AppendLine("360.m3u8\n");
          }
 
          if (Resolution.Height >= 240)
          {
-            content.AppendLine(String.Format("#EXT-X-STREAM-INF:BANDWIDTH=700000,RESOLUTION={0}x240,CODECS=\"avc1.64000d,mp4a.40.2\"", (long)((Resolution.Width * 240) / Resolution.Height)));
+            content.AppendLine(string.Format("#EXT-X-STREAM-INF:BANDWIDTH=700000,RESOLUTION={0}x240,CODECS=\"avc1.64000d,mp4a.40.2\"", (long)((Resolution.Width * 240) / Resolution.Height)));
             content.AppendLine("240.m3u8\n");
          }
 
@@ -468,16 +495,16 @@ namespace MediaCurator
 
          content.AppendLine("#EXTM3U");
          content.AppendLine("#EXT-X-VERSION:6");
-         content.AppendLine(String.Format("#EXT-X-TARGETDURATION:{0}", segment));
+         content.AppendLine(string.Format("#EXT-X-TARGETDURATION:{0}", segment));
          content.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
          content.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
          content.AppendLine("#EXT-X-INDEPENDENT-SEGMENTS");
 
          for (double index = 0; (index * interval) < Duration; index++)
          {
-            content.AppendLine(String.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
-            if (!string.IsNullOrEmpty(quality)) content.AppendLine(String.Format("{0}/{1:00000}.ts", quality, index));
-            else content.AppendLine(String.Format("{0:00000}.ts", index));
+            content.AppendLine(string.Format("#EXTINF:{0:#.000000},", ((Duration - (index * interval)) > interval) ? interval : ((Duration - (index * interval)))));
+            if (!string.IsNullOrEmpty(quality)) content.AppendLine(string.Format("{0}/{1:00000}.ts", quality, index));
+            else content.AppendLine(string.Format("{0:00000}.ts", index));
          }
 
          content.AppendLine("#EXT-X-ENDLIST");
@@ -498,7 +525,7 @@ namespace MediaCurator
       /// <exception cref="FileNotFoundException"></exception>
       public byte[] GenerateSegments(string quality, int sequence, int duration, int count = 0)
       {
-         byte[] output = Array.Empty<byte>();
+         byte[] output = [];
          int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
          string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
          DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
@@ -512,98 +539,96 @@ namespace MediaCurator
             throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
          }
 
-         using (Process ffmpeg = new())
-         {
-            ffmpeg.StartInfo.FileName = executable;
-
+         string[] arguments =
+         [
             // Start time
-            ffmpeg.StartInfo.Arguments = String.Format("-ss {0} ", sequence * duration);
+            $"-ss {sequence * duration}",
             // Duration of 10 seconds
-            ffmpeg.StartInfo.Arguments += String.Format("-t {0} ", count == 0 ? Duration - (double)(sequence * duration) : count * duration);
+            (count == 0) ? $"-t {Duration - sequence * duration}" : $"-t {count * duration}",
             // Copy timestamps
-            ffmpeg.StartInfo.Arguments += String.Format("-copyts ");
+            $"-copyts",
             // Input file
-            ffmpeg.StartInfo.Arguments += String.Format("-i \"{0}\" ", FullPath);
+            $"-i \"{FullPath}\" ",
             // Map all streams from the input
-            ffmpeg.StartInfo.Arguments += String.Format("-map 0 ");
+            $"-map 0",
             // Exclude all subtitle streams
-            ffmpeg.StartInfo.Arguments += String.Format("-map -0:s ");
+            $"-map -0:s",
             // Set video codec to libx264
-            ffmpeg.StartInfo.Arguments += String.Format("-c:v libx264 ");
+            $"-c:v libx264",
             // Set audio codec to AAC
-            ffmpeg.StartInfo.Arguments += String.Format("-c:a aac ");
-
-            string template = "-vf scale=-1:{0} -b:v {1}k -maxrate {2}k -bufsize {3}k -b:a 128k ";
-
-            switch (quality)
-            {
-               case "240p":
-               case "240":
-                  ffmpeg.StartInfo.Arguments += String.Format(template, 240, 700, 700, 1400);
-                  break;
-               case "360p":
-               case "360":
-                  ffmpeg.StartInfo.Arguments += String.Format(template, 360, 1000, 1000, 2000);
-                  break;
-               case "480p":
-               case "480":
-                  ffmpeg.StartInfo.Arguments += String.Format(template, 480, 2000, 2000, 4000);
-                  break;
-               case "720p":
-               case "720":
-                  ffmpeg.StartInfo.Arguments += String.Format(template, 720, 4000, 4000, 8000);
-                  break;
-               case "1080p":
-               case "1080":
-                  ffmpeg.StartInfo.Arguments += String.Format(template, 1080, 6000, 6000, 12000);
-                  break;
-               case "4k":
-               case "2160p":
-               case "2160":
-                  ffmpeg.StartInfo.Arguments += String.Format(template, 2160, 45000, 45000, 90000);
-                  break;
-            }
-
+            $"-c:a aac",
             // Segment duration in seconds
-            ffmpeg.StartInfo.Arguments += String.Format("-segment_time {0} ", duration);
+            $"-segment_time {duration}",
             // Reset timestamps
-            ffmpeg.StartInfo.Arguments += String.Format("-reset_timestamps 0 ");
+            $"-reset_timestamps 0",
             // Break segments at non-keyframes
-            ffmpeg.StartInfo.Arguments += String.Format("-break_non_keyframes 1 ");
-
-            // ffmpeg.StartInfo.Arguments += String.Format("-initial_offset {0} ", sequence * duration);
-
+            $"-break_non_keyframes 1",
+            // $"-initial_offset {sequence * duration}",
             // Output format: segment
-            ffmpeg.StartInfo.Arguments += String.Format("-f segment ");
+            $"-f segment",
             // Segment format: MPEG-TS
-            ffmpeg.StartInfo.Arguments += String.Format("-segment_format mpegts ");
+            $"-segment_format mpegts",
             // Output file pattern
-            ffmpeg.StartInfo.Arguments += String.Format("{0} ", format);
+            $"{format}",
             // Overwrite output files without asking
-            ffmpeg.StartInfo.Arguments += String.Format("-y", format);
+            "-y",
+         ];
 
-            Logger.LogDebug(String.Format("{0} {1}", ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments));
+         string template = "-vf scale=-1:{0} -b:v {1}k -maxrate {2}k -bufsize {3}k -b:a 128k";
 
-            ffmpeg.StartInfo.CreateNoWindow = true;
-            ffmpeg.StartInfo.UseShellExecute = false;
-            ffmpeg.StartInfo.RedirectStandardError = true;
-            ffmpeg.StartInfo.RedirectStandardOutput = true;
+         var qualitySettings = new Dictionary<string, (int height, int bitrate, int maxrate, int bufsize)>
+         {
+            { "240p",   (240, 700, 700, 1400) },
+            { "240",    (240, 700, 700, 1400) },
+            { "360p",   (360, 1000, 1000, 2000) },
+            { "360",    (360, 1000, 1000, 2000) },
+            { "480p",   (480, 2000, 2000, 4000) },
+            { "480",    (480, 2000, 2000, 4000) },
+            { "720p",   (720, 4000, 4000, 8000) },
+            { "720",    (720, 4000, 4000, 8000) },
+            { "1080p",  (1080, 6000, 6000, 12000) },
+            { "1080",   (1080, 6000, 6000, 12000) },
+            { "4k",     (2160, 45000, 45000, 90000) },
+            { "2160p",  (2160, 45000, 45000, 90000) },
+            { "2160",   (2160, 45000, 45000, 90000) }
+         };
 
-            ffmpeg.Start();
+         if (qualitySettings.TryGetValue(quality, out var settings))
+         {
+            _ = arguments.Append(string.Format(template, settings.height, settings.bitrate, settings.maxrate, settings.bufsize));
+         }
+
+         using (Process process = new())
+         {
+            process.StartInfo = new ProcessStartInfo
+            {
+               FileName = executable,
+               Arguments = string.Join(" ", arguments),
+               RedirectStandardOutput = true,
+               RedirectStandardError = true,
+               RedirectStandardInput = false,
+               UseShellExecute = false,
+               CreateNoWindow = true
+            };
+
+            Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+
+            process.Start();
 
             do
             {
                Thread.Sleep(waitInterval);
                totalWaitTime += waitInterval;
             }
-            while ((!ffmpeg.HasExited) && (totalWaitTime < timeout));
+            while ((!process.HasExited) && (totalWaitTime < timeout));
 
-            if (!ffmpeg.HasExited || (ffmpeg.ExitCode != 0))
+            if (!process.HasExited || (process.ExitCode != 0))
             {
-               if (!ffmpeg.HasExited) ffmpeg.Kill();
+               if (!process.HasExited) process.Kill();
 
-               throw new Exception(String.Format("Segment generation failed: {0} {1}\n{2}",
-                  ffmpeg.StartInfo.FileName, ffmpeg.StartInfo.Arguments, ffmpeg.StandardError.ReadToEnd()));
+               throw new Exception(string.Format(
+                  "Segment generation failed: {0} {1}\n{2}",
+                  process.StartInfo.FileName, process.StartInfo.Arguments, process.StandardError.ReadToEnd()));
             }
 
             string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");

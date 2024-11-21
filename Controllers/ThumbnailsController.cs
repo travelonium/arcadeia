@@ -139,8 +139,8 @@ namespace MediaCurator.Controllers
             var x = counter * width;
             string to = TimeSpan.FromSeconds((counter + 0.5) * duration / count).ToString(@"hh\:mm\:ss");
 
-            content.AppendLine(String.Format("{0}.000 --> {1}.000", from, to));
-            content.AppendLine(String.Format("{0}.jpg#xywh={1},{2},{3},{4}", label, x, y, width, height) + Environment.NewLine);
+            content.AppendLine(string.Format("{0}.000 --> {1}.000", from, to));
+            content.AppendLine(string.Format("{0}.jpg#xywh={1},{2},{3},{4}", label, x, y, width, height) + Environment.NewLine);
 
             from = to;
          }

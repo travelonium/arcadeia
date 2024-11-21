@@ -147,12 +147,12 @@ namespace MediaCurator
 
             if (string.IsNullOrEmpty(mediaContainer.Type))
             {
-               throw new ArgumentNullException(mediaContainer.Type, String.Format("Failed to determine the MediaContainer type: {0}", mediaContainer.FullPath));
+               throw new ArgumentNullException(mediaContainer.Type, string.Format("Failed to determine the MediaContainer type: {0}", mediaContainer.FullPath));
             }
 
             if (string.IsNullOrEmpty(mediaContainer.Id))
             {
-               throw new ArgumentNullException(mediaContainer.Id, String.Format("Failed to determine the MediaContainer id: {0}", mediaContainer.FullPath));
+               throw new ArgumentNullException(mediaContainer.Id, string.Format("Failed to determine the MediaContainer id: {0}", mediaContainer.FullPath));
             }
 
             id = mediaContainer.Id;

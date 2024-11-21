@@ -69,7 +69,7 @@ namespace MediaCurator
 
          if ((Width > 0) && (Height > 0))
          {
-            resolution = String.Format("{0}x{1}", Width, Height);
+            resolution = string.Format("{0}x{1}", Width, Height);
          }
 
          return resolution;

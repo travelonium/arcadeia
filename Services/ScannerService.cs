@@ -323,7 +323,7 @@ namespace MediaCurator.Services
                   int currentIndex = Interlocked.Increment(ref index);
 
                   // Inform the client(s) of the current progress.
-                  await _notificationService.ShowScanProgressAsync(uuid, String.Format("{0} Scanning", type), path, file, currentIndex, total);
+                  await _notificationService.ShowScanProgressAsync(uuid, string.Format("{0} Scanning", type), path, file, currentIndex, total);
 
                   // Should the file name be ignored
                   foreach (Regex pattern in patterns)

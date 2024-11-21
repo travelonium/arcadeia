@@ -126,7 +126,7 @@ namespace MediaCurator.Services
 
          if (!process.HasExited || (process.ExitCode != 0))
          {
-            throw new Exception(String.Format("Failed To Unmount: {0} Because: {1}", Device, output));
+            throw new Exception(string.Format("Failed To Unmount: {0} Because: {1}", Device, output));
          }
 
          Attached = false;

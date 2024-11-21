@@ -316,7 +316,7 @@ namespace MediaCurator
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
                byte[]? thumbnail = null;
-               string column = (count >= 1) ? String.Format("{0}{1}", item.Key, counter) : label;
+               string column = (count >= 1) ? string.Format("{0}{1}", item.Key, counter) : label;
 
                if (!force)
                {
