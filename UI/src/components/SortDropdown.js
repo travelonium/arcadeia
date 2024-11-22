@@ -5,8 +5,9 @@ import Tooltip from 'react-bootstrap/Tooltip';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
 import { clone } from './../utils';
+import { isEqual } from 'lodash';
 import cx from 'classnames';
-import _ from 'lodash';
+
 
 export class SortDropdown extends Component {
 
@@ -39,13 +40,13 @@ export class SortDropdown extends Component {
         if (this.state.directions[eventKey] !== undefined) {
             value.direction = eventKey;
         }
-        if (this.props.onChange && !_.isEqual(this.props.value, value)) {
+        if (this.props.onChange && !isEqual(this.props.value, value)) {
             this.props.onChange(value, event);
         }
     }
 
     onSetList(newState) {
-        if (this.props.onChange && !_.isEqual(this.props.value.fields, newState)) {
+        if (this.props.onChange && !isEqual(this.props.value.fields, newState)) {
             let value = clone({
                 ...this.props.value,
                 fields: newState

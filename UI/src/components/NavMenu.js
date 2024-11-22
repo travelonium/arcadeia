@@ -9,8 +9,8 @@ import { setQuery, setFavorite, setRecursive, setSort, resetSort, setPath } from
 import { setTheme, setView, resetView } from '../features/ui/slice';
 import { connect } from "react-redux";
 import { extract } from '../utils';
+import { isEqual } from 'lodash';
 import { Flag } from './Flag';
-import _ from 'lodash';
 import './NavMenu.css';
 
 class NavMenu extends Component {
@@ -31,7 +31,7 @@ class NavMenu extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (!_.isEqual(this.props.search, prevProps.search)) {
+        if (!isEqual(this.props.search, prevProps.search)) {
             this.setState({
                 query: this.props.search.query,
             });

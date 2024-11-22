@@ -9,20 +9,20 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
+import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 import { clone, extract, size, updateBit, querify } from './../utils';
 import { reset, setPath } from '../features/search/slice';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
-import * as signalR from '@microsoft/signalr';
 import { UploadZone } from './UploadZone';
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { toast } from 'react-toastify';
+import { isEqual, omit } from 'lodash';
 import { connect } from "react-redux";
 import * as pb from 'path-browserify';
 import cx from 'classnames';
 import axios from 'axios';
-import _ from 'lodash';
 
 class Library extends Component {
 
@@ -115,17 +115,17 @@ class Library extends Component {
         let selectedNextState = clone(nextState);
         let selectedCurrentState = clone(this.state);
         // ignore the keys that shouldn't cause a reload
-        selectedNextState = _.omit(selectedNextState, ['uploads', 'scanner']);
-        selectedCurrentState = _.omit(selectedCurrentState, ['uploads', 'scanner']);
+        selectedNextState = omit(selectedNextState, ['uploads', 'scanner']);
+        selectedCurrentState = omit(selectedCurrentState, ['uploads', 'scanner']);
         // ignore the scrollPosition key as its changes shouldn't cause a reload
-        let should = (_.isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
-                     (!_.isEqual(selectedCurrentProps, selectedNextProps) || (!_.isEqual(selectedCurrentState, selectedNextState)));
+        let should = (isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
+                     (!isEqual(selectedCurrentProps, selectedNextProps) || (!isEqual(selectedCurrentState, selectedNextState)));
         return should;
     }
 
     componentDidUpdate(prevProps) {
         const history = this.history;
-        if (!_.isEqual(this.props.search, prevProps.search)) {
+        if (!isEqual(this.props.search, prevProps.search)) {
             this.refresh((succeeded, name) => {
                 if (succeeded && name) {
                     const index = this.state.items.findIndex(x => x.name === name);
@@ -188,12 +188,12 @@ class Library extends Component {
     }
 
     setupSignalRConnection(callback = undefined) {
-        const connection = new signalR.HubConnectionBuilder()
-                                      .withUrl("/signalr", { transport: signalR.HttpTransportType.WebSockets })
-                                      .withAutomaticReconnect()
-                                      .withHubProtocol(new MessagePackHubProtocol())
-                                      .configureLogging(signalR.LogLevel.Information)
-                                      .build();
+        const connection = new HubConnectionBuilder()
+                               .withUrl("/signalr", { transport: HttpTransportType.WebSockets })
+                               .withAutomaticReconnect()
+                               .withHubProtocol(new MessagePackHubProtocol())
+                               .configureLogging(LogLevel.Information)
+                               .build();
         connection.start()
         .then(() => {
             this.signalRConnection = connection;

@@ -3,15 +3,15 @@ import videojs from 'video.js';
 import vttThumbnails from 'videojs-vtt-thumbnails';
 import "jb-videojs-hls-quality-selector";
 import { extract } from '../utils';
+import { isEqual } from 'lodash';
 import cx from 'classnames';
-import _ from 'lodash';
 
 export class VideoPlayer extends React.Component {
 
     componentDidMount() {
         this.attempt = 0;
-        let options = this.props.options;
-        let sources = this.sources(this.props.sources);
+        const options = this.props.options;
+        const sources = this.sources(this.props.sources);
         options.sources = sources;
         videojs.registerPlugin("vttThumbnails", vttThumbnails);
         this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
@@ -39,7 +39,7 @@ export class VideoPlayer extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (!_.isEqual(this.props.sources, prevProps.sources)) {
+        if (!isEqual(this.props.sources, prevProps.sources)) {
             // a reload becomes necessary only when the fullPath of one or more sources have changed
             let reload = prevProps.sources.reduce((previousValue, currentValue, currentIndex) => {
                 if (currentIndex >= this.props.sources.length) return true;

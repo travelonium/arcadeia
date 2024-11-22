@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { store, persistor } from './store';
 import { createRoot } from 'react-dom/client';
 import { ToastContainer } from 'react-toastify';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { PersistGate } from 'redux-persist/integration/react';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';

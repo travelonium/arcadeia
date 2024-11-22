@@ -3,8 +3,8 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
+import { isEqual } from 'lodash';
 import cx from 'classnames';
-import _ from 'lodash';
 
 export class ViewDropdown extends Component {
 
@@ -32,7 +32,7 @@ export class ViewDropdown extends Component {
         if (this.state.views[eventKey] !== undefined) {
             value = eventKey;
         }
-        if (this.props.onChange && !_.isEqual(this.props.value, value)) {
+        if (this.props.onChange && !isEqual(this.props.value, value)) {
             this.props.onChange(value, event);
         }
     }
