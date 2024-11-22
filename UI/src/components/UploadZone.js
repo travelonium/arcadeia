@@ -101,9 +101,11 @@ export class UploadZone extends Component {
                             const components = new URL(url);
                             let filename = pb.basename(components.pathname).toLowerCase();
                             let extension = pb.extname(components.pathname).toLowerCase();
+                            // is the downloaded file an html file?
                             if (blob.type.match('^text/html')) {
                                 items.push(url);
                             } else {
+                                // nope, not an html file
                                 if (extension && Object.values(extensions).includes(extension)) {
                                     // the filename includes an extension and it is supported
                                     const file = new File([blob], filename, { type: blob.type });
@@ -124,9 +126,10 @@ export class UploadZone extends Component {
                                 }
                             }
                         } catch (error) {
-                            const title = "Fetch Error";
-                            console.error("Error fetching or processing the dropped link:", error.message);
-                            toast.error(this.renderErrorToast(title,  error.message));
+                            console.warn(error.message);
+                            // toast.error(this.renderErrorToast("Fetch Error",  error.message));
+                            // as a last resort, pass on the URL to the uploader
+                            items.push(url);
                         }
                         // process the list of items to be uploaded
                         if (items && this.props.onUpload !== undefined) this.props.onUpload(items);
