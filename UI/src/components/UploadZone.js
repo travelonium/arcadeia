@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
+import * as pb from 'path-browserify';
 import cx from 'classnames';
 import './UploadZone.scss';
 
@@ -64,14 +65,71 @@ export class UploadZone extends Component {
         this.setState({
             dragging: false
         }, () => {
-            let items = [];
+            const items = [];
             const dataTransfer = event.dataTransfer;
             for (const item of dataTransfer.items) {
+                const items = [];
                 if (item.kind === 'string' && item.type.match('^text/plain')) {
                     // the item is a URL
                     item.getAsString(async (url) => {
                         if (!this.isValidHttpUrl(url)) return;
-                        if (this.props.onUpload !== undefined) this.props.onUpload([url]);
+                        try {
+                            const response = await fetch(url);
+                            const blob = await response.blob();
+                            // MIME to extension mapping for images and videos
+                            const extensions = {
+                                'image/jpeg': '.jpg',
+                                'image/png': '.png',
+                                'image/gif': '.gif',
+                                'image/bmp': '.bmp',
+                                'image/svg+xml': '.svg',
+                                'image/webp': '.webp',
+                                'image/tiff': '.tiff',
+                                'image/heic': '.heic',
+                                'video/mp4': '.mp4',
+                                'video/mpeg': '.mpeg',
+                                'video/quicktime': '.mov',
+                                'video/webm': '.webm',
+                                'video/ogg': '.ogv',
+                                'video/x-msvideo': '.avi',
+                                'video/x-ms-wmv': '.wmv',
+                                'video/3gpp': '.3gp',
+                                'video/3gpp2': '.3g2',
+                                'video/x-matroska': '.mkv'
+                            };
+                            // attempt to extract a filename from the URL
+                            const components = new URL(url);
+                            let filename = pb.basename(components.pathname).toLowerCase();
+                            let extension = pb.extname(components.pathname).toLowerCase();
+                            if (blob.type.match('^text/html')) {
+                                items.push(url);
+                            } else {
+                                if (extension && Object.values(extensions).includes(extension)) {
+                                    // the filename includes an extension and it is supported
+                                    const file = new File([blob], filename, { type: blob.type });
+                                    // pass it on to the uploader as a file
+                                    items.push(file);
+                                } else if ((extension = extensions[blob.type])) {
+                                    // no extension in filename, but the MIME type is supported, infer the extension
+                                    filename += extension;
+                                    const file = new File([blob], filename, { type: blob.type });
+                                    // pass it on to the uploader as a file
+                                    items.push(file);
+                                } else {
+                                    // nope, it's an unsupported file type, ignore it
+                                    const title = "Unsupported Media Type";
+                                    const message = "Media file type is unsupported.";
+                                    console.error(title, message);
+                                    toast.error(this.renderErrorToast(title, message));
+                                }
+                            }
+                        } catch (error) {
+                            const title = "Fetch Error";
+                            console.error("Error fetching or processing the dropped link:", error.message);
+                            toast.error(this.renderErrorToast(title,  error.message));
+                        }
+                        // process the list of items to be uploaded
+                        if (items && this.props.onUpload !== undefined) this.props.onUpload(items);
                     });
                 } else {
                     items.push(item);
