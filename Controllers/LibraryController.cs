@@ -333,13 +333,13 @@ namespace MediaCurator.Controllers
       [Produces("application/json")]
       public IActionResult Put(List<IFormFile> files, string path = "")
       {
-         // Upload a file overwriting existing files with the same name.
-         return Ok();
+         // TODO: Upload a file overwriting existing files with the same name.
+         return StatusCode(StatusCodes.Status501NotImplemented);
       }
 
       [HttpGet]
-      [Route("download")]
-      public async Task Download([FromQuery] String url, [FromQuery] string path, [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
+      [Route("upload")]
+      public async Task Upload([FromQuery] String url, [FromQuery] string path, [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
       {
          if (string.IsNullOrWhiteSpace(url))
          {
@@ -406,7 +406,7 @@ namespace MediaCurator.Controllers
             }
             else
             {
-               await WriteAsync(Response, "Error: Media file Download failed.\n");
+               await WriteAsync(Response, "Error: Media file downloading failed.\n");
             }
          }
          catch (DownloadService.FileAlreadyDownloadedException ex)

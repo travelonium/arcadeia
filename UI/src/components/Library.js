@@ -946,7 +946,7 @@ class Library extends Component {
             params.set('path', path);
             params.set('overwrite', this.props.ui.uploads.overwrite);
             params.set('duplicate', this.props.ui.uploads.duplicate);
-            fetch("/library/download?" + params.toString())
+            fetch("/library/upload?" + params.toString())
             .then((response) => {
                 const reader = response.body.getReader();
                 const process = ({ done, value: chunk }) => {
