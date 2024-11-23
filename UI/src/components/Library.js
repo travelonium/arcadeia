@@ -211,7 +211,7 @@ class Library extends Component {
         const now = Date.now();
         if ((now - this.lastScannerProgressToastShowed < interval) && (index > 0) && ((index + 1) < total)) return;
         const progress = (index + 1) / total;
-        const render = this.renderScannerProgressToast(`${title}...`, this.shorten(item, 100));
+        const render = this.renderScannerProgressToast(`${title}...`, item, 100);
         if (!this.scannerProgressToast) {
             this.scannerProgressToast = toast.info(render,
             {
@@ -234,26 +234,70 @@ class Library extends Component {
         this.lastScannerProgressToastShowed = now;
     }
 
-    shorten(path, length) {
-        if (path.length <= length) return path;
+    shorten(input, length) {
+        if (input.length <= length) return input;
 
-        const parts = path.split("/");
-        const fileName = parts.pop(); // get the file name (last part)
-        const remainingLength = length - fileName.length - 4; // subtract length for file name and '.../'
-        let shortenedPath = "";
-        let i = 0;
+        const ellipsis = "...";
+        const isURL = /^(https?:\/\/)/.test(input);
 
-        if (remainingLength <= 0) {
-            // if there's not enough room for the rest of the path
-            return '.../' + fileName;
+        let protocol = "";
+        let domain = "";
+        let path = "";
+        let fileName = input;
+
+        if (isURL) {
+            // handle URLs
+            const matches = input.match(/^(https?:\/\/)([^/]+)(\/?.*?)($|\?)/);
+            if (matches) {
+                protocol = matches[1]; // e.g., "http://"
+                domain = matches[2];   // e.g., "example.com"
+                path = matches[3];     // e.g., "/path/to/resource"
+                const parts = path.split("/");
+                fileName = parts.pop(); // extract file name or last path segment
+                path = parts.join("/") + (parts.length ? "/" : "");
+            }
+        } else if (input.includes("/")) {
+            // handle file paths
+            const parts = input.split("/");
+            fileName = parts.pop();
+            path = parts.join("/") + "/";
         }
 
-        while (shortenedPath.length + parts[i].length + 1 <= remainingLength && i < parts.length) {
-            shortenedPath += parts[i] + '/';
-            i++;
+        // calculate the base length (protocol + domain + ellipsis if there's a path + file name)
+        const baseLength = protocol.length + domain.length + (path ? ellipsis.length : 0) + fileName.length;
+
+        if (baseLength > length) {
+            // if the file name alone exceeds the length, truncate the file name
+            const extIndex = fileName.lastIndexOf(".");
+            const ext = extIndex !== -1 ? fileName.substring(extIndex) : "";
+            const namePart = fileName.substring(0, fileName.length - ext.length);
+            const truncatedName = namePart.substring(0, length - ellipsis.length - ext.length - 1) + "…" + ext;
+            return protocol + domain + truncatedName;
         }
 
-        return shortenedPath + '.../' + fileName;
+        // calculate the remaining length for the path
+        const remainingLength = length - baseLength;
+        let shortenedPath = path;
+
+        if (path.length > remainingLength) {
+            // ensure truncation doesn't remove trailing slash after directories
+            const parts = path.split("/");
+            let totalLength = 0;
+            shortenedPath = "";
+
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                const partWithSlash = part + "/";
+                if (totalLength + partWithSlash.length > remainingLength) {
+                    shortenedPath += ellipsis;
+                    break;
+                }
+                shortenedPath += partWithSlash;
+                totalLength += partWithSlash.length;
+            }
+        }
+
+        return protocol + domain + shortenedPath + fileName;
     }
 
     set(index, source, refresh = true, callback = undefined) {
@@ -1285,7 +1329,7 @@ class Library extends Component {
                 <div>
                     <strong>{title}</strong>
                 </div>
-                <small>{subtitle}</small>
+                <small>{this.shorten(subtitle, 100)}</small>
             </>
         );
     }
@@ -1296,7 +1340,7 @@ class Library extends Component {
                 <div className="mb-1">
                     <strong>{title}</strong>
                 </div>
-                <small className="scanner-progress-subtitle">{subtitle}</small>
+                <small className="scanner-progress-subtitle">{this.shorten(subtitle, 100)}</small>
             </>
         );
     }

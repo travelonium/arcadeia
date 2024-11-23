@@ -68,10 +68,10 @@ export class UploadZone extends Component {
             const items = [];
             const dataTransfer = event.dataTransfer;
             for (const item of dataTransfer.items) {
-                const items = [];
                 if (item.kind === 'string' && item.type.match('^text/plain')) {
                     // the item is a URL
                     item.getAsString(async (url) => {
+                        const items = []; // only valid and processed inside this block
                         if (!this.isValidHttpUrl(url)) return;
                         try {
                             const response = await fetch(url);
@@ -138,7 +138,7 @@ export class UploadZone extends Component {
                     items.push(item);
                 }
             }
-            if (this.props.onUpload !== undefined) this.props.onUpload(items);
+            if (items && this.props.onUpload !== undefined) this.props.onUpload(items);
         });
     }
 

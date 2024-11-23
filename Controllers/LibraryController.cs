@@ -144,7 +144,7 @@ namespace MediaCurator.Controllers
          path = Platform.Separator.Path + path;
 
          if (!IsPathAllowed(path)) {
-            return Problem(title: "Bad Request", detail: "The requested path was invalid or inaccessible.", statusCode: 400);
+            return Problem(title: "Bad Request", detail: "The path is invalid or inaccessible.", statusCode: 400);
          }
 
          try
@@ -205,7 +205,7 @@ namespace MediaCurator.Controllers
          path = Platform.Separator.Path + path;
 
          if (!IsPathAllowed(path)) {
-            return Problem(title: "Bad Request", detail: "The requested path was invalid or inaccessible.", statusCode: 400);
+            return Problem(title: "Bad Request", detail: "The path is invalid or inaccessible.", statusCode: 400);
          }
 
          long size = files.Sum(file => file.Length);
@@ -348,7 +348,7 @@ namespace MediaCurator.Controllers
          }
 
          if (!IsPathAllowed(path)) {
-            await WriteAsync(Response, "Error: Downloading to the supplied path is not allowed.\n");
+            await WriteAsync(Response, "Error: The destination path is inaccessible.\n");
             return;
          }
 
