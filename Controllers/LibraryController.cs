@@ -31,14 +31,23 @@ namespace MediaCurator.Controllers
       {
          get
          {
-            if (_configuration.GetSection("Scanner:IgnoredFileNames").Exists())
-            {
-               return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>() ?? [];
-            }
-            else
-            {
-               return [];
-            }
+            return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>() ?? [];
+         }
+      }
+
+      public List<string> Folders
+      {
+         get
+         {
+            return _configuration.GetSection("Scanner:Folders").Get<List<string>>() ?? [];
+         }
+      }
+
+      public List<string> WatchedFolders
+      {
+         get
+         {
+            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>() ?? [];
          }
       }
 
@@ -48,7 +57,7 @@ namespace MediaCurator.Controllers
          await response.Body.FlushAsync();
       }
 
-      public string RemoveEmojis(string fileName)
+      private string RemoveEmojis(string fileName)
       {
          var result = new System.Text.StringBuilder();
 
@@ -65,7 +74,7 @@ namespace MediaCurator.Controllers
          return result.ToString();
       }
 
-      public string RemoveSpaces(string fileName)
+      private string RemoveSpaces(string fileName)
       {
          // Normalize spaces in the file name
          fileName = Regex.Replace(fileName, @"\s+", " ");
@@ -78,7 +87,7 @@ namespace MediaCurator.Controllers
          return $"{name.Trim()}{extension.Trim()}";
       }
 
-      public string GetUniqueFileName(string path, string fileName, bool absolute = true)
+      private string GetUniqueFileName(string path, string fileName, bool absolute = true)
       {
          fileName = RemoveSpaces(RemoveEmojis(fileName));
 
@@ -115,12 +124,28 @@ namespace MediaCurator.Controllers
          throw new InvalidOperationException("Unable to generate a unique file name.");
       }
 
+      private bool IsPathAllowed(string path)
+      {
+         string fullPath = Path.GetFullPath(path);
+         return Folders.Concat(WatchedFolders).Any(folder =>
+         {
+            string folderPath = Path.GetFullPath(folder);
+            if (fullPath.Length < folderPath.Length) return false;
+            return fullPath.StartsWith(folderPath, StringComparison.OrdinalIgnoreCase) &&
+                   (fullPath.Length == folderPath.Length || fullPath[folderPath.Length] == Path.DirectorySeparatorChar);
+         });
+      }
+
       [HttpPatch]
       [Route("{*path}")]
       [Produces("application/json")]
       public IActionResult Patch([FromBody] Models.MediaContainer modified, string path = "")
       {
          path = Platform.Separator.Path + path;
+
+         if (!IsPathAllowed(path)) {
+            return Problem(title: "Bad Request", detail: "The requested path was invalid or inaccessible.", statusCode: 400);
+         }
 
          try
          {
@@ -178,6 +203,11 @@ namespace MediaCurator.Controllers
       public async Task<IActionResult> Post(List<IFormFile> files, string path = "", [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
       {
          path = Platform.Separator.Path + path;
+
+         if (!IsPathAllowed(path)) {
+            return Problem(title: "Bad Request", detail: "The requested path was invalid or inaccessible.", statusCode: 400);
+         }
+
          long size = files.Sum(file => file.Length);
          var result = new List<Models.MediaContainer>();
 
@@ -314,6 +344,11 @@ namespace MediaCurator.Controllers
          if (string.IsNullOrWhiteSpace(url))
          {
             await WriteAsync(Response, "Error: URL is required.\n");
+            return;
+         }
+
+         if (!IsPathAllowed(path)) {
+            await WriteAsync(Response, "Error: Downloading to the supplied path is not allowed.\n");
             return;
          }
 
