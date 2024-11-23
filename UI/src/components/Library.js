@@ -138,6 +138,9 @@ class Library extends Component {
     }
 
     setupNotifications(connection) {
+        connection.on("Refresh", (path) => {
+            this.refresh();
+        });
         connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
             const value = {
                 uuid: uuid,
@@ -834,9 +837,11 @@ class Library extends Component {
                 }, () => {
                     // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
                     if ((path === this.props.search.path) || pb.normalize(pb.dirname(path) + "/") === this.props.search.path) {
-                        this.list(undefined, () => {
-                            const index = this.state.items.findIndex(x => x.name === file.name);
-                            if (index !== -1) this.scrollToItem(index, true);
+                        this.refresh((succeeded) => {
+                            if (succeeded) {
+                                const index = this.state.items.findIndex(x => x.name === file.name);
+                                if (index !== -1) this.scrollToItem(index, true);
+                            }
                         });
                     }
                     // next!
@@ -970,9 +975,11 @@ class Library extends Component {
                         }, () => {
                             // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
                             if ((path === this.props.search.path) || pb.normalize(pb.dirname(path) + "/") === this.props.search.path) {
-                                this.list(undefined, () => {
-                                    const index = this.state.items.findIndex(x => x.name === fileName);
-                                    if (index !== -1) this.scrollToItem(index, true);
+                                this.refresh((succeeded) => {
+                                    if (succeeded) {
+                                        const index = this.state.items.findIndex(x => x.name === fileName);
+                                        if (index !== -1) this.scrollToItem(index, true);
+                                    }
                                 });
                             }
                             // next!

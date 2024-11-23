@@ -364,6 +364,9 @@ namespace MediaCurator.Services
             TimeSpan ts = new();
             ts = watch.Elapsed;
 
+            // Inform the client(s) of the need to refresh.
+            _notificationService.Refresh(path);
+
             _logger.LogInformation("{} Scanning Finished: {}", type, path);
             _logger.LogInformation("Took {} Days, {} Hours, {} Minutes, {} Seconds.",
                                    ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
@@ -486,6 +489,9 @@ namespace MediaCurator.Services
          watch.Stop();
          TimeSpan ts = new();
          ts = watch.Elapsed;
+
+         // Inform the client(s) of the need to refresh.
+         _notificationService.Refresh("/");
 
          _logger.LogInformation("Startup Update Finished After {} Days, {} Hours, {} Minutes, {} Seconds.",
                                 ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
