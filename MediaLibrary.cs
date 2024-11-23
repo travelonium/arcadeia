@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing.Imaging;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
 
 namespace MediaCurator
 {
@@ -30,8 +25,9 @@ namespace MediaCurator
                           IServiceProvider services,
                           IConfiguration configuration,
                           IThumbnailsDatabase thumbnailsDatabase,
-                          string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, null, id, path)
+                          string? id = null, string? path = null,
+                          IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, null, id, path, progress)
       {
          // Read and store the supported extensions from the configuration file.
          SupportedExtensions = new SupportedExtensions(Configuration);
@@ -52,7 +48,7 @@ namespace MediaCurator
 
       #region Public Methods
 
-      public string GenerateUniqueId(string path, out bool reused)
+      public string? GenerateUniqueId(string? path, out bool reused)
       {
          lock (_lock)
          {
@@ -62,10 +58,10 @@ namespace MediaCurator
                return null;
             }
 
-            if (_cache.ContainsKey(path))
+            if (_cache.TryGetValue(path, out string? cached))
             {
                reused = true;
-               return _cache[path];
+               return cached;
             }
             else
             {
@@ -84,9 +80,9 @@ namespace MediaCurator
          Logger.LogInformation("Media Library Cache Cleared!");
       }
 
-      public MediaFile InsertMediaFile(string path)
+      public MediaFile? InsertMediaFile(string path, IProgress<float>? progress = null)
       {
-         MediaFile mediaFile = null;
+         MediaFile? mediaFile = null;
          MediaContainerType mediaType = GetMediaType(path);
 
          switch (mediaType)
@@ -96,7 +92,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Audio:
-               /* mediaFile = new AudioFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path); */
+               /* mediaFile = new AudioFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress); */
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -104,7 +100,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Video:
-               mediaFile = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
+               mediaFile = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -112,7 +108,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Photo:
-               mediaFile = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
+               mediaFile = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -138,7 +134,7 @@ namespace MediaCurator
       /// Checks an already present element in the MediaLibrary against its physical form to see if
       /// anything has changed and if the element needs to be updated or deleted.
       /// </summary>
-      public MediaContainer UpdateMediaContainer(string id = null, string type = null, string path = null)
+      public MediaContainer? UpdateMediaContainer(string? id = null, string? type = null, string? path = null)
       {
          Debug.Assert(((id != null) && (type != null)) || (path != null));
          Debug.Assert(((id == null) && (type == null)) || (path == null));
@@ -149,21 +145,21 @@ namespace MediaCurator
          {
             mediaContainer = new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: null, path: path);
 
-            if (String.IsNullOrEmpty(mediaContainer.Type))
+            if (string.IsNullOrEmpty(mediaContainer.Type))
             {
-               throw new ArgumentNullException(mediaContainer.Type, String.Format("Failed to determine the MediaContainer type: {0}", mediaContainer.FullPath));
+               throw new ArgumentNullException(mediaContainer.Type, string.Format("Failed to determine the MediaContainer type: {0}", mediaContainer.FullPath));
             }
 
-            if (String.IsNullOrEmpty(mediaContainer.Id))
+            if (string.IsNullOrEmpty(mediaContainer.Id))
             {
-               throw new ArgumentNullException(mediaContainer.Id, String.Format("Failed to determine the MediaContainer id: {0}", mediaContainer.FullPath));
+               throw new ArgumentNullException(mediaContainer.Id, string.Format("Failed to determine the MediaContainer id: {0}", mediaContainer.FullPath));
             }
 
             id = mediaContainer.Id;
             type = mediaContainer.Type;
          }
 
-         switch (type.ToEnum<MediaContainerType>())
+         switch (type?.ToEnum<MediaContainerType>() ?? MediaContainerType.Unknown)
          {
             case MediaContainerType.Audio:
                throw new NotImplementedException("Audio files cannot yet be handled!");
@@ -215,7 +211,7 @@ namespace MediaCurator
             return MediaContainerType.Video;
          }
 
-         // Check if it's a recognized photo format.         
+         // Check if it's a recognized photo format.
          if (SupportedExtensions[MediaContainerType.Photo].Contains(fileExtension))
          {
             // Looks like the file is a recognized photo format.

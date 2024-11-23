@@ -1,24 +1,17 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Concurrent;
 
 namespace MediaCurator
 {
-   public class BackgroundTaskQueue : IBackgroundTaskQueue
+   public class BackgroundTaskQueue(ILogger<BackgroundTaskQueue> logger) : IBackgroundTaskQueue
    {
-      private ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _tasks = new();
-      private ConcurrentDictionary<string, Timer> _timers = new();
-      private SemaphoreSlim _signal = new(0);
+      private readonly ILogger<BackgroundTaskQueue> _logger = logger;
+      private readonly ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _tasks = new();
+      private readonly ConcurrentDictionary<string, Timer> _timers = new();
+      private readonly SemaphoreSlim _signal = new(0);
 
       public void QueueBackgroundTask(string key, Func<CancellationToken, Task> task)
       {
-         if (task == null)
-         {
-            throw new ArgumentNullException(nameof(task));
-         }
+         ArgumentNullException.ThrowIfNull(task, nameof(task));
 
          // Make sure the item has not already been added to the queue.
          foreach (var entry in _tasks)
@@ -29,9 +22,9 @@ namespace MediaCurator
             }
          }
 
-         if (_timers.ContainsKey(key))
+         if (_timers.TryGetValue(key, out var timer))
          {
-            _timers[key].Dispose();
+            timer.Dispose();
             _timers.Remove(key, out _);
          }
 
@@ -39,7 +32,7 @@ namespace MediaCurator
          {
             _tasks.Enqueue(new Tuple<string, Func<CancellationToken, Task>>(key, task));
 
-            Debug.WriteLine("QUEUED: " + key);
+            _logger.LogInformation("Queued: {}", key);
 
             _signal.Release();
 
@@ -50,11 +43,18 @@ namespace MediaCurator
       {
          await _signal.WaitAsync(cancellationToken);
 
-         _tasks.TryDequeue(out var task);
+         if (_tasks.TryDequeue(out var task))
+         {
+            _logger.LogInformation("Dequeued: {TaskName}", task.Item1);
 
-         Debug.WriteLine("DEQUEUED: " + task.Item1);
+            return task.Item2;
+         }
+         else
+         {
+            _logger.LogWarning("Dequeue Failed: No Tasks Available.");
 
-         return task.Item2;
+            throw new InvalidOperationException("Failed to dequeue a task because the queue is empty.");
+         }
       }
    }
 }

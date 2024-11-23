@@ -17,7 +17,14 @@ namespace MediaCurator
 
       private readonly ILogger<ThumbnailsDatabase> _logger;
 
-      private Lazy<string> _path => new(_configuration["Thumbnails:Database:Path"]);
+      private static readonly string[] ThumbnailsSections = ["Thumbnails:Video", "Thumbnails:Photo", "Thumbnails:Audio"];
+
+      private Lazy<string> _path => new(() =>
+      {
+         var path = _configuration["Thumbnails:Database:Path"];
+
+         return path ?? throw new InvalidOperationException("Thumbnails database path is not configured.");
+      });
 
       private Lazy<string> _fullPath => new(_configuration["Thumbnails:Database:Path"] + Platform.Separator.Path + _configuration["Thumbnails:Database:Name"]);
 
@@ -34,17 +41,17 @@ namespace MediaCurator
       {
          int maximum = 0;
 
-         foreach (var name in new string[] { "Thumbnails:Video", "Thumbnails:Photo", "Thumbnails:Audio" })
+         foreach (var name in ThumbnailsSections)
          {
             var section = _configuration.GetSection(name);
 
             if (section.Exists())
             {
-               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
+               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
                {
-                  if (item.Value.ContainsKey("Count") && !item.Value.ContainsKey("Sprite"))
+                  if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
                   {
-                     maximum = Math.Max(item.Value["Count"], maximum);
+                     maximum = Math.Max(count, maximum);
                   }
                }
             }
@@ -110,7 +117,7 @@ namespace MediaCurator
             }
             catch (Exception e)
             {
-               _logger.LogError("Thumbnails Database Creation Failed! Becasue: {}", e.Message);
+               _logger.LogError("Thumbnails Database Creation Failed! Because: {}", e.Message);
             }
          }
 
@@ -358,7 +365,7 @@ namespace MediaCurator
                sql += "OFF;";
                break;
             default:
-               throw new ArgumentException(String.Format("The {0} is an invalid journal mode!", mode));
+               throw new ArgumentException(string.Format("The {0} is an invalid journal mode!", mode));
          }
 
          using SqliteConnection connection = new(_connectionString.Value);
@@ -372,7 +379,7 @@ namespace MediaCurator
 
       public void Checkpoint(string argument = "TRUNCATE")
       {
-         string sql = String.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
+         string sql = string.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
 
          using SqliteConnection connection = new(_connectionString.Value);
 
@@ -421,17 +428,17 @@ namespace MediaCurator
          }
 
          // Add the thumbnails columns as configured
-         foreach (var name in new string[] { "Thumbnails:Video", "Thumbnails:Photo", "Thumbnails:Audio" })
+         foreach (var name in ThumbnailsSections)
          {
             var section = _configuration.GetSection(name);
 
             if (section.Exists())
             {
-               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>())
+               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
                {
-                  if (item.Value.ContainsKey("Count") && !item.Value.ContainsKey("Sprite"))
+                  if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
                   {
-                     for (int i = 0; i < item.Value["Count"]; i++)
+                     for (int i = 0; i < count; i++)
                      {
                         string column = item.Key.ToUpper() + i.ToString();
 
@@ -484,19 +491,20 @@ namespace MediaCurator
       {
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using (SqliteConnection connection = new(_connectionString.Value))
+         using SqliteConnection connection = new(_connectionString.Value);
+
+         connection.Open();
+
+         using SqliteCommand command = new(sql, connection);
+         using SqliteDataReader reader = command.ExecuteReader();
+
+         while (reader.Read())
          {
-            connection.Open();
+            var name = reader["name"];
 
-            using SqliteCommand command = new(sql, connection);
-            using SqliteDataReader reader = command.ExecuteReader();
-
-            while (reader.Read())
+            if (name != null && name.ToString()!.ToUpper().Equals(column.ToUpper()))
             {
-               if (reader["name"].ToString().ToUpper().Equals(column.ToUpper()))
-               {
-                  return true;
-               }
+               return true;
             }
          }
 
@@ -530,7 +538,7 @@ namespace MediaCurator
       /// <returns></returns>
       private Dictionary<string, string> GetColumns(string table)
       {
-         Dictionary<string, string> columns = new();
+         Dictionary<string, string> columns = [];
          string sql = "PRAGMA table_info( " + table + " )";
 
          using (SqliteConnection connection = new(_connectionString.Value))
@@ -542,7 +550,17 @@ namespace MediaCurator
 
             while (reader.Read())
             {
-               columns.Add(reader["name"].ToString().ToUpper(), reader["type"].ToString().ToUpper());
+               var name = reader["name"];
+               var type = reader["type"];
+
+               if (name != null && type != null)
+               {
+                  columns.Add(name.ToString()!.ToUpper(), type.ToString()!.ToUpper());
+               }
+               else
+               {
+                  throw new InvalidOperationException("Table column name or type is null.");
+               }
             }
          }
 
@@ -568,7 +586,7 @@ namespace MediaCurator
       /// </summary>
       /// <param name="table">The table name to modify.</param>
       /// <param name="column">The column name to add to the table.</param>
-      /// <param name="type">The type colmn type to add to the table.</param>
+      /// <param name="type">The type column type to add to the table.</param>
       private void AddColumn(string table, string column, string type)
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;

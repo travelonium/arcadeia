@@ -1,15 +1,6 @@
-﻿using System;
-using SolrNet;
-using System.IO;
-using System.Linq;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+﻿using SolrNet;
 using MediaCurator.Solr;
 using System.Globalization;
-using System.Collections.Generic;
-using System.Reflection.Metadata;
-using System.Xml.Linq;
 
 namespace MediaCurator
 {
@@ -24,6 +15,8 @@ namespace MediaCurator
       protected readonly IThumbnailsDatabase ThumbnailsDatabase;
 
       protected readonly IMediaLibrary MediaLibrary;
+
+      protected readonly IProgress<float>? Progress;
 
       private bool _disposed;
 
@@ -77,12 +70,12 @@ namespace MediaCurator
          }
       }
 
-      private IMediaContainer _parent = null;
+      private IMediaContainer? _parent = null;
 
       /// <summary>
       /// The parent MediaContainer based type of this instance.
       /// </summary>
-      public IMediaContainer Parent
+      public IMediaContainer? Parent
       {
          get => _parent;
          set
@@ -96,12 +89,12 @@ namespace MediaCurator
          }
       }
 
-      private string _parentType = null;
+      private string? _parentType = null;
 
       /// <summary>
       /// Type of the parent MediaContainer based type of this instance.
       /// </summary>
-      public string ParentType
+      public string? ParentType
       {
          get => _parentType;
          set
@@ -138,19 +131,34 @@ namespace MediaCurator
             using IServiceScope scope = Services.CreateScope();
             ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
 
+            if (string.IsNullOrEmpty(Id))
+            {
+               throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
+            }
+
             var field = "parent";
             var value = Id;
 
             var children = solrIndexService.Get(field, value);
 
-            foreach (var item in children)
+            foreach (var child in children)
             {
-               if (!String.IsNullOrEmpty(item.Id) && !String.IsNullOrEmpty(item.Type))
+               if (!string.IsNullOrEmpty(child.Id) && !string.IsNullOrEmpty(child.Type))
                {
-                  var id = item.Id;
-                  var type = item.Type.ToEnum<MediaContainerType>().ToType();
-                  using MediaContainer mediaContainer = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id, null);
-                  result.Add(mediaContainer);
+                  var id = child.Id;
+                  var type = child.Type.ToEnum<MediaContainerType>().ToType();
+
+                  if (type == null) throw new ArgumentNullException(nameof(type), "The child type could not be determined.");
+
+                  using MediaContainer? mediaContainer = Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id, null, Progress) as MediaContainer;
+
+                  if (mediaContainer != null) {
+                     result.Add(mediaContainer);
+                  }
+                  else
+                  {
+                     Logger.LogWarning("Skipped Invalid {} Child: {}", type, id);
+                  }
                }
             }
 
@@ -158,7 +166,7 @@ namespace MediaCurator
          }
       }
 
-      private string _id = null;
+      private string? _id = null;
 
       /// <summary>
       /// Gets or sets the "id" of the MediaContainer. The Id is used to located the SolR index entry
@@ -167,7 +175,7 @@ namespace MediaCurator
       /// <value>
       /// The unique identifier of the container entry.
       /// </value>
-      public string Id
+      public string? Id
       {
          get => _id;
 
@@ -182,7 +190,7 @@ namespace MediaCurator
          }
       }
 
-      private string _name = null;
+      private string? _name = null;
 
       /// <summary>
       /// Gets or sets the "name" attribute of the container entry. This is for example the folder,
@@ -191,7 +199,7 @@ namespace MediaCurator
       /// <value>
       /// The "name" attribute of the container entry.
       /// </value>
-      public string Name
+      public string? Name
       {
          get => _name;
 
@@ -206,7 +214,7 @@ namespace MediaCurator
          }
       }
 
-      private string _description = null;
+      private string? _description = null;
 
       /// <summary>
       /// Gets or sets the "description" attribute of the container entry.
@@ -214,7 +222,7 @@ namespace MediaCurator
       /// <value>
       /// The "description" attribute of the container entry.
       /// </value>
-      public string Description
+      public string? Description
       {
          get => _description;
 
@@ -229,7 +237,7 @@ namespace MediaCurator
          }
       }
 
-      private string _type = null;
+      private string? _type = null;
 
       /// <summary>
       /// Gets or sets the "type" attribute of the container entry.
@@ -237,7 +245,7 @@ namespace MediaCurator
       /// <value>
       /// The "type" attribute of the container entry.
       /// </value>
-      public string Type
+      public string? Type
       {
          get => _type;
 
@@ -253,12 +261,12 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Get the path the contianer is located in which is the parent's full path.
+      /// Get the path the container is located in which is the parent's full path.
       /// </summary>
       /// <value>
       /// The path of the container.
       /// </value>
-      public string Path
+      public string? Path
       {
          get
          {
@@ -280,11 +288,11 @@ namespace MediaCurator
       /// <value>
       /// The full path of the container.
       /// </value>
-      public string FullPath
+      public string? FullPath
       {
          get
          {
-            string path = null;
+            string? path = null;
             IMediaContainer container = this;
 
             do
@@ -320,13 +328,13 @@ namespace MediaCurator
                      break;
                }
             }
-            while ((container = container.Parent) != null);
+            while (container.Parent is not null && (container = container.Parent) != null);
 
             return path;
          }
       }
 
-      protected string _dateAdded = null;
+      protected string? _dateAdded = null;
 
       /// <summary>
       /// Gets or sets the date the container was added to the MediaLibrary.
@@ -350,7 +358,7 @@ namespace MediaCurator
          }
       }
 
-      protected string _dateCreated = null;
+      protected string? _dateCreated = null;
 
       /// <summary>
       /// Gets or sets the creation date of the file.
@@ -374,7 +382,7 @@ namespace MediaCurator
          }
       }
 
-      protected string _dateModified = null;
+      protected string? _dateModified = null;
 
       /// <summary>
       /// Gets or sets the last modification date of the file.
@@ -398,7 +406,7 @@ namespace MediaCurator
          }
       }
 
-      private MediaContainerFlags _flags = null;
+      private MediaContainerFlags? _flags = null;
 
       /// <summary>
       /// Gets or sets the "flags" attribute of the media container entry.
@@ -406,13 +414,13 @@ namespace MediaCurator
       /// <value>
       /// The flags attribute value. The individual flags can be accessed using their respective name.
       /// </value>
-      public MediaContainerFlags Flags
+      public MediaContainerFlags? Flags
       {
          get => _flags;
 
          set
          {
-            if ((_flags == null) || (!_flags.All.SetEquals(value.All)))
+            if ((_flags == null) || (value != null && !_flags.All.SetEquals(value.All)))
             {
                Modified = true;
 
@@ -439,7 +447,7 @@ namespace MediaCurator
             DateAdded = DateAdded,
             DateCreated = DateCreated,
             DateModified = DateModified,
-            Flags = Flags.ToArray()
+            Flags = Flags?.ToArray()
          };
 
          set
@@ -451,6 +459,16 @@ namespace MediaCurator
             // Handle a possible rename or move operation.
             if (!Moved && ((Name != null && value.Name != Name) || (Path != null && value.Path != Path)))
             {
+               if (string.IsNullOrEmpty(value.Path))
+               {
+                  throw new ArgumentNullException(nameof(value.Path), "The Path cannot be null or empty.");
+               }
+
+               if (string.IsNullOrEmpty(value.Name))
+               {
+                  throw new ArgumentNullException(nameof(value.Name), "The Name cannot be null or empty.");
+               }
+
                Move(System.IO.Path.Combine(value.Path, value.Name));
             }
             else
@@ -466,7 +484,7 @@ namespace MediaCurator
             }
             else if (Parent == null)
             {
-               IMediaContainer parent;
+               IMediaContainer? parent;
                var parentType = value.ParentType.ToEnum<MediaContainerType>();
 
                if (parentType == MediaContainerType.Library)
@@ -477,8 +495,10 @@ namespace MediaCurator
                {
                   var type = value.ParentType.ToEnum<MediaContainerType>().ToType();
 
+                  if (type == null) throw new ArgumentNullException(nameof(type), "The parent type could not be determined.");
+
                   // Create the parent container of the right type.
-                  parent = (MediaContainer)Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null);
+                  parent = Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null, Progress) as MediaContainer;
                }
 
                Parent = parent;
@@ -503,9 +523,10 @@ namespace MediaCurator
                             IServiceProvider services,
                             IConfiguration configuration,
                             IThumbnailsDatabase thumbnailsDatabase,
-                            IMediaLibrary mediaLibrary,
+                            IMediaLibrary? mediaLibrary,
                             // Optional Named Arguments
-                            string id = null, string path = null
+                            string? id = null, string? path = null,
+                            IProgress<float>? progress = null
       )
       {
          Logger = logger;
@@ -513,6 +534,7 @@ namespace MediaCurator
          Configuration = configuration;
          ThumbnailsDatabase = thumbnailsDatabase;
          MediaLibrary = mediaLibrary ?? (IMediaLibrary)this;
+         Progress = progress;
 
          // The Solr service needs to be initialized only once when the MediaLibrary is instantiated
          // but before the Load() is called and therefore we do it here.
@@ -550,13 +572,13 @@ namespace MediaCurator
             if (pathComponents.Parent != null)
             {
                // There is a parent to take care of. Let's infer the parent type.
-               Type parentType = GetMediaContainerType(GetPathComponents(pathComponents.Parent).Child);
+               Type? parentType = GetMediaContainerType(GetPathComponents(pathComponents.Parent).Child);
 
                // Now make sure a type was successfully deduced.
                if (parentType != null)
                {
                   // Now let's instantiate the Parent.
-                  Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent);
+                  Parent = Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress) as MediaContainer;
                   ParentType = parentType.ToMediaContainerType().ToString();
                }
             }
@@ -626,12 +648,12 @@ namespace MediaCurator
       /// is the child or in other words the current level.
       /// </returns>
 
-      public static (string Parent, string Child) GetPathComponents(string path)
+      public static (string? Parent, string? Child) GetPathComponents(string? path)
       {
-         string parent = null;
-         string child = null;
+         string? parent = null;
+         string? child = null;
 
-         if (String.IsNullOrEmpty(path)) return (Parent: parent, Child: child);
+         if (string.IsNullOrEmpty(path)) return (Parent: parent, Child: child);
 
          for (int i = path.Length - 1; i >= 0; i--)
          {
@@ -682,12 +704,12 @@ namespace MediaCurator
       /// Returns the type of the current MediaContainer.
       /// </summary>
       /// <returns>Returns a value defined in <typeparamref name="MediaContainerType"/>.</returns>
-      public MediaContainerType GetMediaContainerType()
+      public MediaContainerType? GetMediaContainerType()
       {
-         return Type.ToEnum<MediaContainerType>();
+         return Type?.ToEnum<MediaContainerType>();
       }
 
-      public Type GetMediaContainerType(string container)
+      public Type? GetMediaContainerType(string? container)
       {
          if ((container != null) && (container.Length > 1))
          {
@@ -766,7 +788,7 @@ namespace MediaCurator
          if (Created && Deleted) return false;
 
          // No MediaContainer should be processed having its Name field set to null.
-         if (String.IsNullOrEmpty(Name)) Skipped = true;
+         if (string.IsNullOrEmpty(Name)) Skipped = true;
 
          if (Skipped)
          {
@@ -832,7 +854,7 @@ namespace MediaCurator
          return result;
       }
 
-      string GetMediaContainerName(string path)
+      string? GetMediaContainerName(string? path)
       {
          switch (GetType().ToMediaContainerType())
          {
@@ -856,7 +878,7 @@ namespace MediaCurator
 
       #endregion // Public Methods
 
-      #region Overridables
+      #region Overridable
 
       /// <summary>
       /// Checks whether or not this MediaContainer has physical existence. It shall be overridden
@@ -887,13 +909,13 @@ namespace MediaCurator
       /// Moves (or Renames) the MediaContainer from one location or name to another. Each MediaContainer type
       /// can if needed override and implement its own Move method.
       /// </summary>
-      /// <param name="destination">The fullpath of the new name and location.</param>
+      /// <param name="destination">The full path of the new name and location.</param>
       public virtual void Move(string destination)
       {
          throw new InvalidOperationException("This MediaContainer does not support a Move() operation!");
       }
 
-      #endregion // Overridables
+      #endregion // Overridable
 
       #region Protected Methods
 
@@ -905,10 +927,10 @@ namespace MediaCurator
          string value = id ?? path ?? "Library";
          string field = (id != null) ? "id" : (path != null) ? "fullPath" : "type";
          SolrQueryByField query = new(field, value);
-         SortOrder[] orders = new[]
-         {
+         SortOrder[] orders =
+         [
             new SortOrder("dateAdded", Order.ASC)
-         };
+         ];
 
          SolrQueryResults<Models.MediaContainer> results = solrIndexService.Get(query, orders);
 

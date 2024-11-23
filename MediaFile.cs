@@ -1,13 +1,6 @@
-﻿using System;
-using System.IO;
-using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic.FileIO;
+﻿using Microsoft.VisualBasic.FileIO;
 using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using System.Linq;
 using MediaCurator.Services;
-using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 
 namespace MediaCurator
@@ -38,14 +31,9 @@ namespace MediaCurator
       {
          get
          {
-            if (Configuration.GetSection("Mounts").Exists())
-            {
-               return Configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>().Select(item => item.GetValueOrDefault("Directory", null));
-            }
-            else
-            {
-               return new List<string>();
-            }
+            var mounts = Configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [];
+
+            return mounts.Select(item => item.GetValueOrDefault("Directory") ?? string.Empty);
          }
       }
 
@@ -78,7 +66,7 @@ namespace MediaCurator
       /// <value>
       /// The thumbnail(s).
       /// </value>
-      public MediaFileThumbnails Thumbnails
+      public MediaFileThumbnails? Thumbnails
       {
          get;
          set;
@@ -87,11 +75,13 @@ namespace MediaCurator
       /// <summary>
       /// Gets the content type (MIME type) of the file.
       /// </summary>
-      public string ContentType
+      public string? ContentType
       {
          get
          {
-            new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string contentType);
+            if (string.IsNullOrEmpty(FullPath)) return null;
+
+            new FileExtensionContentTypeProvider().TryGetContentType(FullPath, out string? contentType);
 
             return contentType;
          }
@@ -103,13 +93,13 @@ namespace MediaCurator
       /// <value>
       /// The extension of the file excluding the dot.
       /// </value>
-      public string Extension
+      public string? Extension
       {
          get
          {
             var extension = System.IO.Path.GetExtension(Name);
 
-            return (!String.IsNullOrEmpty(extension)) ? extension.ToLower().TrimStart(new Char[] { '.' }) : null;
+            return (!string.IsNullOrEmpty(extension)) ? extension.ToLower().TrimStart(['.']) : null;
          }
       }
 
@@ -136,7 +126,7 @@ namespace MediaCurator
          }
       }
 
-      private string _dateAccessed = null;
+      private string? _dateAccessed = null;
 
       /// <summary>
       /// Gets or sets the date the file was accessed last.
@@ -170,7 +160,7 @@ namespace MediaCurator
             var model = base.Model;
 
             model.Size = Size;
-            model.Thumbnails = Thumbnails.Count;
+            model.Thumbnails = Thumbnails?.Count ?? 0;
             model.ContentType = ContentType;
             model.Extension = Extension;
             model.Views = Views;
@@ -193,7 +183,9 @@ namespace MediaCurator
                DateAccessed = value.DateAccessed.Value;
             }
 
-            Thumbnails = new MediaFileThumbnails(ThumbnailsDatabase, Id);
+            if (string.IsNullOrEmpty(Id)) throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
+
+            Thumbnails = new(ThumbnailsDatabase, Id);
 
             if ((ContentType != value.ContentType) || (Extension != value.Extension)) Modified = true;
          }
@@ -208,22 +200,27 @@ namespace MediaCurator
                        IConfiguration configuration,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
-                       string id = null, string path = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path)
+                       string? id = null, string? path = null,
+                       IProgress<float>? progress = null
+      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
 
          if (Skipped) return;
 
+         if (string.IsNullOrEmpty(Id)) throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
+
+         if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
+
          Thumbnails = new(ThumbnailsDatabase, Id);
 
-         var fileSystemService = Services.GetService<IFileSystemService>();
+         var fileSystemService = Services.GetRequiredService<IFileSystemService>();
 
          if (!Exists())
          {
             // Avoid updating or removing the file if it was located in a network mount that is currently unavailable.
-            if (fileSystemService.Mounts.Any(mount => (FullPath.StartsWith(mount.Folder) && !mount.Available)))
+            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Available))
             {
                Skipped = true;
             }
@@ -301,7 +298,7 @@ namespace MediaCurator
       #region Common Functionality
 
       /// <summary>
-      /// Retrieve the media file information and fill in the aquired details. This method is to be
+      /// Retrieve the media file information and fill in the acquired details. This method is to be
       /// overridden for each individual type of media file with an implementation specific to that type.
       /// </summary>
       /// <param name="path">The full path to the physical file.</param>
@@ -356,7 +353,7 @@ namespace MediaCurator
       /// </remarks>
       public override void Delete(bool permanent = false)
       {
-         if (FullPath.Length > 0)
+         if (!string.IsNullOrEmpty(FullPath))
          {
             if (Exists())
             {
@@ -369,7 +366,7 @@ namespace MediaCurator
 
                   Deleted = true;
 
-                  Thumbnails.DeleteAll();
+                  Thumbnails?.DeleteAll();
 
                   return;
                }
@@ -384,9 +381,11 @@ namespace MediaCurator
       /// <summary>
       /// Moves (or Renames) the MediaFile from one location or name to another.
       /// </summary>
-      /// <param name="destination">The fullpath of the new name and location.</param>
+      /// <param name="destination">The full path of the new name and location.</param>
       public override void Move(string destination)
       {
+         if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
+
          // Split the path in parent, child components.
          var pathComponents = GetPathComponents(destination);
 
@@ -402,20 +401,20 @@ namespace MediaCurator
             // Update the MediaFile's Name.
             Name = pathComponents.Child;
 
-            // Now that the MediFile has succesfully been moved, update its Parent if needed.
+            // Now that the MediaFile has successfully been moved, update its Parent if needed.
             if (pathComponents.Parent != null)
             {
                // Determine whether the Parent needs to be updated.
                if (pathComponents.Parent != Path)
                {
                   // Yes, we need to update the Parent, let's infer the new Parent's type.
-                  Type parentType = GetMediaContainerType(GetPathComponents(pathComponents.Parent).Child);
+                  Type? parentType = GetMediaContainerType(GetPathComponents(pathComponents.Parent).Child);
 
-                  if (parentType != null)
+                  if (parentType is not null)
                   {
                      // Now let's instantiate the new Parent.
-                     Parent = (MediaContainer)Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent);
-                     ParentType = Parent.Type;
+                     Parent = Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress) as MediaContainer;
+                     ParentType = Parent?.Type;
                   }
                }
             }

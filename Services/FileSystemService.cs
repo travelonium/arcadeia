@@ -12,31 +12,31 @@ using System.Diagnostics;
 
 namespace MediaCurator.Services
 {
-   public class FileSystemService : IFileSystemService
+   public class FileSystemService(IConfiguration configuration,
+                                  ILogger<FileSystemService> logger,
+                                  IHostApplicationLifetime applicationLifetime) : IFileSystemService
    {
-      protected readonly IConfiguration _configuration;
+      protected readonly IConfiguration _configuration = configuration;
 
-      private readonly ILogger<FileSystemService> _logger;
+      private readonly ILogger<FileSystemService> _logger = logger;
 
-      private readonly CancellationToken _cancellationToken;
+      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
       private Lazy<List<FileSystemMount>> _mounts => new(() =>
       {
-         List<FileSystemMount> mounts = new();
+         List<FileSystemMount> mounts = [];
 
-         if (_configuration.GetSection("Mounts").Exists())
+         foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [])
          {
-            foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>())
+            try
             {
-               try
-               {
-                  FileSystemMount mount = new(item);
-                  mounts.Add(mount);
-               }
-               catch (Exception e)
-               {
-                  _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
-               }
+               FileSystemMount mount = new(item);
+
+               mounts.Add(mount);
+            }
+            catch (Exception e)
+            {
+               _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
             }
          }
 
@@ -45,20 +45,11 @@ namespace MediaCurator.Services
 
       public List<FileSystemMount> Mounts => _mounts.Value;
 
-      #region Constructors
+        #region Constructors
 
-      public FileSystemService(IConfiguration configuration,
-                               ILogger<FileSystemService> logger,
-                               IHostApplicationLifetime applicationLifetime)
-      {
-         _logger = logger;
-         _configuration = configuration;
-         _cancellationToken = applicationLifetime.ApplicationStopping;
-      }
+        #endregion // Constructors
 
-      #endregion // Constructors
-
-      public Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
       {
          _logger.LogInformation("Starting FileSystem Service...");
 

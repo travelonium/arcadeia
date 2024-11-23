@@ -37,7 +37,7 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Initializes a new instance of the <see cref="ResolutionType"/> class having been supplied 
+      /// Initializes a new instance of the <see cref="ResolutionType"/> class having been supplied
       /// the width and the height.
       /// </summary>
       /// <param name="width">The width.</param>
@@ -60,7 +60,7 @@ namespace MediaCurator
       /// Returns a <see cref="System.String" /> that represents this instance.
       /// </summary>
       /// <returns>
-      /// A <see cref="System.String" /> that represents this instance. The format in which the 
+      /// A <see cref="System.String" /> that represents this instance. The format in which the
       /// resolution is returned is "WxH".
       /// </returns>
       public override string ToString()
@@ -69,13 +69,13 @@ namespace MediaCurator
 
          if ((Width > 0) && (Height > 0))
          {
-            resolution = String.Format("{0}x{1}", Width, Height);
+            resolution = string.Format("{0}x{1}", Width, Height);
          }
 
          return resolution;
       }
 
-      public int CompareTo(object obj)
+      public int CompareTo(object? obj)
       {
          if (obj == null) return 1;
 
@@ -87,10 +87,11 @@ namespace MediaCurator
          if (((other.Width == Width) && (other.Height == Height)) || ((other.Width + other.Height) == (Width + Height))) return 0;
 
          if ((other.Width + other.Height) > (Width + Height)) return -1;
-         else return 1;
+
+         return 1;
       }
 
-      public bool Equals(ResolutionType other)
+      public bool Equals(ResolutionType? other)
       {
          if (other is null)
          {
@@ -132,7 +133,7 @@ namespace MediaCurator
 
       public static bool operator !=(ResolutionType lhs, ResolutionType rhs) => !(lhs == rhs);
 
-      public override bool Equals(object obj)
+      public override bool Equals(object? obj)
       {
          return Equals(obj as ResolutionType);
       }

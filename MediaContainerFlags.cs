@@ -23,7 +23,7 @@ namespace MediaCurator
       #region Fields
 
       /// <summary>
-      /// Gets or sets a value indicating whether this <see cref="MediaContainerFlags"/> instance is 
+      /// Gets or sets a value indicating whether this <see cref="MediaContainerFlags"/> instance is
       /// flagged as favorite.
       /// </summary>
       /// <value>
@@ -43,7 +43,7 @@ namespace MediaCurator
       }
 
       /// <summary>
-      /// Gets or sets a value indicating whether this <see cref="MediaContainerFlags"/> instance is 
+      /// Gets or sets a value indicating whether this <see cref="MediaContainerFlags"/> instance is
       /// flagged as deleted.
       /// </summary>
       /// <value>
@@ -81,7 +81,7 @@ namespace MediaCurator
       /// <returns>A string array listing all the set flags.</returns>
       public string[] ToArray()
       {
-         return All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).ToArray();
+         return All.Select(flag => Enum.GetName(typeof(MediaContainerFlags.Flag), flag)).OfType<string>().ToArray();
       }
 
       #endregion // Operators
@@ -101,7 +101,7 @@ namespace MediaCurator
       /// <param name="self">The node element representing the current MediaContainer.</param>
       /// <exception cref="NullReferenceException">The MediaContainerFlags cannot be initialized using
       /// a non-existing element!</exception>
-      public MediaContainerFlags(IEnumerable<string> flags)
+      public MediaContainerFlags(IEnumerable<string>? flags)
       {
          if (flags == null) return;
 

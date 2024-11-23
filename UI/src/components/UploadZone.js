@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
+import * as pb from 'path-browserify';
 import cx from 'classnames';
 import './UploadZone.scss';
 
@@ -64,17 +65,19 @@ export class UploadZone extends Component {
         this.setState({
             dragging: false
         }, () => {
+            const items = [];
             const dataTransfer = event.dataTransfer;
             for (const item of dataTransfer.items) {
                 if (item.kind === 'string' && item.type.match('^text/plain')) {
-                    // If the item is the URL of the image
+                    // the item is a URL
                     item.getAsString(async (url) => {
+                        const items = []; // only valid and processed inside this block
                         if (!this.isValidHttpUrl(url)) return;
                         try {
                             const response = await fetch(url);
                             const blob = await response.blob();
                             // MIME to extension mapping for images and videos
-                            const mimeExtension = {
+                            const extensions = {
                                 'image/jpeg': '.jpg',
                                 'image/png': '.png',
                                 'image/gif': '.gif',
@@ -94,27 +97,48 @@ export class UploadZone extends Component {
                                 'video/3gpp2': '.3g2',
                                 'video/x-matroska': '.mkv'
                             };
-                            // Attempt to extract a filename from the URL
-                            const urlComponents = new URL(url);
-                            let filename = urlComponents.pathname.split('/').pop();
-                            // Check if URL derived filename seems valid
-                            if (!filename.includes('.')) {
-                                // If no extension in filename, append one based on MIME type
-                                const defaultExt = mimeExtension[blob.type] || '.bin';
-                                filename += defaultExt;
+                            // attempt to extract a filename from the URL
+                            const components = new URL(url);
+                            let filename = pb.basename(components.pathname).toLowerCase();
+                            let extension = pb.extname(components.pathname).toLowerCase();
+                            // is the downloaded file an html file?
+                            if (blob.type.match('^text/html')) {
+                                items.push(url);
+                            } else {
+                                // nope, not an html file
+                                if (extension && Object.values(extensions).includes(extension)) {
+                                    // the filename includes an extension and it is supported
+                                    const file = new File([blob], filename, { type: blob.type });
+                                    // pass it on to the uploader as a file
+                                    items.push(file);
+                                } else if ((extension = extensions[blob.type])) {
+                                    // no extension in filename, but the MIME type is supported, infer the extension
+                                    filename += extension;
+                                    const file = new File([blob], filename, { type: blob.type });
+                                    // pass it on to the uploader as a file
+                                    items.push(file);
+                                } else {
+                                    // nope, it's an unsupported file type, ignore it
+                                    const title = "Unsupported Media Type";
+                                    const message = "Media file type is unsupported.";
+                                    console.error(title, message);
+                                    toast.error(this.renderErrorToast(title, message));
+                                }
                             }
-                            let file = new File([blob], filename, { type: blob.type });
-                            if (this.props.onUpload !== undefined) this.props.onUpload([file]);
                         } catch (error) {
-                            let title = "Fetch Error";
-                            console.error("Error fetching or processing the dropped link:", error.message);
-                            toast.error(this.renderErrorToast(title,  error.message));
+                            console.warn(error.message);
+                            // toast.error(this.renderErrorToast("Fetch Error",  error.message));
+                            // as a last resort, pass on the URL to the uploader
+                            items.push(url);
                         }
+                        // process the list of items to be uploaded
+                        if (items && this.props.onUpload !== undefined) this.props.onUpload(items);
                     });
+                } else {
+                    items.push(item);
                 }
             }
-            let items = Array.from(dataTransfer.items || []);
-            if (this.props.onUpload !== undefined) this.props.onUpload(items);
+            if (items && this.props.onUpload !== undefined) this.props.onUpload(items);
         });
     }
 

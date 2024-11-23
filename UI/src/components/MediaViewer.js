@@ -5,7 +5,7 @@ import { VideoPlayer } from './VideoPlayer';
 import { PhotoViewer } from './PhotoViewer';
 import { EditableText } from './EditableText';
 import { reset } from '../features/search/slice';
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { extract, clone } from './../utils';
 import { connect } from "react-redux";
 import { Flag } from './Flag';

@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using System.Text;
 
@@ -9,7 +8,7 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("[controller]")]
-   public class PreviewController : Controller
+   public partial class PreviewController : Controller
    {
       private readonly IServiceProvider _services;
       private readonly IMediaLibrary _mediaLibrary;
@@ -17,6 +16,9 @@ namespace MediaCurator.Controllers
       private readonly ILogger<MediaContainer> _logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase;
       private readonly IHttpContextAccessor _httpContextAccessor;
+
+      [GeneratedRegex(@"(?:\w.*)=0-(?:\d*)?")]
+      private static partial Regex RangeRegex();
 
       #region Constants
 
@@ -51,12 +53,10 @@ namespace MediaCurator.Controllers
          using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          // Increment the Views only if this is the first ranged request or not ranged at all
-         if (Request.Headers.TryGetValue("Range", out var range))
+         if (Request.Headers.TryGetValue("Range", out var range) && !string.IsNullOrEmpty(range))
          {
             // Does the range header contain bytes=0- or similar?
-            Regex pattern = new Regex(@"(?:\w.*)=0-(?:\d*)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-            if (pattern.IsMatch(range))
+            if (RangeRegex().Match(range.ToString()).Success)
             {
                videoFile.Views += 1;
                videoFile.DateAccessed = DateTime.UtcNow;
@@ -68,7 +68,7 @@ namespace MediaCurator.Controllers
             videoFile.DateAccessed = DateTime.UtcNow;
          }
 
-         if ((videoFile.Name != name) || (!videoFile.Exists()))
+         if (string.IsNullOrEmpty(videoFile.FullPath) || (videoFile.Name != name) || (!videoFile.Exists()))
          {
             videoFile.Skipped = true;
 
@@ -95,13 +95,28 @@ namespace MediaCurator.Controllers
          photoFile.Views += 1;
          photoFile.DateAccessed = DateTime.UtcNow;
 
-         return photoFile.Extension switch
+         var fileContents = photoFile.Preview(width, height, photoFile.Extension switch
          {
-            ".gif" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Gif), "image/gif"),
-            ".webp" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.WebP), "image/webp"),
-            ".png" or ".bmp" or ".tiff" or ".tga" => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Png), "image/png"),
-            _ => File(photoFile.Preview(width, height, ImageMagick.MagickFormat.Jpeg), "image/jpeg"),
+            ".gif" => ImageMagick.MagickFormat.Gif,
+            ".webp" => ImageMagick.MagickFormat.WebP,
+            ".png" or ".bmp" or ".tiff" or ".tga" => ImageMagick.MagickFormat.Png,
+            _ => ImageMagick.MagickFormat.Jpeg
+         });
+
+         if (fileContents == null)
+         {
+            return NotFound();
+         }
+
+         var contentType = photoFile.Extension switch
+         {
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".png" or ".bmp" or ".tiff" or ".tga" => "image/png",
+            _ => "image/jpeg"
          };
+
+         return File(fileContents, contentType);
       }
 
       // GET: /<controller>/video/{id}/{quality}.m3u8

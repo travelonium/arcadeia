@@ -1,9 +1,10 @@
 import React from 'react';
 import cx from 'classnames';
 import Viewer from 'viewerjs';
+import { isEqual } from 'lodash';
 import { extract } from './../utils';
 import 'viewerjs/dist/viewer.css';
-import _ from 'lodash';
+
 
 export class PhotoViewer extends React.Component {
 
@@ -22,7 +23,7 @@ export class PhotoViewer extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (!_.isEqual(this.props.sources, prevProps.sources)) {
+        if (!isEqual(this.props.sources, prevProps.sources)) {
             // a reload becomes necessary only when the fullPath of one or more sources have changed
             let reload = prevProps.sources.reduce((previousValue, currentValue, currentIndex) => {
                 if (currentIndex >= this.props.sources.length) return true;

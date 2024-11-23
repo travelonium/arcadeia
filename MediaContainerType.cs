@@ -16,7 +16,7 @@ namespace MediaCurator
 
    static class MediaContainerTypeExtensions
    {
-      public static Type ToType(this MediaContainerType type)
+      public static Type? ToType(this MediaContainerType type)
       {
          switch (type)
          {

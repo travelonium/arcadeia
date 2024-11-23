@@ -31,5 +31,15 @@ namespace MediaCurator.Services
         {
             ShowScanProgressAsync(uuid, title, path, item, index, total).Wait();
         }
+
+        public async Task RefreshAsync(string path)
+        {
+            await _hubContext.Clients.All.SendAsync("Refresh", path);
+        }
+
+        public void Refresh(string path)
+        {
+            RefreshAsync(path).Wait();
+        }
     }
 }

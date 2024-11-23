@@ -357,7 +357,9 @@ namespace MediaCurator.Solr
       {
          get
          {
-            return Configuration.GetSection("Solr:URL").Get<string>();
+            var url = Configuration.GetSection("Solr:URL").Get<string>();
+
+            return url ?? throw new InvalidOperationException("The Solr URL is not configured.");
          }
       }
 
@@ -555,11 +557,23 @@ namespace MediaCurator.Solr
 
          string content = await response.Content.ReadAsStringAsync();
          var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
-         var fields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["fields"].ToString());
+
+         if (json == null || !json.ContainsKey("schema") || !json["schema"].ContainsKey("fields"))
+         {
+            throw new InvalidOperationException("Invalid schema structure received from the server.");
+         }
+
+         var fieldsJson = json["schema"]["fields"].ToString();
+         if (string.IsNullOrEmpty(fieldsJson))
+         {
+            throw new InvalidOperationException("Fields data is null or empty in the schema.");
+         }
+
+         var fields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(fieldsJson) ?? throw new InvalidOperationException("Failed to deserialize fields data.");
 
          foreach (var item in fields)
          {
-            if (item["name"].ToString().Equals(name))
+            if (item.TryGetValue("name", out var fieldName) && fieldName?.ToString() == name)
             {
                return true;
             }
@@ -577,11 +591,23 @@ namespace MediaCurator.Solr
 
          string content = await response.Content.ReadAsStringAsync();
          var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
-         var dynamicFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["dynamicFields"].ToString());
+
+         if (json == null || !json.ContainsKey("schema") || json["schema"] is not Dictionary<string, object> schemaDict || !schemaDict.ContainsKey("dynamicFields"))
+         {
+            throw new InvalidOperationException("Invalid schema structure received from the server.");
+         }
+
+         var dynamicFieldsJson = schemaDict["dynamicFields"].ToString();
+         if (string.IsNullOrEmpty(dynamicFieldsJson))
+         {
+            throw new InvalidOperationException("Dynamic fields data is null or empty in the schema.");
+         }
+
+         var dynamicFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(dynamicFieldsJson) ?? throw new InvalidOperationException("Failed to deserialize dynamic fields data.");
 
          foreach (var item in dynamicFields)
          {
-            if (item["name"].ToString().Equals(name))
+            if (item.TryGetValue("name", out var fieldName) && fieldName?.ToString() == name)
             {
                return true;
             }
@@ -599,11 +625,22 @@ namespace MediaCurator.Solr
 
          string content = await response.Content.ReadAsStringAsync();
          var json = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(content);
-         var copyFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json["schema"]["copyFields"].ToString());
 
-         foreach (var item in copyFields)
+         if (json == null || !json.ContainsKey("schema") || json["schema"] is not Dictionary<string, object> schemaDict || !schemaDict.ContainsKey("copyFields"))
          {
-            if (item["dest"].ToString().Equals(name))
+            throw new InvalidOperationException("Invalid schema structure received from the server.");
+         }
+
+         var copyFieldsJson = schemaDict["copyFields"].ToString();
+         if (string.IsNullOrEmpty(copyFieldsJson))
+         {
+            throw new InvalidOperationException("Copy fields data is null or empty in the schema.");
+         }
+
+         var copyFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(copyFieldsJson) ?? throw new InvalidOperationException("Failed to deserialize copy fields data.");
+            foreach (var item in copyFields)
+         {
+            if (item.TryGetValue("dest", out var fieldName) && fieldName?.ToString() == name)
             {
                return true;
             }
