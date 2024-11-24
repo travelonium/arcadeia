@@ -170,7 +170,7 @@ namespace MediaCurator
             Task<string> errorTask = process.StandardError.ReadToEndAsync();
             output = process.StandardOutput.ReadToEnd();
 
-            process.WaitForExit(Configuration.GetSection("FFmpeg:Timeout").Get<Int32>());
+            process.WaitForExit(Configuration.GetSection("FFMpeg:TimeoutMilliseconds").Get<Int32>());
 
             if (process.HasExited)
             {
@@ -283,7 +283,7 @@ namespace MediaCurator
                totalWaitTime += waitInterval;
             }
             while ((!process.HasExited) &&
-                   (totalWaitTime < Configuration.GetSection("FFmpeg:Timeout").Get<Int32>()));
+                   (totalWaitTime < Configuration.GetSection("FFMpeg:TimeoutMilliseconds").Get<Int32>()));
 
             if (process.HasExited)
             {
@@ -526,7 +526,7 @@ namespace MediaCurator
       public byte[] GenerateSegments(string quality, int sequence, int duration, int count = 0)
       {
          byte[] output = [];
-         int timeout = Configuration.GetSection("FFmpeg:Timeout").Get<Int32>();
+         int timeout = Configuration.GetSection("FFMpeg:TimeoutMilliseconds").Get<Int32>();
          string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
          DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
          string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");

@@ -90,11 +90,11 @@ namespace MediaCurator.Services
       /// <summary>
       /// Determines the periodic scan interval in milliseconds and enables periodic scanning if non-zero.
       /// </summary>
-      public long PeriodicScanInterval
+      public long PeriodicScanIntervalMilliseconds
       {
          get
          {
-            return _configuration.GetSection("Scanner:PeriodicScanInterval").Get<long>();
+            return _configuration.GetSection("Scanner:PeriodicScanIntervalMilliseconds").Get<long>();
          }
       }
 
@@ -223,7 +223,7 @@ namespace MediaCurator.Services
          }
 
          // Schedule the periodic scanning task if necessary.
-         if (PeriodicScanInterval > 0)
+         if (PeriodicScanIntervalMilliseconds > 0)
          {
             _logger.LogInformation("Configuring Periodic Scanning...");
 
@@ -238,7 +238,7 @@ namespace MediaCurator.Services
                      return Task.Run(() => Scan(uuid, folder, "Periodic", _cancellationToken), cancellationToken);
                   });
                }
-            }, null, PeriodicScanInterval, PeriodicScanInterval);
+            }, null, PeriodicScanIntervalMilliseconds, PeriodicScanIntervalMilliseconds);
          }
 
          // Start the startup update task if necessary.

@@ -1,16 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Security.Permissions;
-using System.Linq;
-using System.IO;
-using System.Diagnostics;
-
-namespace MediaCurator.Services
+﻿namespace MediaCurator.Services
 {
    public class FileSystemService(IConfiguration configuration,
                                   ILogger<FileSystemService> logger,

@@ -44,15 +44,17 @@ namespace MediaCurator
          services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 
          // Start the FileSystem Service
-         services.AddSingleton<IFileSystemService, FileSystemService>();
-         services.AddHostedService<FileSystemService>(provider => (FileSystemService)provider.GetRequiredService<IFileSystemService>());
+         services.AddSingleton<FileSystemService>();
+         services.AddSingleton<IFileSystemService>(provider => provider.GetRequiredService<FileSystemService>());
+         services.AddHostedService<FileSystemService>();
 
          // Start the Scanner Hosted Service
          services.AddHostedService<ScannerService>();
 
          // Instantiate the Download Service
-         services.AddSingleton<IDownloadService, DownloadService>();
-         services.AddHostedService<DownloadService>(provider => (DownloadService)provider.GetRequiredService<IDownloadService>());
+         services.AddSingleton<DownloadService>();
+         services.AddSingleton<IDownloadService>(provider => provider.GetRequiredService<DownloadService>());
+         services.AddHostedService<DownloadService>();
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
@@ -62,10 +64,9 @@ namespace MediaCurator
 
          // Required Session components
          services.AddDistributedMemoryCache();
-         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
          services.AddSession(options =>
          {
-            options.IdleTimeout = TimeSpan.FromSeconds(10);
+            options.IdleTimeout = TimeSpan.FromSeconds(Configuration.GetValue<int>("Session:IdleTimeoutSeconds"));
             options.Cookie.HttpOnly = true;
             options.Cookie.IsEssential = true;
          });

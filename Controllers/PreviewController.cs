@@ -8,14 +8,17 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("[controller]")]
-   public partial class PreviewController : Controller
+   public partial class PreviewController(ILogger<MediaContainer> logger,
+                                          IServiceProvider services,
+                                          IConfiguration configuration,
+                                          IThumbnailsDatabase thumbnailsDatabase,
+                                          IMediaLibrary mediaLibrary) : Controller
    {
-      private readonly IServiceProvider _services;
-      private readonly IMediaLibrary _mediaLibrary;
-      private readonly IConfiguration _configuration;
-      private readonly ILogger<MediaContainer> _logger;
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
-      private readonly IHttpContextAccessor _httpContextAccessor;
+      private readonly IServiceProvider _services = services;
+      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
+      private readonly IConfiguration _configuration = configuration;
+      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
 
       [GeneratedRegex(@"(?:\w.*)=0-(?:\d*)?")]
       private static partial Regex RangeRegex();
@@ -31,21 +34,6 @@ namespace MediaCurator.Controllers
       }
 
       #endregion // Constants
-
-      public PreviewController(ILogger<MediaContainer> logger,
-                               IServiceProvider services,
-                               IConfiguration configuration,
-                               IThumbnailsDatabase thumbnailsDatabase,
-                               IMediaLibrary mediaLibrary,
-                               IHttpContextAccessor httpContextAccessor)
-      {
-         _logger = logger;
-         _services = services;
-         _mediaLibrary = mediaLibrary;
-         _configuration = configuration;
-         _thumbnailsDatabase = thumbnailsDatabase;
-         _httpContextAccessor = httpContextAccessor;
-      }
 
       // GET: /<controller>/video/{id}/{name}
       [HttpGet]
