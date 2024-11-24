@@ -21,13 +21,13 @@ namespace MediaCurator
    {
       #region Constants
 
-      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
+      private Dictionary<string, Dictionary<string, int>> ThumbnailsConfiguration
       {
-         var section = Configuration.GetSection("Thumbnails:Video");
-
-         return section.Exists() ? section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [] : [];
-
-      });
+         get
+         {
+            return Configuration.GetSection("Thumbnails:Video").Get<Dictionary<string, Dictionary<string, int>>>() ?? [];
+         }
+      }
 
       #endregion // Constants
 
@@ -335,7 +335,7 @@ namespace MediaCurator
          ----------------------------------------------------------------------------------*/
 
          // Calculate the total number of thumbnails to be generated used for progress reporting
-         foreach (var item in ThumbnailsConfiguration.Value)
+         foreach (var item in ThumbnailsConfiguration)
          {
             if (item.Value.TryGetValue("Count", out var value))
             {
@@ -349,7 +349,7 @@ namespace MediaCurator
 
          Progress?.Report(0.0f);
 
-         foreach (var item in ThumbnailsConfiguration.Value)
+         foreach (var item in ThumbnailsConfiguration)
          {
             // No point in generating thumbnails for a zero-length file
             if (Duration == 0.0f) break;

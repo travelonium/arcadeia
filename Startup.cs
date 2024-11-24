@@ -74,15 +74,12 @@ namespace MediaCurator
          // address (127.0.0.1), are trusted by default. If other trusted proxies or networks within the
          // organization handle requests between the Internet and the web server, add them to the KnownProxies
          // list in appsettings.json.
-         if (Configuration.GetSection("KnownProxies").Exists())
+         foreach (var address in Configuration.GetSection("KnownProxies").Get<IEnumerable<string>>() ?? [])
          {
-            foreach (var address in Configuration.GetSection("KnownProxies").Get<IEnumerable<string>>() ?? [])
+            services.Configure<ForwardedHeadersOptions>(options =>
             {
-               services.Configure<ForwardedHeadersOptions>(options =>
-               {
-                  options.KnownProxies.Add(IPAddress.Parse(address));
-               });
-            }
+               options.KnownProxies.Add(IPAddress.Parse(address));
+            });
          }
       }
 

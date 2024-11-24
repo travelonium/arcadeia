@@ -82,7 +82,7 @@ namespace MediaCurator.Services
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
-         string options = _configuration.GetSection("yt-dlp:Options")?.Get<List<string>>()?.Aggregate((a, x) => $"{a} {x}") ?? string.Empty;
+         string options = _configuration.GetSection("yt-dlp:Options").Get<List<string>>()?.Aggregate((a, x) => $"{a} {x}") ?? string.Empty;
 
          string[] arguments = [
             $"-o \"{template}\"",

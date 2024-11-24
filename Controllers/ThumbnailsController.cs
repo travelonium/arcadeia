@@ -23,12 +23,14 @@ namespace MediaCurator.Controllers
    {
       #region Constants
 
-      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
+      private Dictionary<string, Dictionary<string, int>> ThumbnailsConfiguration
       {
-         var comparer = StringComparer.OrdinalIgnoreCase;
-
-         return new Dictionary<string, Dictionary<string, int>>(_configuration.GetSection("Thumbnails:Video").Get<Dictionary<string, Dictionary<string, int>>>() ?? [], comparer);
-      });
+         get
+         {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            return new Dictionary<string, Dictionary<string, int>>(_configuration.GetSection("Thumbnails:Video").Get<Dictionary<string, Dictionary<string, int>>>() ?? [], comparer);
+         }
+      }
 
       #endregion // Constants
 
@@ -88,7 +90,7 @@ namespace MediaCurator.Controllers
          byte[] thumbnail;
          var content = new StringBuilder();
 
-         if (!ThumbnailsConfiguration.Value.ContainsKey(label))
+         if (!ThumbnailsConfiguration.ContainsKey(label))
          {
             return NotFound();
          }
@@ -100,7 +102,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         var item = ThumbnailsConfiguration.Value.GetValueOrDefault(label);
+         var item = ThumbnailsConfiguration.GetValueOrDefault(label);
 
          int count = 0;
          string from = "00:00:00";

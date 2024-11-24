@@ -22,28 +22,31 @@ namespace MediaCurator.Services
 
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
-      private Lazy<List<FileSystemMount>> _mounts => new(() =>
+      private List<FileSystemMount> _mounts
       {
-         List<FileSystemMount> mounts = [];
-
-         foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [])
+         get
          {
-            try
-            {
-               FileSystemMount mount = new(item);
+            List<FileSystemMount> mounts = [];
 
-               mounts.Add(mount);
-            }
-            catch (Exception e)
+            foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [])
             {
-               _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
+               try
+               {
+                  FileSystemMount mount = new(item);
+
+                  mounts.Add(mount);
+               }
+               catch (Exception e)
+               {
+                  _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
+               }
             }
+
+            return mounts;
          }
+      }
 
-         return mounts;
-      });
-
-      public List<FileSystemMount> Mounts => _mounts.Value;
+      public List<FileSystemMount> Mounts => _mounts;
 
       #region Constructors
 

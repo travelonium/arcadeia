@@ -1,26 +1,22 @@
 ﻿using SolrNet;
 using SolrNet.Exceptions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.Json;
-using System.Collections.Generic;
-using System.Threading;
-using System.Xml.Linq;
 using SolrNet.Commands.Parameters;
 
 namespace MediaCurator.Solr
 {
-   public class SolrIndexService<T, TSolrOperations> : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
+   public class SolrIndexService<T, TSolrOperations>(ISolrOperations<T> solr,
+                           IHttpClientFactory factory,
+                           IConfiguration configuration,
+                           ILogger<SolrIndexService<T, TSolrOperations>> logger) : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
    {
-      private readonly TSolrOperations Solr;
+      private readonly TSolrOperations Solr = (TSolrOperations)solr;
 
-      private readonly IConfiguration Configuration;
+      private readonly IConfiguration Configuration = configuration;
 
-      private readonly IHttpClientFactory Factory;
+      private readonly IHttpClientFactory Factory = factory;
 
-      private readonly ILogger<SolrIndexService<T, TSolrOperations>> Logger;
+      private readonly ILogger<SolrIndexService<T, TSolrOperations>> Logger = logger;
 
       private readonly Dictionary<string, Dictionary<string, object>> Types = new()
       {
@@ -357,21 +353,8 @@ namespace MediaCurator.Solr
       {
          get
          {
-            var url = Configuration.GetSection("Solr:URL").Get<string>();
-
-            return url ?? throw new InvalidOperationException("The Solr URL is not configured.");
+            return Configuration.GetSection("Solr:URL").Get<string>() ?? throw new InvalidOperationException("The Solr URL is not configured.");
          }
-      }
-
-      public SolrIndexService(ISolrOperations<T> solr,
-                              IHttpClientFactory factory,
-                              IConfiguration configuration,
-                              ILogger<SolrIndexService<T, TSolrOperations>> logger)
-      {
-         Logger = logger;
-         Factory = factory;
-         Configuration = configuration;
-         Solr = (TSolrOperations)solr;
       }
 
       public SolrQueryResults<T> Get(string field, string value)
@@ -638,7 +621,7 @@ namespace MediaCurator.Solr
          }
 
          var copyFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(copyFieldsJson) ?? throw new InvalidOperationException("Failed to deserialize copy fields data.");
-            foreach (var item in copyFields)
+         foreach (var item in copyFields)
          {
             if (item.TryGetValue("dest", out var fieldName) && fieldName?.ToString() == name)
             {

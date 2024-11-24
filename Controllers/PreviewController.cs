@@ -22,11 +22,13 @@ namespace MediaCurator.Controllers
 
       #region Constants
 
-      private Lazy<int> StreamingSegmentsDuration => new(() =>
+      private int StreamingSegmentsDuration
       {
-         var section = _configuration.GetSection("Streaming:Segments");
-         return section.GetValue<int>("Duration");
-      });
+         get
+         {
+            return _configuration.GetSection("Streaming:Segments").GetValue<int>("Duration");
+         }
+      }
 
       #endregion // Constants
 
@@ -139,8 +141,8 @@ namespace MediaCurator.Controllers
          return quality.ToLower() switch
          {
             "master" => Content(videoFile.GeneratePlaylist(), "application/x-mpegURL", Encoding.UTF8),
-            "240p" or "240" or "360p" or "360" or "480p" or "480" or "720p" or "720" or "1080p" or "1080" or "4k" or "2160" or "2160p" => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value, quality), "application/x-mpegURL", Encoding.UTF8),
-            _ => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration.Value), "application/x-mpegURL", Encoding.UTF8),
+            "240p" or "240" or "360p" or "360" or "480p" or "480" or "720p" or "720" or "1080p" or "1080" or "4k" or "2160" or "2160p" => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration, quality), "application/x-mpegURL", Encoding.UTF8),
+            _ => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration), "application/x-mpegURL", Encoding.UTF8),
          };
       }
 
@@ -158,7 +160,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateSegments("", sequence, StreamingSegmentsDuration.Value, 1), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegments("", sequence, StreamingSegmentsDuration, 1), "application/x-mpegURL", true);
       }
 
       // GET: /<controller>/video/{id}/{quality}/{sequence}.ts
@@ -175,7 +177,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateSegments(quality, sequence, StreamingSegmentsDuration.Value, 1), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegments(quality, sequence, StreamingSegmentsDuration, 1), "application/x-mpegURL", true);
       }
    }
 }

@@ -43,16 +43,11 @@ namespace MediaCurator
 
          foreach (var name in ThumbnailsSections)
          {
-            var section = _configuration.GetSection(name);
-
-            if (section.Exists())
+            foreach (var item in _configuration.GetSection(name).Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
             {
-               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
+               if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
                {
-                  if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
-                  {
-                     maximum = Math.Max(count, maximum);
-                  }
+                  maximum = Math.Max(count, maximum);
                }
             }
          }
@@ -430,32 +425,27 @@ namespace MediaCurator
          // Add the thumbnails columns as configured
          foreach (var name in ThumbnailsSections)
          {
-            var section = _configuration.GetSection(name);
-
-            if (section.Exists())
+            foreach (var item in _configuration.GetSection(name).Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
             {
-               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
+               if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
                {
-                  if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
+                  for (int i = 0; i < count; i++)
                   {
-                     for (int i = 0; i < count; i++)
-                     {
-                        string column = item.Key.ToUpper() + i.ToString();
-
-                        if (!ColumnExists("Thumbnails", column))
-                        {
-                           AddColumn("Thumbnails", column, "BLOB");
-                        }
-                     }
-                  }
-                  else
-                  {
-                     string column = item.Key.ToUpper();
+                     string column = item.Key.ToUpper() + i.ToString();
 
                      if (!ColumnExists("Thumbnails", column))
                      {
                         AddColumn("Thumbnails", column, "BLOB");
                      }
+                  }
+               }
+               else
+               {
+                  string column = item.Key.ToUpper();
+
+                  if (!ColumnExists("Thumbnails", column))
+                  {
+                     AddColumn("Thumbnails", column, "BLOB");
                   }
                }
             }
