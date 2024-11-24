@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using MediaCurator.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace MediaCurator
 {
@@ -11,11 +13,6 @@ namespace MediaCurator
       // Solr index leads to duplicate entries. The cache should be cleared once the scanning is over.
       private readonly Dictionary<string, string> _cache = new();
 
-      /// <summary>
-      /// The supported file extensions for each media type.
-      /// </summary>
-      public readonly SupportedExtensions SupportedExtensions;
-
       #region Constructors
 
       /// <summary>
@@ -23,15 +20,12 @@ namespace MediaCurator
       /// </summary>
       public MediaLibrary(ILogger<MediaContainer> logger,
                           IServiceProvider services,
-                          IConfiguration configuration,
+                          IOptionsMonitor<Settings> settings,
                           IThumbnailsDatabase thumbnailsDatabase,
                           string? id = null, string? path = null,
                           IProgress<float>? progress = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, null, id, path, progress)
+      ) : base(logger, services, settings, thumbnailsDatabase, null, id, path, progress)
       {
-         // Read and store the supported extensions from the configuration file.
-         SupportedExtensions = new SupportedExtensions(Configuration);
-
          if (Created)
          {
             DateCreated = DateTime.UtcNow;
@@ -100,7 +94,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Video:
-               mediaFile = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
+               mediaFile = new VideoFile(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -108,7 +102,7 @@ namespace MediaCurator
             -------------------------------------------------------------------------------------*/
 
             case MediaContainerType.Photo:
-               mediaFile = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
+               mediaFile = new PhotoFile(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, path: path, progress: progress);
                break;
 
             /*-------------------------------------------------------------------------------------
@@ -127,7 +121,7 @@ namespace MediaCurator
 
       public MediaFolder InsertMediaFolder(string path)
       {
-         return new MediaFolder(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, path: path);
+         return new MediaFolder(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, path: path);
       }
 
       /// <summary>
@@ -143,7 +137,7 @@ namespace MediaCurator
 
          if (path != null)
          {
-            mediaContainer = new(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: null, path: path);
+            mediaContainer = new(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id: null, path: path);
 
             if (string.IsNullOrEmpty(mediaContainer.Type))
             {
@@ -165,23 +159,23 @@ namespace MediaCurator
                throw new NotImplementedException("Audio files cannot yet be handled!");
 
             case MediaContainerType.Video:
-               mediaContainer = new VideoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               mediaContainer = new VideoFile(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id: id);
                break;
 
             case MediaContainerType.Photo:
-               mediaContainer = new PhotoFile(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               mediaContainer = new PhotoFile(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id: id);
                break;
 
             case MediaContainerType.Drive:
-               mediaContainer = new MediaDrive(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               mediaContainer = new MediaDrive(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id: id);
                break;
 
             case MediaContainerType.Server:
-               mediaContainer = new MediaServer(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               mediaContainer = new MediaServer(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id: id);
                break;
 
             case MediaContainerType.Folder:
-               mediaContainer = new MediaFolder(Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id: id);
+               mediaContainer = new MediaFolder(Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id: id);
                break;
 
             default:
@@ -205,21 +199,21 @@ namespace MediaCurator
          // It appears that the file does have an extension. We may proceed.
 
          // Check if it's a recognized video format.
-         if (SupportedExtensions[MediaContainerType.Video].Contains(fileExtension))
+         if (Settings.CurrentValue.SupportedExtensions.Video.Contains(fileExtension))
          {
             // Looks like the file is a recognized video format.
             return MediaContainerType.Video;
          }
 
          // Check if it's a recognized photo format.
-         if (SupportedExtensions[MediaContainerType.Photo].Contains(fileExtension))
+         if (Settings.CurrentValue.SupportedExtensions.Photo.Contains(fileExtension))
          {
             // Looks like the file is a recognized photo format.
             return MediaContainerType.Photo;
          }
 
          // Check if it's a recognized audio format.
-         if (SupportedExtensions[MediaContainerType.Audio].Contains(fileExtension))
+         if (Settings.CurrentValue.SupportedExtensions.Audio.Contains(fileExtension))
          {
             // Looks like the file is a recognized audio format.
             return MediaContainerType.Audio;

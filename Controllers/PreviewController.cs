@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text;
 using System.Text.RegularExpressions;
-using System.Text;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Mvc;
+using MediaCurator.Configuration;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -10,13 +12,13 @@ namespace MediaCurator.Controllers
    [Route("[controller]")]
    public partial class PreviewController(ILogger<MediaContainer> logger,
                                           IServiceProvider services,
-                                          IConfiguration configuration,
+                                          IOptionsMonitor<Settings> settings,
                                           IThumbnailsDatabase thumbnailsDatabase,
                                           IMediaLibrary mediaLibrary) : Controller
    {
       private readonly IServiceProvider _services = services;
       private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
-      private readonly IConfiguration _configuration = configuration;
+      private readonly IOptionsMonitor<Settings> _settings = settings;
       private readonly ILogger<MediaContainer> _logger = logger;
       private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
 
@@ -25,14 +27,6 @@ namespace MediaCurator.Controllers
 
       #region Constants
 
-      private int StreamingSegmentsDuration
-      {
-         get
-         {
-            return _configuration.GetSection("Streaming:Segments").GetValue<int>("Duration");
-         }
-      }
-
       #endregion // Constants
 
       // GET: /<controller>/video/{id}/{name}
@@ -40,7 +34,7 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{name}")]
       public IActionResult Video(string id, string name)
       {
-         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          // Increment the Views only if this is the first ranged request or not ranged at all
          if (Request.Headers.TryGetValue("Range", out var range) && !string.IsNullOrEmpty(range))
@@ -73,7 +67,7 @@ namespace MediaCurator.Controllers
       [Route("photo/{id}/{name}")]
       public IActionResult Photo(string id, string name, [FromQuery] int width = 0, [FromQuery] int height = 0)
       {
-         using PhotoFile photoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using PhotoFile photoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((photoFile.Name != name) || (!photoFile.Exists()))
          {
@@ -114,7 +108,7 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{quality}.m3u8")]
       public IActionResult Stream(string id, string quality)
       {
-         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          videoFile.Views += 1;
          videoFile.DateAccessed = DateTime.UtcNow;
@@ -129,8 +123,8 @@ namespace MediaCurator.Controllers
          return quality.ToLower() switch
          {
             "master" => Content(videoFile.GeneratePlaylist(), "application/x-mpegURL", Encoding.UTF8),
-            "240p" or "240" or "360p" or "360" or "480p" or "480" or "720p" or "720" or "1080p" or "1080" or "4k" or "2160" or "2160p" => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration, quality), "application/x-mpegURL", Encoding.UTF8),
-            _ => Content(videoFile.GeneratePlaylist(StreamingSegmentsDuration), "application/x-mpegURL", Encoding.UTF8),
+            "240p" or "240" or "360p" or "360" or "480p" or "480" or "720p" or "720" or "1080p" or "1080" or "4k" or "2160" or "2160p" => Content(videoFile.GeneratePlaylist(_settings.CurrentValue.Streaming.Segments.Duration, quality), "application/x-mpegURL", Encoding.UTF8),
+            _ => Content(videoFile.GeneratePlaylist(_settings.CurrentValue.Streaming.Segments.Duration), "application/x-mpegURL", Encoding.UTF8),
          };
       }
 
@@ -139,7 +133,7 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{sequence}.ts")]
       public IActionResult Segment(string id, int sequence)
       {
-         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if (!videoFile.Exists())
          {
@@ -148,7 +142,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateSegments("", sequence, StreamingSegmentsDuration, 1), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegments("", sequence, _settings.CurrentValue.Streaming.Segments.Duration, 1), "application/x-mpegURL", true);
       }
 
       // GET: /<controller>/video/{id}/{quality}/{sequence}.ts
@@ -156,7 +150,7 @@ namespace MediaCurator.Controllers
       [Route("video/{id}/{quality}/{sequence}.ts")]
       public IActionResult Segment(string id, string quality, int sequence)
       {
-         using VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         using VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if (!videoFile.Exists())
          {
@@ -165,7 +159,7 @@ namespace MediaCurator.Controllers
             return NotFound();
          }
 
-         return File(videoFile.GenerateSegments(quality, sequence, StreamingSegmentsDuration, 1), "application/x-mpegURL", true);
+         return File(videoFile.GenerateSegments(quality, sequence, _settings.CurrentValue.Streaming.Segments.Duration, 1), "application/x-mpegURL", true);
       }
    }
 }

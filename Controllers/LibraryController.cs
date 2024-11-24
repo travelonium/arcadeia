@@ -1,10 +1,12 @@
 ﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
-using MediaCurator.Services;
-using MediaCurator.Solr;
 using System.Text.Json;
 using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Mvc;
+using MediaCurator.Configuration;
+using MediaCurator.Services;
+using MediaCurator.Solr;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -12,44 +14,17 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("[controller]")]
-   public class LibraryController(ILogger<MediaContainer> logger,
-                                  IServiceProvider services,
-                                  IConfiguration configuration,
+   public class LibraryController(IServiceProvider services,
+                                  IOptionsMonitor<Settings> settings,
+                                  IMediaLibrary mediaLibrary,
                                   IThumbnailsDatabase thumbnailsDatabase,
-                                  IMediaLibrary mediaLibrary) : Controller
+                                  ILogger<MediaContainer> logger) : Controller
    {
       private readonly IServiceProvider _services = services;
       private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
-      private readonly IConfiguration _configuration = configuration;
-      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IOptionsMonitor<Settings> _settings = settings;
       private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
-
-      /// <summary>
-      /// A list of regex patterns specifying which file names to ignore when scanning.
-      /// </summary>
-      public List<String> IgnoredFileNames
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>() ?? [];
-         }
-      }
-
-      public List<string> Folders
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:Folders").Get<List<string>>() ?? [];
-         }
-      }
-
-      public List<string> WatchedFolders
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>() ?? [];
-         }
-      }
+      private readonly ILogger<MediaContainer> _logger = logger;
 
       private async Task WriteAsync(HttpResponse response, string text)
       {
@@ -127,7 +102,7 @@ namespace MediaCurator.Controllers
       private bool IsPathAllowed(string path)
       {
          string fullPath = Path.GetFullPath(path);
-         return Folders.Concat(WatchedFolders).Any(folder =>
+         return _settings.CurrentValue.Scanner.Folders.Concat(_settings.CurrentValue.Scanner.WatchedFolders).Any(folder =>
          {
             string folderPath = Path.GetFullPath(folder);
             if (fullPath.Length < folderPath.Length) return false;
@@ -165,7 +140,7 @@ namespace MediaCurator.Controllers
             });
 
             // Create the parent container of the right type.
-            using IMediaContainer? mediaContainer = Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null) as IMediaContainer;
+            using IMediaContainer? mediaContainer = Activator.CreateInstance(type, _logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null) as IMediaContainer;
 
             if (mediaContainer == null) return StatusCode((int)HttpStatusCode.InternalServerError, new
             {
@@ -235,7 +210,7 @@ namespace MediaCurator.Controllers
          {
             var name = Path.GetFileName(file.FileName);
             var fullPath = Path.Combine(path, file.FileName);
-            var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
+            var patterns = _settings.CurrentValue.Scanner.IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
             if (System.IO.File.Exists(fullPath))
             {

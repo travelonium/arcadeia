@@ -2,40 +2,14 @@
 using Microsoft.AspNetCore.StaticFiles;
 using MediaCurator.Services;
 using System.Globalization;
+using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
 
 namespace MediaCurator
 {
    public class MediaFile : MediaContainer
    {
       #region Fields
-
-      /// <summary>
-      /// Determines whether or not the missing thumbnails have to be forcefully generated.
-      /// </summary>
-      protected bool ForceGenerateMissingThumbnails
-      {
-         get
-         {
-            if (Configuration.GetSection("Scanner:ForceGenerateMissingThumbnails").Exists())
-            {
-               return Configuration.GetSection("Scanner:ForceGenerateMissingThumbnails").Get<bool>();
-            }
-            else
-            {
-               return false;
-            }
-         }
-      }
-
-      public IEnumerable<string> MountFolders
-      {
-         get
-         {
-            var mounts = Configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [];
-
-            return mounts.Select(item => item.GetValueOrDefault("Directory") ?? string.Empty);
-         }
-      }
 
       private long _size = -1;
 
@@ -197,12 +171,12 @@ namespace MediaCurator
 
       public MediaFile(ILogger<MediaContainer> logger,
                        IServiceProvider services,
-                       IConfiguration configuration,
+                       IOptionsMonitor<Settings> settings,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
                        string? id = null, string? path = null,
                        IProgress<float>? progress = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
+      ) : base(logger, services, settings, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -272,7 +246,7 @@ namespace MediaCurator
                   // Try to regenerate thumbnails for the file.
                   GenerateThumbnails(force: true);
                }
-               else if (ForceGenerateMissingThumbnails)
+               else if (Settings.CurrentValue.Scanner.ForceGenerateMissingThumbnails)
                {
                   // Try to generate the missing thumbnails for the file.
                   GenerateThumbnails();
@@ -413,7 +387,7 @@ namespace MediaCurator
                   if (parentType is not null)
                   {
                      // Now let's instantiate the new Parent.
-                     Parent = Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress) as MediaContainer;
+                     Parent = Activator.CreateInstance(parentType, Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress) as MediaContainer;
                      ParentType = Parent?.Type;
                   }
                }

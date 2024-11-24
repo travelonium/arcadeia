@@ -19,7 +19,7 @@ namespace MediaCurator.Controllers
          "Streaming",
          "SupportedExtensions",
          "FFmpeg",
-         "yt-dlp",
+         "YtDlp",
          "Solr",
          "Scanner",
          "Mounts",

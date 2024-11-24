@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
 using MediaCurator.Solr;
 using SolrNet;
 
@@ -7,7 +9,7 @@ namespace MediaCurator.Services
 {
    public class ScannerService(ILogger<ScannerService> logger,
                                IServiceProvider services,
-                               IConfiguration configuration,
+                               IOptions<ScannerSettings> settings,
                                IBackgroundTaskQueue taskQueue,
                                IHostApplicationLifetime applicationLifetime,
                                IMediaLibrary mediaLibrary,
@@ -15,7 +17,7 @@ namespace MediaCurator.Services
    {
       private readonly IServiceProvider _services = services;
 
-      protected readonly IConfiguration _configuration = configuration;
+      private readonly ScannerSettings _settings = settings.Value;
 
       private readonly ILogger<ScannerService> _logger = logger;
 
@@ -23,128 +25,27 @@ namespace MediaCurator.Services
 
       private readonly NotificationService _notificationService = notificationService;
 
-      private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
+      private readonly Dictionary<string, FileSystemWatcher> _watchers = [];
 
       private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-
 
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
       private Timer? _periodicScanTimer;
 
       /// <summary>
-      /// The lists of folders to be scanned for changes.
-      /// </summary>
-      public List<string> Folders
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:Folders").Get<List<string>>() ?? [];
-         }
-      }
-
-      /// <summary>
       /// The lists of folders to be scanned for changes that are mounted or exist.
       /// </summary>
-      public List<string> AvailableFolders
-      {
-         get
-         {
-            return Folders.Where(folder => Directory.Exists(folder)).ToList<string>();
-         }
-      }
-
-      /// <summary>
-      /// The lists of folders to be watched for changes.
-      /// </summary>
-      public List<string> WatchedFolders
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>() ?? [];
-         }
-      }
+      public List<string> AvailableFolders => _settings.Folders.Where(Directory.Exists).ToList();
 
       /// <summary>
       /// The lists of folders to be watched for changes that are mounted or exist.
       /// </summary>
-      public List<string> AvailableWatchedFolders
-      {
-         get
-         {
-            return WatchedFolders.Where(folder => Directory.Exists(folder)).ToList<string>();
-         }
-      }
+      public List<string> AvailableWatchedFolders => _settings.WatchedFolders.Where(Directory.Exists).ToList();
 
-      /// <summary>
-      /// Determines whether or not the startup scanning is enabled.
-      /// </summary>
-      public bool StartupScan
+      public Task StartAsync(CancellationToken cancellationToken)
       {
-         get
-         {
-            return _configuration.GetSection("Scanner:StartupScan").Get<bool?>() ?? false;
-         }
-      }
-
-      /// <summary>
-      /// Determines the periodic scan interval in milliseconds and enables periodic scanning if non-zero.
-      /// </summary>
-      public long PeriodicScanIntervalMilliseconds
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:PeriodicScanIntervalMilliseconds").Get<long>();
-         }
-      }
-
-      /// <summary>
-      /// Determines whether or not the startup update is enabled.
-      /// </summary>
-      public bool StartupUpdate
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:StartupUpdate").Get<bool?>() ?? false;
-         }
-      }
-
-      /// <summary>
-      /// Determines whether or not the startup cleanup is enabled.
-      /// </summary>
-      public bool StartupCleanup
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:StartupCleanup").Get<bool?>() ?? false;
-         }
-      }
-
-      /// <summary>
-      /// A list of regex patterns specifying which file or folder names to ignore when scanning.
-      /// </summary>
-      public List<String> IgnoredPatterns
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:IgnoredPatterns").Get<List<String>>() ?? [];
-         }
-      }
-
-      /// <summary>
-      /// The number of parallel scanner tasks while startup scanning.
-      /// </summary>
-      public int ParallelScannerTasks
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:ParallelScannerTasks").Get<int?>() ?? -1;
-         }
-      }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-      {
-         foreach (string folder in WatchedFolders)
+         foreach (string folder in _settings.WatchedFolders)
          {
             if (!Directory.Exists(folder))
             {
@@ -165,9 +66,9 @@ namespace MediaCurator.Services
 
                   // Configure the filters.
                   NotifyFilter = NotifyFilters.CreationTime
-                                    | NotifyFilters.LastWrite
-                                    | NotifyFilters.FileName
-                  // | NotifyFilters.DirectoryName
+                               | NotifyFilters.LastWrite
+                               | NotifyFilters.FileName
+                  //           | NotifyFilters.DirectoryName
                };
 
                // Add event handlers.
@@ -207,7 +108,7 @@ namespace MediaCurator.Services
          }
 
          // Start the startup scanning task if necessary.
-         if (StartupScan)
+         if (_settings.StartupScan)
          {
             _logger.LogInformation("Starting Startup Scanning...");
 
@@ -223,7 +124,7 @@ namespace MediaCurator.Services
          }
 
          // Schedule the periodic scanning task if necessary.
-         if (PeriodicScanIntervalMilliseconds > 0)
+         if (_settings.PeriodicScanIntervalMilliseconds > 0)
          {
             _logger.LogInformation("Configuring Periodic Scanning...");
 
@@ -238,11 +139,11 @@ namespace MediaCurator.Services
                      return Task.Run(() => Scan(uuid, folder, "Periodic", _cancellationToken), cancellationToken);
                   });
                }
-            }, null, PeriodicScanIntervalMilliseconds, PeriodicScanIntervalMilliseconds);
+            }, null, _settings.PeriodicScanIntervalMilliseconds, _settings.PeriodicScanIntervalMilliseconds);
          }
 
          // Start the startup update task if necessary.
-         if (StartupUpdate)
+         if (_settings.StartupUpdate)
          {
             // Queue the startup update task.
             _taskQueue.QueueBackgroundTask("Startup Update", cancellationToken =>
@@ -286,7 +187,7 @@ namespace MediaCurator.Services
       private void Scan(string uuid, string path, string type, CancellationToken cancellationToken)
       {
          var watch = new Stopwatch();
-         var patterns = IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
+         var patterns = _settings.IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
          var fileSystemService = _services.GetService<IFileSystemService>();
          if ((fileSystemService != null) && fileSystemService.Mounts.Any(mount => path.StartsWith(mount.Folder) && !mount.Available))
@@ -317,7 +218,7 @@ namespace MediaCurator.Services
             // Loop through the files in the specific MediaLocation in parallel.
             try
             {
-               Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, async (file) =>
+               Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = _settings.ParallelScannerTasks }, async (file) =>
                {
                   var name = Path.GetFileName(file);
                   int currentIndex = Interlocked.Increment(ref index);
@@ -417,7 +318,7 @@ namespace MediaCurator.Services
          try
          {
             // Loop through the documents in the index in parallel.
-            Parallel.ForEach(documents, new ParallelOptions { MaxDegreeOfParallelism = ParallelScannerTasks }, async (document) =>
+            Parallel.ForEach(documents, new ParallelOptions { MaxDegreeOfParallelism = _settings.ParallelScannerTasks }, async (document) =>
             {
                int currentIndex = Interlocked.Increment(ref index);
 

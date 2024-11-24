@@ -2,17 +2,19 @@
 using SolrNet.Exceptions;
 using System.Text.Json;
 using SolrNet.Commands.Parameters;
+using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
 
 namespace MediaCurator.Solr
 {
    public class SolrIndexService<T, TSolrOperations>(ISolrOperations<T> solr,
-                           IHttpClientFactory factory,
-                           IConfiguration configuration,
-                           ILogger<SolrIndexService<T, TSolrOperations>> logger) : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
+                                                     IHttpClientFactory factory,
+                                                     IOptionsMonitor<Settings> settings,
+                                                     ILogger<SolrIndexService<T, TSolrOperations>> logger) : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
    {
       private readonly TSolrOperations Solr = (TSolrOperations)solr;
 
-      private readonly IConfiguration Configuration = configuration;
+      private readonly IOptionsMonitor<Settings> Settings = settings;
 
       private readonly IHttpClientFactory Factory = factory;
 
@@ -353,7 +355,7 @@ namespace MediaCurator.Solr
       {
          get
          {
-            return Configuration.GetSection("Solr:URL").Get<string>() ?? throw new InvalidOperationException("The Solr URL is not configured.");
+            return Settings.CurrentValue.Solr.URL;
          }
       }
 

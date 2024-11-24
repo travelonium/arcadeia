@@ -1,28 +1,29 @@
-﻿namespace MediaCurator.Services
+﻿using MediaCurator.Configuration;
+using Microsoft.Extensions.Options;
+
+namespace MediaCurator.Services
 {
-   public class FileSystemService(IConfiguration configuration,
+   public class FileSystemService(IOptionsMonitor<Settings> settings,
                                   ILogger<FileSystemService> logger,
                                   IHostApplicationLifetime applicationLifetime) : IFileSystemService
    {
-      protected readonly IConfiguration _configuration = configuration;
+      protected readonly IOptionsMonitor<Settings> _settings = settings;
 
       private readonly ILogger<FileSystemService> _logger = logger;
 
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
-      private List<FileSystemMount> _mounts
+      public List<FileSystemMount> Mounts
       {
          get
          {
             List<FileSystemMount> mounts = [];
 
-            foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [])
+            foreach (var item in _settings.CurrentValue.Mounts)
             {
                try
                {
-                  FileSystemMount mount = new(item);
-
-                  mounts.Add(mount);
+                  mounts.Add(new FileSystemMount(item));
                }
                catch (Exception e)
                {
@@ -33,8 +34,6 @@
             return mounts;
          }
       }
-
-      public List<FileSystemMount> Mounts => _mounts;
 
       #region Constructors
 

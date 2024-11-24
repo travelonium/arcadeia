@@ -1,12 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using MediaCurator.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace MediaCurator.Services
 {
-   public partial class DownloadService(ILogger<DownloadService> logger, IConfiguration configuration) : IDownloadService
+   public partial class DownloadService(IOptionsMonitor<Settings> settings, ILogger<DownloadService> logger) : IDownloadService
    {
       private readonly ILogger<DownloadService> _logger = logger;
-      private readonly IConfiguration _configuration = configuration;
+      private readonly IOptionsMonitor<Settings> _settings = settings;
 
       [GeneratedRegex(@"\[download\]\s+([\d\.]+)% of")]
       private static partial Regex ProgressRegex();
@@ -36,7 +38,7 @@ namespace MediaCurator.Services
       {
          if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-         string executable = Path.Combine(_configuration["yt-dlp:Path"] ?? string.Empty, $"yt-dlp{Platform.Extension.Executable}");
+         string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path, $"yt-dlp{Platform.Extension.Executable}");
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
@@ -78,11 +80,11 @@ namespace MediaCurator.Services
 
          if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be null or empty.", nameof(path));
 
-         string executable = Path.Combine(_configuration["yt-dlp:Path"] ?? string.Empty, $"yt-dlp{Platform.Extension.Executable}");
+         string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path, $"yt-dlp{Platform.Extension.Executable}");
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
-         string options = _configuration.GetSection("yt-dlp:Options").Get<List<string>>()?.Aggregate((a, x) => $"{a} {x}") ?? string.Empty;
+         string options = string.Join(" ", _settings.CurrentValue.YtDlp.Options);
 
          string[] arguments = [
             $"-o \"{template}\"",

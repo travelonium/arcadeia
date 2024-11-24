@@ -1,33 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Xml.Linq;
+﻿using System.Text;
+using System.Text.Json;
 using System.Diagnostics;
 using System.Globalization;
-using System.Collections.Generic;
-using System.Threading;
-using System.Text.Json;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ImageMagick;
-using System.Reflection.Metadata;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using System.Linq;
-using SolrNet;
-using System.Text;
+using MediaCurator.Configuration;
 
 namespace MediaCurator
 {
    class VideoFile : MediaFile
    {
       #region Constants
-
-      private Dictionary<string, Dictionary<string, int>> ThumbnailsConfiguration
-      {
-         get
-         {
-            return Configuration.GetSection("Thumbnails:Video").Get<Dictionary<string, Dictionary<string, int>>>() ?? [];
-         }
-      }
 
       #endregion // Constants
 
@@ -114,12 +97,12 @@ namespace MediaCurator
 
       public VideoFile(ILogger<MediaContainer> logger,
                        IServiceProvider services,
-                       IConfiguration configuration,
+                       IOptionsMonitor<Settings> settings,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
                        string? id = null, string? path = null,
                        IProgress<float>? progress = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
+      ) : base(logger, services, settings, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -134,7 +117,7 @@ namespace MediaCurator
       public override void GetFileInfo(string path)
       {
          string? output = null;
-         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffprobe" + Platform.Extension.Executable;
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, "ffprobe" + Platform.Extension.Executable);
 
          if (!File.Exists(executable))
          {
@@ -170,7 +153,7 @@ namespace MediaCurator
             Task<string> errorTask = process.StandardError.ReadToEndAsync();
             output = process.StandardOutput.ReadToEnd();
 
-            process.WaitForExit(Configuration.GetSection("FFMpeg:TimeoutMilliseconds").Get<Int32>());
+            process.WaitForExit(Settings.CurrentValue.FFmpeg.TimeoutMilliseconds);
 
             if (process.HasExited)
             {
@@ -229,7 +212,7 @@ namespace MediaCurator
       {
          byte[]? output = null;
 
-         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
 
          int waitInterval = 100;
          int totalWaitTime = 0;
@@ -282,8 +265,7 @@ namespace MediaCurator
                Thread.Sleep(waitInterval);
                totalWaitTime += waitInterval;
             }
-            while ((!process.HasExited) &&
-                   (totalWaitTime < Configuration.GetSection("FFMpeg:TimeoutMilliseconds").Get<Int32>()));
+            while (!process.HasExited && totalWaitTime < Settings.CurrentValue.FFmpeg.TimeoutMilliseconds);
 
             if (process.HasExited)
             {
@@ -335,37 +317,24 @@ namespace MediaCurator
          ----------------------------------------------------------------------------------*/
 
          // Calculate the total number of thumbnails to be generated used for progress reporting
-         foreach (var item in ThumbnailsConfiguration)
+         foreach (var item in Settings.CurrentValue.Thumbnails.Video)
          {
-            if (item.Value.TryGetValue("Count", out var value))
-            {
-               total += (int)Math.Min(value, Math.Floor(Duration));
-            }
-            else
-            {
-               total += 1;
-            }
+            total += (item.Value.Count > 0) ? (int)Math.Min(item.Value.Count, Math.Floor(Duration)) : 1;
          }
 
          Progress?.Report(0.0f);
 
-         foreach (var item in ThumbnailsConfiguration)
+         foreach (var item in Settings.CurrentValue.Thumbnails.Video)
          {
             // No point in generating thumbnails for a zero-length file
             if (Duration == 0.0f) break;
 
-            int count = 0;
-            int width = -1;
-            int height = -1;
-            bool crop = false;
-            bool sprite = false;
             string label = item.Key;
-
-            if (item.Value.ContainsKey("Width")) width = item.Value["Width"];
-            if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
-            if (item.Value.ContainsKey("Crop")) crop = item.Value["Crop"] > 0;
-            if (item.Value.ContainsKey("Sprite")) sprite = item.Value["Sprite"] > 0;
-            if (item.Value.ContainsKey("Count")) count = (int)Math.Min(item.Value["Count"], Math.Floor(Duration));
+            bool crop = item.Value.Crop;
+            bool sprite = item.Value.Sprite;
+            int height = item.Value.Height;
+            int width = item.Value.Width;
+            int count = Math.Min(item.Value.Count, (int)Math.Floor(Duration));
 
             using var collection = new MagickImageCollection();
 
@@ -526,8 +495,7 @@ namespace MediaCurator
       public byte[] GenerateSegments(string quality, int sequence, int duration, int count = 0)
       {
          byte[] output = [];
-         int timeout = Configuration.GetSection("FFMpeg:TimeoutMilliseconds").Get<Int32>();
-         string executable = Configuration["FFmpeg:Path"] + Platform.Separator.Path + "ffmpeg" + Platform.Extension.Executable;
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
          DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
          string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");
 
@@ -620,7 +588,7 @@ namespace MediaCurator
                Thread.Sleep(waitInterval);
                totalWaitTime += waitInterval;
             }
-            while ((!process.HasExited) && (totalWaitTime < timeout));
+            while ((!process.HasExited) && (totalWaitTime < Settings.CurrentValue.FFmpeg.TimeoutMilliseconds));
 
             if (!process.HasExited || (process.ExitCode != 0))
             {

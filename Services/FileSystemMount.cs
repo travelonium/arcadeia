@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using MediaCurator.Configuration;
 
 namespace MediaCurator.Services
 {
@@ -57,13 +58,13 @@ namespace MediaCurator.Services
 
       #region Constructors
 
-      public FileSystemMount(Dictionary<string, string> mount)
+      public FileSystemMount(MountSettings mount)
       {
          Attached = false;
-         Types = mount.GetValueOrDefault("Types") ?? string.Empty;
-         Options = mount.GetValueOrDefault("Options") ?? string.Empty;
-         Device = mount.GetValueOrDefault("Device") ?? string.Empty;
-         Folder = mount.GetValueOrDefault("Folder") ?? string.Empty;
+         Types = mount.Types;
+         Options = mount.Options;
+         Device = mount.Device;
+         Folder = mount.Folder;
 
          if (string.IsNullOrEmpty(Types) || string.IsNullOrEmpty(Options) || string.IsNullOrEmpty(Device) || string.IsNullOrEmpty(Folder))
          {
