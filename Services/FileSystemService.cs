@@ -45,11 +45,11 @@ namespace MediaCurator.Services
 
       public List<FileSystemMount> Mounts => _mounts.Value;
 
-        #region Constructors
+      #region Constructors
 
-        #endregion // Constructors
+      #endregion // Constructors
 
-        public Task StartAsync(CancellationToken cancellationToken)
+      public Task StartAsync(CancellationToken cancellationToken)
       {
          _logger.LogInformation("Starting FileSystem Service...");
 

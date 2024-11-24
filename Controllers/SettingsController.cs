@@ -13,7 +13,7 @@ namespace MediaCurator.Controllers
    {
       private readonly IConfiguration _configuration = configuration;
       private readonly ILogger<MediaContainer> _logger = logger;
-      private readonly List<String> _serializableKeys =
+      private readonly string[] _whitelist =
       [
          "Thumbnails",
          "Streaming",
@@ -30,7 +30,7 @@ namespace MediaCurator.Controllers
       [Produces("application/json")]
       public IActionResult Get()
       {
-         return Ok(Serialize(_configuration));
+         return Ok(_configuration.ToJson(_whitelist));
       }
 
       // GET: /settings
@@ -42,12 +42,12 @@ namespace MediaCurator.Controllers
          try
          {
             // Validate top-level keys against the allowed list
-            var invalidKeys = configuration.Select(x => x.Key).Except(_serializableKeys).ToList();
+            var invalidKeys = configuration.Select(x => x.Key).Except(_whitelist).ToList();
             if (invalidKeys.Count != 0)
             {
                return BadRequest(new
                {
-                  message = "One or more of the keys in the request are either invalid or not updatable",
+                  message = "One or more of the keys in the request are either invalid or non-updatable.",
                   detail = invalidKeys
                });
             }
@@ -55,75 +55,30 @@ namespace MediaCurator.Controllers
             // Get the configuration root and the writable provider
             if (_configuration is not IConfigurationRoot configurationRoot)
             {
-               return StatusCode(500, new { message = "Configuration root is not accessible" });
+               return StatusCode(500, new { message = "Configuration root is not accessible." });
             }
 
+            // Select the appsettings.{environment}.json configuration file
             var provider = configurationRoot.Providers.OfType<WritableJsonConfigurationProvider>()
                                                       .Where(provider => provider?.Source?.Path != null && System.IO.File.Exists(provider.Source.Path))
                                                       .LastOrDefault();
 
             if (provider == null)
             {
-               return StatusCode(500, new { message = "No writable JSON configuration providers are available" });
+               return StatusCode(500, new { message = "No writable JSON configuration providers are available." });
             }
 
             // Save the changes to the appropriate file
-            provider.Save(configuration);
+            provider.Update(configuration);
 
             return Ok();
          }
          catch (Exception ex)
          {
-            _logger.LogError(ex, "Error updating settings");
+            _logger.LogError(ex, "Error Updating Settings, Because: {}", ex.Message);
 
-            return StatusCode(500, new { message = "An error occurred while updating the settings", Error = ex.Message });
+            return StatusCode(500, new { message = "An error occurred while updating the settings.", error = ex.Message });
          }
-      }
-
-      private JsonNode? Serialize(IConfiguration configuration, int level = 0)
-      {
-         JsonObject result = [];
-
-         foreach (var child in configuration.GetChildren())
-         {
-            if (level == 0 && !_serializableKeys.Contains(child.Key)) continue;
-
-            if (child.Path.EndsWith(":0"))
-            {
-               var arr = new JsonArray();
-
-               foreach (var arrayChild in configuration.GetChildren())
-               {
-                  arr.Add(Serialize(arrayChild, level + 1));
-               }
-
-               return arr;
-            }
-            else
-            {
-               result.Add(child.Key, Serialize(child, level + 1));
-            }
-         }
-
-         if (result.Count == 0 && configuration is IConfigurationSection section)
-         {
-            if (bool.TryParse(section.Value, out bool boolean))
-            {
-               return JsonValue.Create(boolean);
-            }
-            else if (decimal.TryParse(section.Value, out decimal real))
-            {
-               return JsonValue.Create(real);
-            }
-            else if (long.TryParse(section.Value, out long integer))
-            {
-               return JsonValue.Create(integer);
-            }
-
-            return JsonValue.Create(section.Value);
-         }
-
-         return result;
       }
    }
 }

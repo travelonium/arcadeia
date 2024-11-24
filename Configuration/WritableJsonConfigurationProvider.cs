@@ -9,7 +9,7 @@ namespace MediaCurator.Configuration
       private readonly JsonConfigurationSource _source = source;
       private static readonly object _lock = new();
 
-      public void Save(JsonObject updates)
+      public void Update(JsonObject updates)
       {
          var path = _source.Path;
 
@@ -38,14 +38,14 @@ namespace MediaCurator.Configuration
          lock (_lock)
          {
             // Recursively update the JSON structure
-            Apply(json, updates);
+            Update(json, updates);
 
             // Write the updated JSON back to the file
             File.WriteAllText(path, json.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
          }
       }
 
-      private static void Apply(JsonObject target, JsonObject updates)
+      private static void Update(JsonObject target, JsonObject updates)
       {
          foreach (var (key, value) in updates)
          {
@@ -59,7 +59,7 @@ namespace MediaCurator.Configuration
                }
 
                // Recursively update the nested object
-               Apply(targetNested, nestedObject);
+               Update(targetNested, nestedObject);
             }
             else if (value is JsonArray array)
             {
