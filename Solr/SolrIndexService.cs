@@ -10,7 +10,9 @@ namespace MediaCurator.Solr
    public class SolrIndexService<T, TSolrOperations>(ISolrOperations<T> solr,
                                                      IHttpClientFactory factory,
                                                      IOptionsMonitor<Settings> settings,
-                                                     ILogger<SolrIndexService<T, TSolrOperations>> logger) : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
+                                                     ILogger<SolrIndexService<T, TSolrOperations>> logger) : ISolrIndexService<T>
+                                                     where TSolrOperations : ISolrOperations<T>
+                                                     where T : Models.MediaContainer
    {
       private readonly TSolrOperations Solr = (TSolrOperations)solr;
 
@@ -443,8 +445,17 @@ namespace MediaCurator.Solr
          {
             SolrQueryResults<T> documents = Solr.Query(new SolrHasValueQuery("dateAccessed"), new QueryOptions
             {
-               Fields = new[] { "id" }
+               Fields = ["id"]
             });
+
+            if (documents.Count == 0)
+            {
+               return true;
+            }
+
+            var updates = documents.Where(document => !string.IsNullOrEmpty(document.Id)).ToList().Select(document => new KeyValuePair<string, IEnumerable<AtomicUpdateSpec>>(
+               document.Id!, [new AtomicUpdateSpec("dateAccessed", AtomicUpdateType.Set, null as string)]
+            )).ToList();
 
             foreach (var document in documents)
             {
