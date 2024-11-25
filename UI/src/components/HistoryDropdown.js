@@ -82,7 +82,7 @@ export class HistoryDropdown extends Component {
         event.preventDefault();
         event.stopPropagation();
         this.setState({ clearing: true }, () => {
-            fetch("/library/history/clear", {
+            fetch("/api/library/clear/history", {
                 method: "GET",
                 headers: {
                     accept: "application/json",

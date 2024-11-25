@@ -10,36 +10,27 @@ using MediaCurator.Configuration;
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   public class ThumbnailsController : Controller
+   [Route("api/[controller]")]
+   public class ThumbnailsController(ILogger<MediaContainer> logger,
+                                     IServiceProvider services,
+                                     IHostApplicationLifetime applicationLifetime,
+                                     IThumbnailsDatabase thumbnailsDatabase,
+                                     IOptionsMonitor<Settings> settings,
+                                     IMediaLibrary mediaLibrary) : Controller
    {
       #region Constants
 
       #endregion // Constants
 
-      private readonly IServiceProvider _services;
-      private readonly IMediaLibrary _mediaLibrary;
-      private readonly IOptionsMonitor<Settings> _settings;
-      private readonly ILogger<MediaContainer> _logger;
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
-      private readonly CancellationToken _cancellationToken;
+      private readonly IServiceProvider _services = services;
+      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
+      private readonly IOptionsMonitor<Settings> _settings = settings;
+      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
+      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
-      public ThumbnailsController(ILogger<MediaContainer> logger,
-                                  IServiceProvider services,
-                                  IHostApplicationLifetime applicationLifetime,
-                                  IThumbnailsDatabase thumbnailsDatabase,
-                                  IOptionsMonitor<Settings> settings,
-                                  IMediaLibrary mediaLibrary)
-      {
-         _logger = logger;
-         _services = services;
-         _mediaLibrary = mediaLibrary;
-         _settings = settings;
-         _thumbnailsDatabase = thumbnailsDatabase;
-         _cancellationToken = applicationLifetime.ApplicationStopping;
-      }
-
-      // GET: /<controller>/{id}/{index}.jpg
-      [Route("[controller]/{id}/{label}.jpg")]
+      // GET: /api/thumbnails/{id}/{index}.jpg
+      [Route("{id}/{label}.jpg")]
       public async Task<IActionResult> Index(string id, string label)
       {
          byte[] thumbnail;
@@ -65,8 +56,8 @@ namespace MediaCurator.Controllers
          return NotFound();
       }
 
-      // GET: /<controller>/{id}/{index}.vtt
-      [Route("[controller]/{id}/{label}.vtt")]
+      // GET: /api/thumbnails/{id}/{index}.vtt
+      [Route("{id}/{label}.vtt")]
       public async Task<IActionResult> WebVTT(string id, string label)
       {
          byte[] thumbnail;
@@ -127,8 +118,8 @@ namespace MediaCurator.Controllers
          return Content(content.ToString(), "text/plain", Encoding.UTF8);
       }
 
-      // GET: /<controller>/{id}
-      [Route("[controller]/{id}")]
+      // GET: /api/thumbnails/{id}
+      [Route("{id}")]
       public async Task<IActionResult> Index(string id)
       {
          return await Index(id, "0");

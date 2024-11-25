@@ -9,7 +9,7 @@ using MediaCurator.Configuration;
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]")]
+   [Route("api/[controller]")]
    public partial class PreviewController(ILogger<MediaContainer> logger,
                                           IServiceProvider services,
                                           IOptionsMonitor<Settings> settings,
@@ -29,7 +29,7 @@ namespace MediaCurator.Controllers
 
       #endregion // Constants
 
-      // GET: /<controller>/video/{id}/{name}
+      // GET: /api/preview/video/{id}/{name}
       [HttpGet]
       [Route("video/{id}/{name}")]
       public IActionResult Video(string id, string name)
@@ -62,7 +62,7 @@ namespace MediaCurator.Controllers
          return PhysicalFile(videoFile.FullPath, "application/octet-stream", true);
       }
 
-      // GET: /<controller>/photo/{id}/{name}
+      // GET: /api/preview/photo/{id}/{name}
       [HttpGet]
       [Route("photo/{id}/{name}")]
       public IActionResult Photo(string id, string name, [FromQuery] int width = 0, [FromQuery] int height = 0)
@@ -103,7 +103,7 @@ namespace MediaCurator.Controllers
          return File(fileContents, contentType);
       }
 
-      // GET: /<controller>/video/{id}/{quality}.m3u8
+      // GET: /api/preview/video/{id}/{quality}.m3u8
       [HttpGet]
       [Route("video/{id}/{quality}.m3u8")]
       public IActionResult Stream(string id, string quality)
@@ -128,7 +128,7 @@ namespace MediaCurator.Controllers
          };
       }
 
-      // GET: /<controller>/video/{id}/{sequence}.ts
+      // GET: /api/preview/video/{id}/{sequence}.ts
       [HttpGet]
       [Route("video/{id}/{sequence}.ts")]
       public IActionResult Segment(string id, int sequence)
@@ -145,7 +145,7 @@ namespace MediaCurator.Controllers
          return File(videoFile.GenerateSegments("", sequence, _settings.CurrentValue.Streaming.Segments.Duration, 1), "application/x-mpegURL", true);
       }
 
-      // GET: /<controller>/video/{id}/{quality}/{sequence}.ts
+      // GET: /api/preview/video/{id}/{quality}/{sequence}.ts
       [HttpGet]
       [Route("video/{id}/{quality}/{sequence}.ts")]
       public IActionResult Segment(string id, string quality, int sequence)

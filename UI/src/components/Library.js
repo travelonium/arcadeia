@@ -389,7 +389,7 @@ class Library extends Component {
             toast.error("Unable to find the item that was to be updated.");
             return;
         }
-        fetch("/library" + item.fullPath, {
+        fetch("/api/library" + item.fullPath, {
             method: "PATCH",
             headers: {
                 accept: "application/json",
@@ -812,7 +812,7 @@ class Library extends Component {
             let params = new URLSearchParams();
             params.set('overwrite', this.props.ui.uploads.overwrite);
             params.set('duplicate', this.props.ui.uploads.duplicate);
-            axios.post("/library" + path + "?" + params.toString(), data, config)
+            axios.post("/api/library" + path + "?" + params.toString(), data, config)
             .then((response) => {
                 let name = extract(file.name, response, 'data', 0, 'name');
                 toast.update(extract(null, this.state.uploads.active, key, 'toast'), {
@@ -951,7 +951,7 @@ class Library extends Component {
             params.set('path', path);
             params.set('overwrite', this.props.ui.uploads.overwrite);
             params.set('duplicate', this.props.ui.uploads.duplicate);
-            fetch("/library/upload?" + params.toString())
+            fetch("/api/library/upload?" + params.toString())
             .then((response) => {
                 const reader = response.body.getReader();
                 const process = ({ done, value: chunk }) => {

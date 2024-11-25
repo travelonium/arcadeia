@@ -7,7 +7,7 @@ using MediaCurator.Configuration;
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]")]
+   [Route("api/[controller]")]
    public class SettingsController(ILogger<MediaContainer> logger,
                                    IConfiguration configuration) : Controller
    {
@@ -25,7 +25,7 @@ namespace MediaCurator.Controllers
          "Mounts",
       ];
 
-      // GET: /settings
+      // GET: /api/settings
       [HttpGet]
       [Produces("application/json")]
       public IActionResult Get()
@@ -33,7 +33,7 @@ namespace MediaCurator.Controllers
          return Ok(_configuration.ToJson(_whitelist));
       }
 
-      // GET: /settings
+      // GET: /api/settings
       [HttpPost]
       [Produces("application/json")]
       [Consumes("application/json")]

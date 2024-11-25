@@ -111,7 +111,7 @@ export class MediaContainer extends Component {
         let width = extract(0, this.state.current, 'width');
         let height = extract(0, this.state.current, 'height');
         if (!height || !width || (this.state.current.type !== "Photo")) return <div></div>;
-        let src = "/thumbnails/" + this.props.source.id + "/large.jpg";
+        let src = "/api/thumbnails/" + this.props.source.id + "/large.jpg";
         return (
             <Popover {...props} id="popover-preview" className="photo-preview" >
                 <Popover.Body>
@@ -207,10 +207,10 @@ export class MediaContainer extends Component {
         let href = source.fullPath;
         switch (type) {
             case "Photo":
-                href = "/preview/photo/" + source.id + "/" + source.name;
+                href = "/api/preview/photo/" + source.id + "/" + source.name;
                 break;
             case "Video":
-                href = "/preview/video/" + source.id + "/" + source.name;
+                href = "/api/preview/video/" + source.id + "/" + source.name;
                 break;
             default:
                 break

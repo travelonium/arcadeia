@@ -13,7 +13,7 @@ using MediaCurator.Solr;
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]")]
+   [Route("api/[controller]")]
    public class LibraryController(IServiceProvider services,
                                   IOptionsMonitor<Settings> settings,
                                   IMediaLibrary mediaLibrary,
@@ -26,13 +26,13 @@ namespace MediaCurator.Controllers
       private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
       private readonly ILogger<MediaContainer> _logger = logger;
 
-      private async Task WriteAsync(HttpResponse response, string text)
+      private static async Task WriteAsync(HttpResponse response, string text)
       {
          await response.WriteAsync(text);
          await response.Body.FlushAsync();
       }
 
-      private string RemoveEmojis(string fileName)
+      private static string RemoveEmojis(string fileName)
       {
          var result = new System.Text.StringBuilder();
 
@@ -49,7 +49,7 @@ namespace MediaCurator.Controllers
          return result.ToString();
       }
 
-      private string RemoveSpaces(string fileName)
+      private static string RemoveSpaces(string fileName)
       {
          // Normalize spaces in the file name
          fileName = Regex.Replace(fileName, @"\s+", " ");
@@ -62,7 +62,7 @@ namespace MediaCurator.Controllers
          return $"{name.Trim()}{extension.Trim()}";
       }
 
-      private string GetUniqueFileName(string path, string fileName, bool absolute = true)
+      private static string GetUniqueFileName(string path, string fileName, bool absolute = true)
       {
          fileName = RemoveSpaces(RemoveEmojis(fileName));
 
@@ -111,6 +111,7 @@ namespace MediaCurator.Controllers
          });
       }
 
+      // PATCH: /api/library/{path}
       [HttpPatch]
       [Route("{*path}")]
       [Produces("application/json")]
@@ -164,11 +165,14 @@ namespace MediaCurator.Controllers
          }
       }
 
+      // POST: /api/library/{path}
       /// <summary>
-      /// Upload a file failing if a file with the same name already exists.
+      /// Upload a file choosing whether to overwrite it or create one with an index if already exists.
       /// </summary>
-      /// <param name="files"></param>
-      /// <param name="path"></param>
+      /// <param name="files">List of files to upload.</param>
+      /// <param name="path">The directory where the files shall be uploaded to.</param>
+      /// <param name="overwrite">If true, the file shall be overwritten.</param>
+      ///  <param name="duplicate">If true, the file will be created with an index if one exists with the same name.</param>
       /// <returns></returns>
       [HttpPost]
       [Route("{*path}")]
@@ -303,15 +307,18 @@ namespace MediaCurator.Controllers
          return Ok(result);
       }
 
+      // PUT: /api/library/{path}
       [HttpPut]
       [Route("{*path}")]
       [Produces("application/json")]
-      public IActionResult Put(List<IFormFile> files, string path = "")
+      [RequestSizeLimit(10L * 1024 * 1024 * 1024)]
+      [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
+      public async Task<IActionResult> Put(List<IFormFile> files, string path = "")
       {
-         // TODO: Upload a file overwriting existing files with the same name.
-         return StatusCode(StatusCodes.Status501NotImplemented);
+         return await Post(files, path, overwrite: true, duplicate: false);
       }
 
+      // GET: /api/library/upload
       [HttpGet]
       [Route("upload")]
       public async Task Upload([FromQuery] String url, [FromQuery] string path, [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
@@ -399,8 +406,9 @@ namespace MediaCurator.Controllers
          }
       }
 
+      // GET: /api/library/clear/history
       [HttpGet]
-      [Route("history/clear")]
+      [Route("clear/history")]
       [Produces("application/json")]
       public IActionResult ClearHistory()
       {

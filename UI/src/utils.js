@@ -87,7 +87,7 @@ export function querify(dictionary, parentKey = '', query = new URLSearchParams(
 }
 
 export async function getSolrUrl() {
-    return fetch("/settings/appsettings.json", {
+    return fetch("/api/settings", {
         method: "GET",
         headers: {
             accept: "application/json",

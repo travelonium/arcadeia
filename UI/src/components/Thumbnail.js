@@ -43,7 +43,7 @@ export class Thumbnail extends Component {
 
     thumbnail(id, index) {
         if ((index < 0) || (id === null)) return "/placeholder.png";
-        return "/thumbnails/" + id + "/" + (this.props.size ? this.props.size : index) + ".jpg";
+        return "/api/thumbnails/" + id + "/" + (this.props.size ? this.props.size : index) + ".jpg";
     }
 
     animate() {

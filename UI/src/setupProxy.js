@@ -5,12 +5,9 @@ const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_H
   env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'http://localhost:31735';
 
 const context = [
+  "/api",
   "/solr",
-  "/library",
-  "/preview",
-  "/thumbnails",
-  "/settings",
-  "/signalr",
+  "/signalr"
 ];
 
 const onError = (err, req, resp, target) => {
