@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Library from './components/Library';
+import Settings from './components/Settings';
 import { setTheme } from './features/ui/slice';
 import { Layout } from './components/Layout';
 import { Route, Routes } from 'react-router';
@@ -32,6 +33,7 @@ class App extends Component {
         return (
             <Layout library={this.library}>
                 <Routes>
+                    <Route path="/settings/*" element={<Settings />} />
                     <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} />} />
                 </Routes>
             </Layout>

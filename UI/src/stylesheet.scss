@@ -153,27 +153,28 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
-.navbar-nav {
-    .toolbar {
+.toolbar {
+    .flag,
+    .icon,
+    .button {
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        text-shadow: none;
+        font-style: normal;
+        font-variant: normal;
+        font-weight: normal;
+        font-size: x-large;
+        position: relative;
+        line-height: 1;
+    }
 
-        .flag,
-        .icon {
-            -moz-osx-font-smoothing: grayscale;
-            -webkit-font-smoothing: antialiased;
-            text-shadow: none;
-            // color: lightgray;
-            font-style: normal;
-            font-variant: normal;
-            font-weight: normal;
-            font-size: x-large;
-            position: relative;
-            line-height: 1;
-
-            &:not(.set) {
-                opacity: 0.3;
-            }
+    .flag,
+    .icon {
+        &:not(.set) {
+            opacity: 0.3;
         }
     }
+
 }
 
 .media-viewer {
@@ -223,6 +224,8 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
         }
     }
 }
+
+// .settings {}
 
 .media-container {
     height: 100%;

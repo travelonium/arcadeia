@@ -1,3 +1,6 @@
+import React from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router';
+
 export function extract(fallback, obj, level, ...rest) {
     if ((obj === undefined) || (obj === null)) return fallback;
     if (rest.length === 0 && obj.hasOwnProperty(level)) return obj[level];
@@ -104,4 +107,22 @@ export async function getSolrUrl() {
     }).then(settings => {
         return extract(null, settings, "Solr", "URL");
     });
+}
+
+export function withRouter(Component) {
+
+    function ComponentWithRouterProps(props) {
+        const navigate = useNavigate();
+        const location = useLocation();
+        const params = useParams();
+        return (
+            <Component
+                {...props}
+                navigate={navigate}
+                location={location}
+                params={params}
+            />
+        );
+    }
+    return ComponentWithRouterProps;
 }
