@@ -2,16 +2,16 @@ import Nav from 'react-bootstrap/Nav';
 import Form from 'react-bootstrap/Form';
 import React, { Component } from 'react';
 import Navbar from 'react-bootstrap/Navbar';
-import { ViewDropdown } from './ViewDropdown';
-import { SortDropdown } from './SortDropdown';
-import { HistoryDropdown } from './HistoryDropdown';
+import { Button } from './toolbar/Button';
+import { ViewDropdown } from './toolbar/ViewDropdown';
+import { SortDropdown } from './toolbar/SortDropdown';
+import { HistoryDropdown } from './toolbar/HistoryDropdown';
 import { setQuery, setFavorite, setRecursive, setSort, resetSort, setPath } from '../features/search/slice';
 import { setTheme, setView, resetView } from '../features/ui/slice';
 import { extract, withRouter } from '../utils';
-import { Button } from './toolbar/Button';
 import { connect } from "react-redux";
 import { isEqual } from 'lodash';
-import { Flag } from './Flag';
+import { Flag } from './toolbar/Flag';
 import './NavMenu.css';
 
 class NavMenu extends Component {

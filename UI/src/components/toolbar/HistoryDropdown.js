@@ -1,11 +1,11 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { extract, querify } from '../utils';
+import { extract, querify } from '../../utils';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
-import { Thumbnail } from './Thumbnail';
+import { Thumbnail } from '../Thumbnail';
 import { toast } from 'react-toastify';
 import cx from 'classnames';
 

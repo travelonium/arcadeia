@@ -6,7 +6,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
 import { Thumbnail } from './Thumbnail';
-import { Flag } from './Flag';
+import { Flag } from './toolbar/Flag';
 import cx from 'classnames';
 
 export class MediaContainer extends Component {

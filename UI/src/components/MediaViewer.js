@@ -8,7 +8,7 @@ import { reset } from '../features/search/slice';
 import { useParams } from "react-router";
 import { extract, clone } from './../utils';
 import { connect } from "react-redux";
-import { Flag } from './Flag';
+import { Flag } from './toolbar/Flag';
 
 class MediaViewer extends Component {
 
