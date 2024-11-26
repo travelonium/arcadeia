@@ -3,6 +3,7 @@ import Form from 'react-bootstrap/Form';
 import React, { Component } from 'react';
 import Navbar from 'react-bootstrap/Navbar';
 import { Button } from './toolbar/Button';
+import InputGroup from 'react-bootstrap/InputGroup';
 import { ViewDropdown } from './toolbar/ViewDropdown';
 import { SortDropdown } from './toolbar/SortDropdown';
 import { HistoryDropdown } from './toolbar/HistoryDropdown';
@@ -146,7 +147,12 @@ class NavMenu extends Component {
                                 </div>
                             </Nav.Item>
                             <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" />
+                                <InputGroup>
+                                    <InputGroup.Text>
+                                        <i className="bi bi-search"></i>
+                                    </InputGroup.Text>
+                                    <Form.Control value={this.state.query} onChange={this.onChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" />
+                                </InputGroup>
                             </Nav.Item>
                         </Nav>
                     </Navbar.Collapse>

@@ -1,22 +1,24 @@
+import { toast } from 'react-toastify';
 import { Nav, Tab } from 'react-bootstrap';
-import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router';
-import { Profile, Account, Preferences } from './settings/SettingsSections.js';
+import React, { useState, useEffect, useCallback } from 'react';
+import Scanner from './settings/Scanner';
+import Mounts from './settings/Mounts';
 
-const Settings = () => {
+export default function Settings() {
     const location = useLocation();
     const navigate = useNavigate();
 
     const getActiveKey = useCallback(() => location.pathname.match(/^\/settings\/(\w+)$/)?.[1], [location.pathname]);
 
-    // state to manage active tab
+    const [settings, setSettings] = useState(null);
     const [activeKey, setActiveKey] = useState(getActiveKey);
 
     // handle redirection on mount
     useEffect(() => {
         if (location.pathname === '/settings') {
-            navigate('/settings/profile', { replace: true });
+            navigate('/settings/scanner', { replace: true });
         }
     }, [location.pathname, navigate]);
 
@@ -28,42 +30,85 @@ const Settings = () => {
         }
     }, [getActiveKey, activeKey]);
 
+    // read the settings once on mount
+    useEffect(() => {
+        read();
+    }, []);
+
+    async function read() {
+        try {
+            const response = await fetch("/api/settings", {
+                method: "GET",
+                headers: {
+                    accept: "application/json",
+                }
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message ?? error.detail);
+            }
+            const data = await response.json();
+            setSettings(data);
+            return data;
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message);
+            throw error;
+        }
+    }
+
+    async function write(updates) {
+        try {
+            const response = await fetch("/api/settings", {
+                method: "POST",
+                headers: {
+                    accept: "application/json",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updates)
+            })
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message ?? error.detail);
+            }
+            return await read();
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message);
+            throw error;
+        }
+    }
+
     // handle tab selection
-    const onSelect = (key) => {
+    function onSelect(key) {
         setActiveKey(key);
         navigate(`/settings/${key}`);
     };
 
     return (
-        <Container className="settings d-flex flex-column flex-grow-1 mb-3" fluid>
-            <Container className="title mb-3" fluid>
-                <h1>Settings</h1>
-            </Container>
+        <Container className="settings d-flex flex-column flex-grow-1 mb-3">
             <Tab.Container activeKey={activeKey} onSelect={onSelect}>
                 <Row className="wrapper flex-md-grow-1">
-                    <Col className="sidebar" sm={3}>
+                    <Col className="sidebar mb-3" sm={3}>
+                        <Container className="title mb-4" fluid>
+                            <h1>Settings</h1>
+                        </Container>
                         <Nav variant="pills" className="flex-column">
                             <Nav.Item>
-                                <Nav.Link eventKey="profile">Profile</Nav.Link>
+                                <Nav.Link eventKey="scanner"><i className="bi bi-binoculars me-3"></i>Media Scanner</Nav.Link>
                             </Nav.Item>
                             <Nav.Item>
-                                <Nav.Link eventKey="account">Account</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                                <Nav.Link eventKey="preferences">Preferences</Nav.Link>
+                                <Nav.Link eventKey="mounts"><i className="bi bi-hdd-network me-3"></i>Network Mounts</Nav.Link>
                             </Nav.Item>
                         </Nav>
                     </Col>
                     <Col className="content" sm={9}>
                         <Tab.Content>
-                            <Tab.Pane eventKey="profile">
-                                {activeKey === 'profile' && <Profile />}
+                            <Tab.Pane eventKey="scanner">
+                                {activeKey === 'scanner' && <Scanner settings={settings} write={write}/>}
                             </Tab.Pane>
-                            <Tab.Pane eventKey="account">
-                                {activeKey === 'account' && <Account />}
-                            </Tab.Pane>
-                            <Tab.Pane eventKey="preferences">
-                                {activeKey === 'preferences' && <Preferences />}
+                            <Tab.Pane eventKey="mounts">
+                                {activeKey === 'mounts' && <Mounts settings={settings} write={write}/>}
                             </Tab.Pane>
                         </Tab.Content>
                     </Col>
@@ -72,5 +117,3 @@ const Settings = () => {
         </Container>
     );
 };
-
-export default Settings;

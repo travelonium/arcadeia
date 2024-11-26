@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using MediaCurator.Configuration;
+using System.Formats.Asn1;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -11,7 +12,7 @@ namespace MediaCurator.Controllers
    public class SettingsController(ILogger<MediaContainer> logger,
                                    IConfiguration configuration) : Controller
    {
-      private readonly IConfiguration _configuration = configuration;
+      private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
       private readonly ILogger<MediaContainer> _logger = logger;
       private readonly string[] _whitelist =
       [
@@ -30,10 +31,22 @@ namespace MediaCurator.Controllers
       [Produces("application/json")]
       public IActionResult Get()
       {
-         return Ok(_configuration.ToJson(_whitelist));
+         // Manually reload the configuration to ensure that recent changes are reflected
+         _configuration.Reload();
+
+         var json = _configuration.ToJson(_whitelist);
+
+         // Add the number of logical processors as Scanner:MaximumParallelScannerTasks
+         if (json is not null)
+         {
+            var scanner = json["Scanner"];
+            if (scanner is not null) scanner["MaximumParallelScannerTasks"] = Environment.ProcessorCount;
+         }
+
+         return Ok(json);
       }
 
-      // GET: /api/settings
+      // POST: /api/settings
       [HttpPost]
       [Produces("application/json")]
       [Consumes("application/json")]
