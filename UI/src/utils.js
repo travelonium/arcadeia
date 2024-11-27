@@ -89,6 +89,31 @@ export function querify(dictionary, parentKey = '', query = new URLSearchParams(
     return query;
 }
 
+export function differenceWith(lhs, rhs) {
+    const differences = {};
+
+    for (const key in lhs) {
+        if (!(key in rhs)) {
+            differences[key] = { from: lhs[key], to: undefined };
+        } else if (typeof lhs[key] === "object" && lhs[key] !== null && typeof rhs[key] === "object" && rhs[key] !== null) {
+            const nestedDiff = differenceWith(lhs[key], rhs[key]);
+            if (Object.keys(nestedDiff).length > 0) {
+                differences[key] = nestedDiff;
+            }
+        } else if (lhs[key] !== rhs[key]) {
+            differences[key] = { from: lhs[key], to: rhs[key] };
+        }
+    }
+
+    for (const key in rhs) {
+        if (!(key in lhs)) {
+            differences[key] = { from: undefined, to: rhs[key] };
+        }
+    }
+
+    return differences;
+}
+
 export async function getSolrUrl() {
     return fetch("/api/settings", {
         method: "GET",
@@ -110,19 +135,19 @@ export async function getSolrUrl() {
 }
 
 export function withRouter(Component) {
+    return React.forwardRef((props, ref) => {
+        const params = useParams();     // gets route parameters
+        const location = useLocation(); // for navigation (replaces history.push)
+        const navigate = useNavigate(); // provides the current location object
 
-    function ComponentWithRouterProps(props) {
-        const navigate = useNavigate();
-        const location = useLocation();
-        const params = useParams();
         return (
             <Component
+                ref={ref}
                 {...props}
-                navigate={navigate}
-                location={location}
                 params={params}
+                location={location}
+                navigate={navigate}
             />
         );
-    }
-    return ComponentWithRouterProps;
+    });
 }
