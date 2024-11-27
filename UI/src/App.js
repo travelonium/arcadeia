@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
+import NavMenu from './components/NavMenu';
 import Library from './components/Library';
 import Settings from './components/Settings';
 import { setTheme } from './features/ui/slice';
-import { Layout } from './components/Layout';
 import { Route, Routes } from 'react-router';
 import { connect } from "react-redux";
 
@@ -31,12 +31,13 @@ class App extends Component {
 
     render() {
         return (
-            <Layout library={this.library}>
+            <div className="d-flex flex-column align-content-stretch h-100">
+                <NavMenu library={this.props.library} />
                 <Routes>
                     <Route path="/settings/*" element={<Settings />} />
                     <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} />} />
                 </Routes>
-            </Layout>
+            </div>
         );
     }
 }
