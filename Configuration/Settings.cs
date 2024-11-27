@@ -150,7 +150,7 @@ namespace MediaCurator.Configuration
       public bool ForceGenerateMissingThumbnails { get; set; }
 
       [Required(ErrorMessage = "The 'PeriodicScanIntervalMilliseconds' is required for scanner settings.")]
-      [Range(1, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be a positive integer.")]
+      [Range(0, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be an integer.")]
       public int PeriodicScanIntervalMilliseconds { get; set; }
 
       [Required(ErrorMessage = "The 'ParallelScannerTasks' is required for scanner settings.")]
