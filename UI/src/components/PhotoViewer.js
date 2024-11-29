@@ -36,7 +36,6 @@ export class PhotoViewer extends React.Component {
     }
 
     onViewed() {
-        // console.log(this);
     }
 
     sources(items) {

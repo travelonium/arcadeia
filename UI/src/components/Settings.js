@@ -18,7 +18,7 @@ export default function Settings() {
     // handle redirection on mount
     useEffect(() => {
         if (location.pathname === '/settings') {
-            navigate('/settings/scanner', { replace: true });
+            navigate('/settings/scanner', {replace: true});
         }
     }, [location.pathname, navigate]);
 

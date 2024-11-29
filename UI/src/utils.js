@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router';
+import { clone as cloneShallow, cloneDeep, isEqual, omit } from 'lodash';
+import { useNavigate, useNavigationType, useLocation, useParams, useSearchParams } from 'react-router';
 
 export function extract(fallback, obj, level, ...rest) {
     if ((obj === undefined) || (obj === null)) return fallback;
@@ -52,16 +53,24 @@ export function breakpoint() {
     return null;
 }
 
-export function updateBit(number, bit, value) {
+export function getBit(number, bit) {
+    return (number & (1 << bit)) ? 1 : 0;
+}
+
+export function setBit(number, bit, value) {
     return (((~(1 << bit)) & number) | ((value ? 1 : 0) << bit));
 }
 
+export function getFlag(flags, values, bit) {
+    return getBit(flags, bit) ? (getBit(values, bit) ? true : false) : null;
+}
+
+export function setFlag(flags, values, bit, value) {
+    return [setBit(flags, bit, value), setBit(values, bit, value)];
+}
+
 export function clone(object, shallow = false) {
-    if (shallow) {
-        Object.assign(Array.isArray(object) ? [] : {}, object);
-    } else {
-        return JSON.parse(JSON.stringify(object));
-    }
+    return shallow ? cloneShallow(object) : cloneDeep(object);
 }
 
 export function querify(dictionary, parentKey = '', query = new URLSearchParams()) {
@@ -89,9 +98,32 @@ export function querify(dictionary, parentKey = '', query = new URLSearchParams(
     return query;
 }
 
+/**
+ * Compares two objects excluding the supplied root keys from comparison.
+ * @param {*} value The left hand side object.
+ * @param {*} other The right hand side object.
+ * @param {*} exclusions The root keys to exclude from comparison either as arguments or an array.
+ * @returns true if objects are equal and false otherwise.
+ */
+export function isEqualExcluding(value, other) {
+    const exclusions = Array.isArray(arguments[2]) ? arguments[2] : Array.prototype.slice.call(arguments, 2);
+    return isEqual(omit(value, exclusions), omit(other, exclusions));
+}
+
+/**
+ * Returns the differences between two objects excluding the supplied root keys from comparison.
+ * @param {*} lhs The left hand side object.
+ * @param {*} rhs The right hand side object.
+ * @param {*} exclusions The root keys to exclude from comparison either as arguments or an array.
+ * @returns A dictionary with all the different keys and values.
+ */
 export function differenceWith(lhs, rhs) {
     const differences = {};
-
+    const exclusions = Array.isArray(arguments[2]) ? arguments[2] : Array.prototype.slice.call(arguments, 2);
+    if (exclusions.length) {
+        lhs = omit(lhs, exclusions);
+        rhs = omit(rhs, exclusions);
+    }
     for (const key in lhs) {
         if (!(key in rhs)) {
             differences[key] = { from: lhs[key], to: undefined };
@@ -139,6 +171,8 @@ export function withRouter(Component) {
         const params = useParams();     // gets route parameters
         const location = useLocation(); // for navigation (replaces history.push)
         const navigate = useNavigate(); // provides the current location object
+        const navigationType = useNavigationType(); // the navigation type (POP, PUSH, or REPLACE)
+        const [searchParams, setSearchParams] = useSearchParams();
 
         return (
             <Component
@@ -147,6 +181,9 @@ export function withRouter(Component) {
                 params={params}
                 location={location}
                 navigate={navigate}
+                searchParams={searchParams}
+                navigationType={navigationType}
+                setSearchParams={setSearchParams}
             />
         );
     });

@@ -5,6 +5,7 @@ import Settings from './components/Settings';
 import { setTheme } from './features/ui/slice';
 import { Route, Routes } from 'react-router';
 import { connect } from "react-redux";
+import { withRouter } from './utils';
 
 class App extends Component {
     static displayName = App.name;
@@ -17,6 +18,7 @@ class App extends Component {
     }
 
     componentDidMount() {
+        // update the mode dynamically based on the user’s system color scheme preference (light or dark)
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => this.onSelectMode(e.matches ? 'dark' : 'light'));
     }
 
@@ -48,5 +50,5 @@ const mapStateToProps = (state) => ({
     }
 });
 
-export default connect(mapStateToProps, null, null)(App);
+export default connect(mapStateToProps, null, null)(withRouter(App));
 

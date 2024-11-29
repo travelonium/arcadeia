@@ -1,14 +1,12 @@
 import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Modal from 'react-bootstrap/Modal';
+import { Flag } from './toolbar/Flag';
+import { connect } from "react-redux";
 import { VideoPlayer } from './VideoPlayer';
 import { PhotoViewer } from './PhotoViewer';
 import { EditableText } from './EditableText';
-import { reset } from '../features/search/slice';
-import { useParams } from "react-router";
-import { extract, clone } from './../utils';
-import { connect } from "react-redux";
-import { Flag } from './toolbar/Flag';
+import { extract, clone, withRouter } from './../utils';
 
 class MediaViewer extends Component {
 
@@ -21,7 +19,6 @@ class MediaViewer extends Component {
         this.state = {
             index: -1,
             sources: [],
-            origin: null,
             expanded: false,
             videoJsOptions: {
                 inactivityTimeout: 5000,
@@ -59,15 +56,8 @@ class MediaViewer extends Component {
     }
 
     onHide() {
-        if (this.state.origin) {
-            this.props.dispatch(reset(this.state.origin));
-            window.history.pushState({path: this.state.origin}, "", this.state.origin);
-        } else {
-            throw Error("No origin has been set on the MediaViewer instance.");
-        }
         this.setState({
             sources: [],
-            origin: null
         }, () => {
             if (this.props.onHide !== undefined) this.props.onHide();
         });
@@ -96,40 +86,17 @@ class MediaViewer extends Component {
         this.props.library.current.editing = editing;
     }
 
-    view(sources, index, player = true, history = false, origin = null) {
+    view(sources, index) {
         let source = sources[index];
-        if (!origin) origin = this.state.origin;
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
-        if (player) {
-            const search = origin.split('?')[1];
-            const parent = origin.match(/.*\//g)[0];
-            const path = parent + source.name + '?' + search;
-            this.setState({
-                index: index,
-                sources: sources,
-                origin: parent + '?' + search
-            }, () => {
-                if (!history) window.history.pushState({path: path}, "", path);
-                if (this.props.onShow !== undefined) {
-                    this.props.onShow();
-                }
-            });
-        } else {
-            switch (source.type) {
-                case "Photo":
-                    // The old approach is no longer working in Firefox as it tries to download the file. Can be used later for a download button.
-                    // window.open("/api/preview/photo/" + source.id + "/" + source.name, "_blank");
-                    window.open(source.fullPath, "_blank");
-                    break;
-                case "Video":
-                    // The old approach is no longer working in Firefox as it tries to download the file. Can be used later for a download button.
-                    // window.open("/api/preview/video/" + source.id + "/" + source.name, "_blank");
-                    window.open(source.fullPath, "_blank");
-                    break;
-                default:
-                    break;
+        this.setState({
+            index: index,
+            sources: sources,
+        }, () => {
+            if (this.props.onShow !== undefined) {
+                this.props.onShow();
             }
-        }
+        });
     }
 
     hide() {
@@ -221,11 +188,10 @@ class MediaViewer extends Component {
 
 const mapStateToProps = (state) => ({
     search: {
-        path: state.search.path,
         query: state.search.query,
     }
 });
 
-export default connect(mapStateToProps, null, null, { forwardRef: true })(React.forwardRef((props, ref) => (
-    <MediaViewer ref={ref} {...props} match={{ params: useParams() }} />
-)));
+export default connect(mapStateToProps, null, null, { forwardRef: true })(
+    withRouter(MediaViewer)
+);

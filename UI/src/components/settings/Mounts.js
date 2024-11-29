@@ -1,5 +1,5 @@
 import { Container, Row, Col } from 'react-bootstrap';
-import React, { useState, useEffect, useCallback } from 'react';
+// import React, { useState, useEffect, useCallback } from 'react';
 
 export default function Mounts({ settings, write }) {
 

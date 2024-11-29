@@ -26,7 +26,6 @@ export class MediaContainer extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        // console.log(prevProps);
     }
 
     set(source, callback = undefined) {
