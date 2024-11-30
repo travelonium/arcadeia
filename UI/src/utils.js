@@ -98,6 +98,72 @@ export function querify(dictionary, parentKey = '', query = new URLSearchParams(
     return query;
 }
 
+export function shorten(input, length) {
+    if (input.length <= length) return input;
+
+    const ellipsis = "...";
+    const isURL = /^(https?:\/\/)/.test(input);
+
+    let protocol = "";
+    let domain = "";
+    let path = "";
+    let fileName = input;
+
+    if (isURL) {
+        // handle URLs
+        const matches = input.match(/^(https?:\/\/)([^/]+)(\/?.*?)($|\?)/);
+        if (matches) {
+            protocol = matches[1]; // e.g., "http://"
+            domain = matches[2];   // e.g., "example.com"
+            path = matches[3];     // e.g., "/path/to/resource"
+            const parts = path.split("/");
+            fileName = parts.pop(); // extract file name or last path segment
+            path = parts.join("/") + (parts.length ? "/" : "");
+        }
+    } else if (input.includes("/")) {
+        // handle file paths
+        const parts = input.split("/");
+        fileName = parts.pop();
+        path = parts.join("/") + "/";
+    }
+
+    // calculate the base length (protocol + domain + ellipsis if there's a path + file name)
+    const baseLength = protocol.length + domain.length + (path ? ellipsis.length : 0) + fileName.length;
+
+    if (baseLength > length) {
+        // if the file name alone exceeds the length, truncate the file name
+        const extIndex = fileName.lastIndexOf(".");
+        const ext = extIndex !== -1 ? fileName.substring(extIndex) : "";
+        const namePart = fileName.substring(0, fileName.length - ext.length);
+        const truncatedName = namePart.substring(0, length - ellipsis.length - ext.length - 1) + "…" + ext;
+        return protocol + domain + truncatedName;
+    }
+
+    // calculate the remaining length for the path
+    const remainingLength = length - baseLength;
+    let shortenedPath = path;
+
+    if (path.length > remainingLength) {
+        // ensure truncation doesn't remove trailing slash after directories
+        const parts = path.split("/");
+        let totalLength = 0;
+        shortenedPath = "";
+
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const partWithSlash = part + "/";
+            if (totalLength + partWithSlash.length > remainingLength) {
+                shortenedPath += ellipsis;
+                break;
+            }
+            shortenedPath += partWithSlash;
+            totalLength += partWithSlash.length;
+        }
+    }
+
+    return protocol + domain + shortenedPath + fileName;
+}
+
 /**
  * Compares two objects excluding the supplied root keys from comparison.
  * @param {*} value The left hand side object.

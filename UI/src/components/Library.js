@@ -9,9 +9,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
-import { clone, extract, size, querify, withRouter, isEqualExcluding, getFlag } from './../utils';
-import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
+import { clone, extract, size, querify, shorten, withRouter, isEqualExcluding, getFlag } from './../utils';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { UploadZone } from './UploadZone';
@@ -42,8 +40,6 @@ class Library extends Component {
         this.storeScrollPositionTimeout = null;
         this.uploadTimeout = null;
         this.signalRConnection = null;
-        this.scannerProgressToast = null;
-        this.lastScannerProgressToastShowed = 0;
         this.state = {
             loading: false,
             status: "",
@@ -68,23 +64,6 @@ class Library extends Component {
                         ratio: 0.1,
                         hasTooltip: true,
                     },
-                }
-            },
-            scanner: {
-                scan: {
-                    uuid: null,
-                    title: null,
-                    path: null,
-                    item: null,
-                    index: null,
-                    total: null
-                },
-                update: {
-                    uuid: null,
-                    title: null,
-                    item: null,
-                    index: null,
-                    total: null
                 }
             }
         };
@@ -126,8 +105,6 @@ class Library extends Component {
     componentDidMount() {
         // install the event handler for keydown keyboard events
         document.addEventListener('keydown', this.onKeyDown.bind(this));
-        // create the signalR connection and setup notifications
-        this.setupSignalRConnection(this.setupNotifications.bind(this));
         // perform a refresh on load
         this.refresh((succeeded) => {
             const name = this.name;
@@ -165,7 +142,7 @@ class Library extends Component {
 
         // check if significant differences exist in props or state, excluding specific keys
         const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef');
-        const hasStateChanged = !isEqualExcluding(currentState, nextState, 'uploads', 'scanner');
+        const hasStateChanged = !isEqualExcluding(currentState, nextState, 'uploads');
 
         const shouldUpdate = (!didMediaViewerShowOrHide || wasBrowserBackOrForward) && !didScrollPositionChange && (havePropsChanged || hasStateChanged);
 
@@ -202,106 +179,6 @@ class Library extends Component {
         }
     }
 
-    setupNotifications(connection) {
-        connection.on("Refresh", (path) => {
-            this.refresh();
-        });
-        connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
-            const value = {
-                uuid: uuid,
-                title: title,
-                path: path,
-                item: item,
-                index: index,
-                total: total
-            };
-            this.setState(prevState => {
-                return {
-                    ...prevState,
-                    scanner: update(prevState.scanner, {
-                        $merge: {
-                            scan: update(prevState.scanner.scan, {
-                                $merge: value
-                            })
-                        }
-                    })
-                }
-            }, () => {
-                this.showScannerProgressToast(value);
-            });
-        });
-        connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
-            const value = {
-                uuid: uuid,
-                title: title,
-                item: item,
-                index: index,
-                total: total
-            };
-            this.setState(prevState => {
-                return {
-                    ...prevState,
-                    scanner: update(prevState.scanner, {
-                        $merge: {
-                            update: update(prevState.scanner.update, {
-                                $merge: value
-                            })
-                        }
-                    })
-                }
-            }, () => {
-                this.showScannerProgressToast(value);
-            });
-        });
-    }
-
-    setupSignalRConnection(callback = undefined) {
-        const connection = new HubConnectionBuilder()
-                               .withUrl("/signalr", { transport: HttpTransportType.WebSockets })
-                               .withAutomaticReconnect()
-                               .withHubProtocol(new MessagePackHubProtocol())
-                               .configureLogging(LogLevel.Information)
-                               .build();
-        connection.start()
-        .then(() => {
-            this.signalRConnection = connection;
-            if (callback !== undefined) {
-                callback(connection);
-            }
-        })
-        .catch(error => console.error("Error while starting a SignalR connection: ", error));
-    }
-
-    showScannerProgressToast(state) {
-        const { index, total, title, item } = state || {};
-        if ([index, total, title, item].some(value => value == null)) return;
-        const interval = 10; // the throttling interval in ms
-        const now = Date.now();
-        if ((now - this.lastScannerProgressToastShowed < interval) && (index > 0) && ((index + 1) < total)) return;
-        const progress = (index + 1) / total;
-        const render = this.renderScannerProgressToast(`${title}...`, item, 100);
-        if (!this.scannerProgressToast) {
-            this.scannerProgressToast = toast.info(render,
-            {
-                theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
-                progress: progress,
-                icon: <div className="Toastify__spinner"></div>,
-                type: (progress === 1) ? 'success' : 'info',
-            });
-        } else {
-            toast.update(this.scannerProgressToast, {
-                render: render,
-                progress: progress,
-                type: (progress === 1) ? 'success' : 'info',
-            });
-        }
-        if (progress === 1) {
-            if (toast.isActive(null)) toast.dismiss(this.scannerProgressToast);
-            this.scannerProgressToast = null;
-        }
-        this.lastScannerProgressToastShowed = now;
-    }
-
     getPath(pathname) {
         try {
             const decodedPath = decodeURI(pathname || "");
@@ -330,72 +207,6 @@ class Library extends Component {
         const flags = parseInt(this.props.searchParams.get("flags") ?? 0);
         const values = parseInt(this.props.searchParams.get("values") ?? 0);
         return getFlag(flags, values, bit) ?? false;
-    }
-
-    shorten(input, length) {
-        if (input.length <= length) return input;
-
-        const ellipsis = "...";
-        const isURL = /^(https?:\/\/)/.test(input);
-
-        let protocol = "";
-        let domain = "";
-        let path = "";
-        let fileName = input;
-
-        if (isURL) {
-            // handle URLs
-            const matches = input.match(/^(https?:\/\/)([^/]+)(\/?.*?)($|\?)/);
-            if (matches) {
-                protocol = matches[1]; // e.g., "http://"
-                domain = matches[2];   // e.g., "example.com"
-                path = matches[3];     // e.g., "/path/to/resource"
-                const parts = path.split("/");
-                fileName = parts.pop(); // extract file name or last path segment
-                path = parts.join("/") + (parts.length ? "/" : "");
-            }
-        } else if (input.includes("/")) {
-            // handle file paths
-            const parts = input.split("/");
-            fileName = parts.pop();
-            path = parts.join("/") + "/";
-        }
-
-        // calculate the base length (protocol + domain + ellipsis if there's a path + file name)
-        const baseLength = protocol.length + domain.length + (path ? ellipsis.length : 0) + fileName.length;
-
-        if (baseLength > length) {
-            // if the file name alone exceeds the length, truncate the file name
-            const extIndex = fileName.lastIndexOf(".");
-            const ext = extIndex !== -1 ? fileName.substring(extIndex) : "";
-            const namePart = fileName.substring(0, fileName.length - ext.length);
-            const truncatedName = namePart.substring(0, length - ellipsis.length - ext.length - 1) + "…" + ext;
-            return protocol + domain + truncatedName;
-        }
-
-        // calculate the remaining length for the path
-        const remainingLength = length - baseLength;
-        let shortenedPath = path;
-
-        if (path.length > remainingLength) {
-            // ensure truncation doesn't remove trailing slash after directories
-            const parts = path.split("/");
-            let totalLength = 0;
-            shortenedPath = "";
-
-            for (let i = 0; i < parts.length; i++) {
-                const part = parts[i];
-                const partWithSlash = part + "/";
-                if (totalLength + partWithSlash.length > remainingLength) {
-                    shortenedPath += ellipsis;
-                    break;
-                }
-                shortenedPath += partWithSlash;
-                totalLength += partWithSlash.length;
-            }
-        }
-
-        return protocol + domain + shortenedPath + fileName;
     }
 
     set(index, source, refresh = true, callback = undefined) {
@@ -1396,18 +1207,7 @@ class Library extends Component {
                 <div>
                     <strong>{title}</strong>
                 </div>
-                <small>{this.shorten(subtitle, 100)}</small>
-            </>
-        );
-    }
-
-    renderScannerProgressToast(title, subtitle) {
-        return (
-            <>
-                <div className="mb-1">
-                    <strong>{title}</strong>
-                </div>
-                <small className="scanner-progress-subtitle">{this.shorten(subtitle, 100)}</small>
+                <small>{shorten(subtitle, 100)}</small>
             </>
         );
     }
