@@ -136,7 +136,7 @@ namespace MediaCurator.Configuration
    public class ScannerSettings
    {
       [Required(ErrorMessage = "The 'WatchedFolders' list is required for scanner settings.")]
-      public required List<string> WatchedFolders { get; set; }
+      public required List<string> WatchedFolders { get; set; } = [];
 
       [Required(ErrorMessage = "The 'Folders' list is required for scanner settings.")]
       public required List<string> Folders { get; set; }
@@ -150,8 +150,8 @@ namespace MediaCurator.Configuration
       public bool ForceGenerateMissingThumbnails { get; set; }
 
       [Required(ErrorMessage = "The 'PeriodicScanIntervalMilliseconds' is required for scanner settings.")]
-      [Range(0, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be an integer.")]
-      public int PeriodicScanIntervalMilliseconds { get; set; }
+      [Range(0, uint.MaxValue, ErrorMessage = "TimeoutMilliseconds must be an integer.")]
+      public uint PeriodicScanIntervalMilliseconds { get; set; }
 
       [Required(ErrorMessage = "The 'ParallelScannerTasks' is required for scanner settings.")]
       [Range(1, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be a positive integer.")]

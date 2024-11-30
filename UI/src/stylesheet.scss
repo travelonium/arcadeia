@@ -237,7 +237,19 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
-// .settings {}
+.settings {
+
+    .periodic-scan-interval {
+
+        .badge {
+            font-size: $btn-font-size-sm;
+            font-weight: $btn-font-weight;
+            line-height: $btn-line-height;
+            padding: $btn-padding-y-sm $btn-padding-x-sm;
+            border: $btn-border-width solid transparent;
+        }
+    }
+}
 
 .media-container {
     height: 100%;

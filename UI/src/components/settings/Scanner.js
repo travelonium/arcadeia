@@ -1,17 +1,21 @@
+import Form from 'react-bootstrap/Form';
+import Badge from 'react-bootstrap/Badge';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import ToggleButton from 'react-bootstrap/ToggleButton';
-import React, { useState, useEffect } from 'react';
 import ToggleButtonGroup from 'react-bootstrap/ToggleButtonGroup';
 
 export default function Scanner({ settings, write }) {
     const [startupScan, setStartupScan] = useState(null);
     const [startupUpdate, setStartupUpdate] = useState(null);
     const [forceGenerateMissingThumbnails, setForceGenerateMissingThumbnails] = useState(null);
+    const [periodicScanIntervalMilliseconds, setPeriodicScanIntervalMilliseconds] = useState(null);
 
     useEffect(() => {
         setStartupScan(settings?.Scanner?.StartupScan);
         setStartupUpdate(settings?.Scanner?.StartupUpdate);
         setForceGenerateMissingThumbnails(settings?.Scanner?.ForceGenerateMissingThumbnails);
+        setPeriodicScanIntervalMilliseconds(settings?.Scanner?.PeriodicScanIntervalMilliseconds);
     }, [settings]);
 
     function onChange(setting, value) {
@@ -31,6 +35,12 @@ export default function Scanner({ settings, write }) {
                 write({Scanner: {ForceGenerateMissingThumbnails: value}});
                 break;
 
+            case 'PeriodicScanIntervalMilliseconds':
+                console.log(value * 60 * 60 * 1000)
+                setPeriodicScanIntervalMilliseconds(value * 60 * 60 * 1000);
+                write({Scanner: {PeriodicScanIntervalMilliseconds: value * 60 * 60 * 1000}});
+                break;
+
             default:
                 break;
         }
@@ -46,33 +56,59 @@ export default function Scanner({ settings, write }) {
             <Row>
                 <Col>
                     <Container>
-                        <Row className="align-items-center mb-3">
+                        <Row className="startup-scan align-items-center mb-3">
                             <Col>Startup Scan</Col>
                             <Col xs="auto">
                                 <ToggleButtonGroup name="startup-scan" value={startupScan ? 1 : 0} onChange={(value) => onChange('StartupScan', value > 0)}>
-                                    <ToggleButton type="radio" size="sm" id="startup-scan-off" variant="outline-info" name="radio" disabled={startupScan == null} value={0}>OFF</ToggleButton>
+                                    <ToggleButton type="radio" size="sm" id="startup-scan-off" variant="outline-secondary" name="radio" disabled={startupScan == null} value={0}>OFF</ToggleButton>
                                     <ToggleButton type="radio" size="sm" id="startup-scan-on" variant="outline-info" name="radio" disabled={startupScan == null} value={1}>ON</ToggleButton>
                                 </ToggleButtonGroup>
                             </Col>
                         </Row>
 
-                        <Row className="align-items-center mb-3">
+                        <Row className="startup-update align-items-center mb-3">
                             <Col>Startup Update</Col>
                             <Col xs="auto">
                                 <ToggleButtonGroup name="startup-update" value={startupUpdate ? 1 : 0} onChange={(value) => onChange('StartupUpdate', value > 0)}>
-                                    <ToggleButton type="radio" size="sm" id="startup-update-off" variant="outline-info" name="radio" value={0} disabled={startupScan == null}>OFF</ToggleButton>
+                                    <ToggleButton type="radio" size="sm" id="startup-update-off" variant="outline-secondary" name="radio" value={0} disabled={startupScan == null}>OFF</ToggleButton>
                                     <ToggleButton type="radio" size="sm" id="startup-update-on" variant="outline-info" name="radio" value={1} disabled={startupScan == null}>ON</ToggleButton>
                                 </ToggleButtonGroup>
                             </Col>
                         </Row>
 
-                        <Row className="align-items-center">
+                        <Row className="force-generate-missing-thumbnails align-items-center mb-3">
                             <Col>Force Generate Missing Thumbnails</Col>
                             <Col xs="auto">
                                 <ToggleButtonGroup name="force-generate-missing-thumbnails" value={forceGenerateMissingThumbnails ? 1 : 0} onChange={(value) => onChange('ForceGenerateMissingThumbnails', value > 0)}>
-                                    <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-off" variant="outline-info" name="radio" disabled={forceGenerateMissingThumbnails == null} value={0}>OFF</ToggleButton>
+                                    <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-off" variant="outline-secondary" name="radio" disabled={forceGenerateMissingThumbnails == null} value={0}>OFF</ToggleButton>
                                     <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-on" variant="outline-info" name="radio" disabled={forceGenerateMissingThumbnails == null} value={1}>ON</ToggleButton>
                                 </ToggleButtonGroup>
+                            </Col>
+                        </Row>
+
+                        <Row className="periodic-scan-interval align-items-center mb-3">
+                            <Col>Periodic Scan Interval</Col>
+                            <Col className="d-flex" xs="auto">
+                                <Badge bg={periodicScanIntervalMilliseconds > 0 ? "info" : "secondary"}>
+                                {
+                                    periodicScanIntervalMilliseconds > 0 ?
+                                    <>
+                                        <span className="periodic-scan-interval-value">{periodicScanIntervalMilliseconds != null ? Math.floor(periodicScanIntervalMilliseconds / (1000 * 60 * 60)) : 0}</span>
+                                        <span className="periodic-scan-interval-unit ms-1">{periodicScanIntervalMilliseconds > 60 * 60 * 1000 ? "HOURS" : "HOUR"}</span>
+                                    </> :
+                                    <span className="periodic-scan-interval-value">OFF</span>
+                                }
+                                </Badge>
+                            </Col>
+                            <Col className="d-flex mt-3 mt-sm-0"  xs={12} sm="auto">
+                                <Form.Range min={0} max={168} step={1}
+                                            name="periodic-scan-interval"
+                                            disabled={periodicScanIntervalMilliseconds == null}
+                                            value={periodicScanIntervalMilliseconds != null ? Math.floor(periodicScanIntervalMilliseconds / (1000 * 60 * 60)) : 0}
+                                            onChange={(event) => setPeriodicScanIntervalMilliseconds(event.target.value * 60 * 60 * 1000)}
+                                            onMouseUp={(event) => onChange('PeriodicScanIntervalMilliseconds', event.target.value)}
+                                            onTouchEnd={(event) => onChange('PeriodicScanIntervalMilliseconds', event.target.value)}
+                                            onKeyUp={(event) => onChange('PeriodicScanIntervalMilliseconds', event.target.value)}/>
                             </Col>
                         </Row>
 
