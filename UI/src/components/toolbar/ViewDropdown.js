@@ -47,13 +47,14 @@ export class ViewDropdown extends Component {
     }
 
     render() {
-        let icon = (this.props.value === "card") ? "bi-person-vcard" : "bi-card-image";
+        const disabled = this.props.disabled ?? false;
+        const icon = (this.props.value === "card") ? "bi-person-vcard" : "bi-card-image";
         return (
             <Dropdown className={cx("sort-dropdown d-inline", this.props.className, this.props.overridden ? "overridden" : "")} autoClose="outside" onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)}>
                 <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                     (this.props.tooltip && !this.state.open) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
                 }>
-                    <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary">
+                    <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" disabled={disabled}>
                         <i className={cx("icon bi set", icon, this.props.name)}></i>
                     </Dropdown.Toggle>
                 </OverlayTrigger>

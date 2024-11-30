@@ -235,12 +235,13 @@ export class HistoryDropdown extends Component {
     }
 
     render() {
+        const disabled = this.props.disabled ?? false;
         return (
             <Dropdown className={cx("history-dropdown d-inline", this.props.className)} autoClose="outside" show={this.state.open} onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)} align={{ md: "end" }}>
                 <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                     (this.props.tooltip && !this.state.open) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
                 }>
-                    <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary">
+                    <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" disabled={disabled}>
                         <i className={cx("icon bi set bi-clock-history", this.props.name)}></i>
                     </Dropdown.Toggle>
                 </OverlayTrigger>

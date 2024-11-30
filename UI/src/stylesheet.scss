@@ -173,8 +173,20 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
         &:not(.set) {
             opacity: 0.3;
         }
+
+        &.disabled {
+            color: $btn-link-disabled-color;
+            opacity: $btn-disabled-opacity;
+        }
     }
 
+    :disabled {
+        .flag,
+        .icon {
+            opacity: $btn-disabled-opacity;
+            color: $btn-link-disabled-color;
+        }
+    }
 }
 
 .media-viewer {

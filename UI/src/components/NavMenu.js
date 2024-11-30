@@ -196,6 +196,7 @@ class NavMenu extends Component {
         const view = this.props.ui.view[path] ?? this.props.ui.view.default;
         const sort = this.props.search.sort[path] ?? this.props.search.sort;
         const settings = encodeURI("/settings" + this.props.location.search);
+        const disabled = this.props.location.pathname?.startsWith('/settings') ?? false;
         return (
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"} className="mb-3 p-2">
@@ -212,11 +213,11 @@ class NavMenu extends Component {
                         <Nav className={"toolbar flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2")}>
                             <Nav.Item>
                                 <div className="d-flex align-items-center px-2">
-                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} />
-                                    <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} />
-                                    <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} />
-                                    <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
-                                    <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
+                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
+                                    <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
+                                    <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
+                                    <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} disabled={disabled} />
+                                    <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} disabled={disabled} />
                                     <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
                                     <Button className="me-1" name="settings" icon="bi-gear" tooltip="Settings" onClick={() => this.props.navigate(settings)} />
                                 </div>
@@ -226,7 +227,7 @@ class NavMenu extends Component {
                                     <InputGroup.Text>
                                         <i className="bi bi-search"></i>
                                     </InputGroup.Text>
-                                    <Form.Control value={this.state.query} onChange={this.onSearchChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" />
+                                    <Form.Control value={this.state.query} onChange={this.onSearchChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" disabled={disabled} />
                                 </InputGroup>
                             </Nav.Item>
                         </Nav>
