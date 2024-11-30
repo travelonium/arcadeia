@@ -156,7 +156,8 @@ class NavMenu extends Component {
     onHistorySelect(source) {
         let fullPath = extract(null, source, "fullPath");
         if (fullPath) {
-            this.props.navigate(fullPath);
+            const url = encodeURI(fullPath + this.props.location.search);
+            this.props.navigate(url);
         }
     }
 
@@ -178,7 +179,8 @@ class NavMenu extends Component {
     onBrandClick(event) {
         event.preventDefault();
         event.stopPropagation();
-        this.props.navigate('/');
+        const url = encodeURI("/" + this.props.location.search);
+        this.props.navigate(url);
     }
 
     toggleNavbar() {
@@ -189,10 +191,11 @@ class NavMenu extends Component {
 
     render() {
         const path = this.state.query ? "search" : this.path;
+        const viewOverridden = (path in this.props.ui.view);
+        const sortOverridden = (path in this.props.search.sort);
         const view = this.props.ui.view[path] ?? this.props.ui.view.default;
         const sort = this.props.search.sort[path] ?? this.props.search.sort;
-        const sortOverridden = (path in this.props.search.sort);
-        const viewOverridden = (path in this.props.ui.view);
+        const settings = encodeURI("/settings" + this.props.location.search);
         return (
             <header>
                 <Navbar collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"} className="mb-3 p-2">
@@ -215,7 +218,7 @@ class NavMenu extends Component {
                                     <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                                     <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} />
                                     <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
-                                    <Button className="me-1" name="settings" icon="bi-gear" tooltip="Settings" onClick={() => this.props.navigate('/settings')} />
+                                    <Button className="me-1" name="settings" icon="bi-gear" tooltip="Settings" onClick={() => this.props.navigate(settings)} />
                                 </div>
                             </Nav.Item>
                             <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>

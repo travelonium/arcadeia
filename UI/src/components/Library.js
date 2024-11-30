@@ -995,8 +995,8 @@ class Library extends Component {
         this.viewing = false;
         const path = encodeURI(this.props.location?.state?.path || this.path);
         const search = this.props.location?.state?.search || this.props.location.search;
-        const target = path + search;
-        this.props.navigate(target);
+        const url = path + search;
+        this.props.navigate(url);
         this.reload(extract(null, this.state.items, this.current, 'id'));
     }
 

@@ -18,7 +18,8 @@ export default function Settings() {
     // handle redirection on mount
     useEffect(() => {
         if (location.pathname === '/settings') {
-            navigate('/settings/scanner', {replace: true});
+            const scanner = encodeURI("/settings/scanner" + location.search);
+            navigate(scanner, {replace: true});
         }
     }, [location.pathname, navigate]);
 
@@ -82,7 +83,8 @@ export default function Settings() {
     // handle tab selection
     function onSelect(key) {
         setActiveKey(key);
-        navigate(`/settings/${key}`);
+        const url = encodeURI(`/settings/${key}` + location.search);
+        navigate(url);
     };
 
     return (
