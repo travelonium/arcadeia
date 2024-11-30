@@ -522,7 +522,7 @@ namespace MediaCurator
             // Exclude all subtitle streams
             $"-map -0:s",
             // Set video codec to libx264
-            $"-c:v h264_videotoolbox",
+            $"-c:v libx264",
             // Set audio codec to AAC
             $"-c:a aac",
             // Segment duration in seconds
