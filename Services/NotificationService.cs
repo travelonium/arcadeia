@@ -1,5 +1,6 @@
 using MediaCurator.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using System.Threading.Tasks;
 
 namespace MediaCurator.Services
 {
@@ -19,7 +20,7 @@ namespace MediaCurator.Services
 
         public void ShowUpdateProgress(string uuid, string title, string item, int index, int total)
         {
-            ShowUpdateProgressAsync(uuid, title, item, index, total).Wait();
+            Task.Run(() => ShowUpdateProgressAsync(uuid, title, item, index, total));
         }
 
         public async Task ShowScanProgressAsync(string uuid, string title, string path, string item, int index, int total)
@@ -29,7 +30,7 @@ namespace MediaCurator.Services
 
         public void ShowScanProgress(string uuid, string title, string path, string item, int index, int total)
         {
-            ShowScanProgressAsync(uuid, title, path, item, index, total).Wait();
+            Task.Run(() => ShowScanProgressAsync(uuid, title, path, item, index, total));
         }
 
         public async Task RefreshAsync(string path)
@@ -39,7 +40,7 @@ namespace MediaCurator.Services
 
         public void Refresh(string path)
         {
-            RefreshAsync(path).Wait();
+            Task.Run(() => RefreshAsync(path));
         }
     }
 }
