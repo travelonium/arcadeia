@@ -7,45 +7,46 @@ using SolrNet;
 
 namespace MediaCurator.Services
 {
-   public class ScannerService(ILogger<ScannerService> logger,
-                               IServiceProvider services,
-                               IOptions<ScannerSettings> settings,
-                               IBackgroundTaskQueue taskQueue,
-                               IHostApplicationLifetime applicationLifetime,
+   public class ScannerService(IServiceProvider services,
                                IMediaLibrary mediaLibrary,
-                               NotificationService notificationService) : IHostedService
+                               ILogger<ScannerService> logger,
+                               IBackgroundTaskQueue taskQueue,
+                               NotificationService notificationService,
+                               IOptionsMonitor<ScannerSettings> settings,
+                               IHostApplicationLifetime applicationLifetime) : IScannerService
    {
-      private readonly IServiceProvider _services = services;
-
-      private readonly ScannerSettings _settings = settings.Value;
-
-      private readonly ILogger<ScannerService> _logger = logger;
-
-      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
-
-      private readonly NotificationService _notificationService = notificationService;
-
-      private readonly Dictionary<string, FileSystemWatcher> _watchers = [];
-
-      private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-
-      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
-
       private Timer? _periodicScanTimer;
+      private static Task? _backgroundTaskProcessor;
+      private readonly SemaphoreSlim _semaphore = new(1, 1);
+      private readonly IServiceProvider _services = services;
+      private readonly ILogger<ScannerService> _logger = logger;
+      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
+      private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+      private CancellationTokenSource _cancellationTokenSource = new();
+      private readonly Dictionary<string, FileSystemWatcher> _watchers = [];
+      private readonly IOptionsMonitor<ScannerSettings> _settings = settings;
+      private readonly NotificationService _notificationService = notificationService;
+      private readonly IHostApplicationLifetime _applicationLifetime = applicationLifetime;
 
       /// <summary>
       /// The lists of folders to be scanned for changes that are mounted or exist.
       /// </summary>
-      public List<string> AvailableFolders => _settings.Folders.Where(Directory.Exists).ToList();
+      public List<string> AvailableFolders => _settings.CurrentValue.Folders.Where(Directory.Exists).ToList();
 
       /// <summary>
       /// The lists of folders to be watched for changes that are mounted or exist.
       /// </summary>
-      public List<string> AvailableWatchedFolders => _settings.WatchedFolders.Where(Directory.Exists).ToList();
+      public List<string> AvailableWatchedFolders => _settings.CurrentValue.WatchedFolders.Where(Directory.Exists).ToList();
+
+      public List<FileSystemMount> Mounts => throw new NotImplementedException();
 
       public Task StartAsync(CancellationToken cancellationToken)
       {
-         foreach (string folder in _settings.WatchedFolders)
+         _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_applicationLifetime.ApplicationStopping, cancellationToken);
+
+         _logger.LogInformation("Starting Scanner Service...");
+
+         foreach (string folder in _settings.CurrentValue.WatchedFolders)
          {
             if (!Directory.Exists(folder))
             {
@@ -108,23 +109,23 @@ namespace MediaCurator.Services
          }
 
          // Start the startup scanning task if necessary.
-         if (_settings.StartupScan)
+         if (_settings.CurrentValue.StartupScan)
          {
             _logger.LogInformation("Starting Startup Scanning...");
 
             foreach (var folder in AvailableFolders.Concat(AvailableWatchedFolders).ToList())
             {
                // Queue the folder startup folder scan.
-               _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
+               _taskQueue.Queue(folder, cancellationToken =>
                {
                   string uuid = System.Guid.NewGuid().ToString();
-                  return Task.Run(() => ScanAsync(uuid, folder, "Startup", _cancellationToken), cancellationToken);
+                  return Task.Run(() => ScanAsync(uuid, folder, "Startup", _cancellationTokenSource.Token), _cancellationTokenSource.Token);
                });
             }
          }
 
          // Schedule the periodic scanning task if necessary.
-         if (_settings.PeriodicScanIntervalMilliseconds > 0)
+         if (_settings.CurrentValue.PeriodicScanIntervalMilliseconds > 0)
          {
             _logger.LogInformation("Configuring Periodic Scanning...");
 
@@ -133,35 +134,56 @@ namespace MediaCurator.Services
                foreach (var folder in AvailableFolders)
                {
                   // Queue the folder periodic scan.
-                  _taskQueue.QueueBackgroundTask(folder, cancellationToken =>
+                  _taskQueue.Queue(folder, cancellationToken =>
                   {
                      string uuid = System.Guid.NewGuid().ToString();
 
-                     return Task.Run(() => ScanAsync(uuid, folder, "Periodic", _cancellationToken), cancellationToken);
+                     return Task.Run(() => ScanAsync(uuid, folder, "Periodic", _cancellationTokenSource.Token), _cancellationTokenSource.Token);
                   });
                }
-            }, null, _settings.PeriodicScanIntervalMilliseconds, _settings.PeriodicScanIntervalMilliseconds);
+            }, null, _settings.CurrentValue.PeriodicScanIntervalMilliseconds, _settings.CurrentValue.PeriodicScanIntervalMilliseconds);
          }
 
          // Start the startup update task if necessary.
-         if (_settings.StartupUpdate)
+         if (_settings.CurrentValue.StartupUpdate)
          {
             // Queue the startup update task.
-            _taskQueue.QueueBackgroundTask("Startup Update", cancellationToken =>
+            _taskQueue.Queue("Startup Update", cancellationToken =>
             {
                string uuid = System.Guid.NewGuid().ToString();
-               return Task.Run(() => UpdateAsync(uuid, _cancellationToken), cancellationToken);
+
+               return Task.Run(() => UpdateAsync(uuid, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
             });
 
             _logger.LogInformation("Startup Update Queued.");
          }
 
          // Start the background task processor.
-         Task.Run(() => BackgroundTaskProcessorAsync(_cancellationToken), cancellationToken);
+         _backgroundTaskProcessor = Task.Run(async () => await BackgroundTaskProcessorAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
 
          _logger.LogInformation("Scanner Service Started.");
 
          return Task.CompletedTask;
+      }
+
+      public async Task StopAsync(CancellationToken cancellationToken)
+      {
+         _logger.LogInformation("Stopping Scanner Service...");
+
+         _cancellationTokenSource.Cancel();
+
+         if (_backgroundTaskProcessor == null)
+         {
+            throw new Exception("Background Task Processor Not Initialized.");
+         }
+
+         await _backgroundTaskProcessor.WaitAsync(cancellationToken);
+
+         _watchers.Clear();
+         _taskQueue.Clear();
+         _periodicScanTimer?.Dispose();
+
+         _logger.LogInformation("Scanner Service Stopped.");
       }
 
       private async Task BackgroundTaskProcessorAsync(CancellationToken cancellationToken)
@@ -170,25 +192,32 @@ namespace MediaCurator.Services
 
          while (!cancellationToken.IsCancellationRequested)
          {
-            var task = await _taskQueue.DequeueAsync(cancellationToken);
-
             try
             {
-               await task(cancellationToken);
+               var task = await _taskQueue.DequeueAsync(cancellationToken);
+
+               try
+               {
+                  await task(cancellationToken);
+               }
+               catch (Exception e)
+               {
+                  _logger.LogError(e, "Error Executing: {}", nameof(task));
+               }
             }
-            catch (Exception e)
+            catch (OperationCanceledException)
             {
-               _logger.LogError(e, "Error Executing: {}", nameof(task));
+               break;
             }
          }
 
          _logger.LogInformation("Scanner Service Background Task Processor Stopped.");
       }
 
-      private async Task ScanAsync(string uuid, string path, string type, CancellationToken cancellationToken)
+      public async Task ScanAsync(string uuid, string path, string type, CancellationToken cancellationToken)
       {
          var watch = new Stopwatch();
-         var patterns = _settings.IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList();
+         var patterns = _settings.CurrentValue.IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList();
 
          var fileSystemService = _services.GetService<IFileSystemService>();
          if ((fileSystemService != null) && fileSystemService.Mounts.Any(mount => path.StartsWith(mount.Folder) && !mount.Available))
@@ -207,94 +236,137 @@ namespace MediaCurator.Services
             _logger.LogInformation("Enumerating Files...");
 
             var files = new DirectoryInfo(path).GetFiles("*.*", SearchOption.AllDirectories)
-                                               .AsParallel()
                                                .OrderBy(file => file.LastWriteTime)
                                                .Select(file => file.FullName)
                                                .ToList();
+
             int index = -1;
             int total = files.Count;
 
             _logger.LogInformation("Scanning {} Files...", total);
 
             // Use SemaphoreSlim to control concurrency for async tasks
-            var semaphore = new SemaphoreSlim(_settings.ParallelScannerTasks);
-            var tasks = files.Select(async file =>
+            var semaphore = new SemaphoreSlim(_settings.CurrentValue.ParallelScannerTasks);
+            var tasks = new List<Task>();
+
+            foreach (var file in files)
             {
+               cancellationToken.ThrowIfCancellationRequested(); // Stop processing if canceled
+
                await semaphore.WaitAsync(cancellationToken);
 
-               try
+               var task = Task.Run(async () =>
                {
-                  var name = Path.GetFileName(file);
-                  int currentIndex = Interlocked.Increment(ref index);
-
-                  // Inform the client(s) of the current progress
-                  await _notificationService.ShowScanProgressAsync(uuid, $"{type} Scanning", path, file, currentIndex, total);
-
-                  // Should the file name be ignored
-                  foreach (Regex pattern in patterns)
-                  {
-                     if (pattern.IsMatch(file) || pattern.IsMatch(name))
-                     {
-                        _logger.LogDebug("File Ignored: {}", file);
-
-                        return;
-                     }
-                  }
-
                   try
                   {
-                     // Add the file to the MediaLibrary
-                     using var newMediaFile = _mediaLibrary.InsertMediaFile(file);
+                     var name = Path.GetFileName(file);
+                     int currentIndex = Interlocked.Increment(ref index);
+
+                     // Inform the client(s) of the current progress
+                     await _notificationService.ShowScanProgressAsync(uuid, $"{type} Scanning", path, file, currentIndex, total);
+
+                     cancellationToken.ThrowIfCancellationRequested();
+
+                     // Should the file name be ignored
+                     foreach (Regex pattern in patterns)
+                     {
+                        if (pattern.IsMatch(file) || pattern.IsMatch(name))
+                        {
+                           _logger.LogDebug("File Ignored: {}", file);
+                           return;
+                        }
+                     }
+
+                     try
+                     {
+                        // Add the file to the MediaLibrary
+                        using var newMediaFile = _mediaLibrary.InsertMediaFile(file);
+                     }
+                     catch (Exception e)
+                     {
+                        _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
+                        _logger.LogDebug("{}", e.ToString());
+                     }
                   }
-                  catch (Exception e)
+                  finally
                   {
-                     _logger.LogWarning("Failed To Insert: {}, Because: {}", file, e.Message);
-                     _logger.LogDebug("{}", e.ToString());
+                     semaphore.Release();
                   }
-               }
-               finally
-               {
-                  semaphore.Release();
-               }
-            });
+               }, CancellationToken.None);
+
+               tasks.Add(task);
+            }
 
             // Wait for all tasks to complete
             await Task.WhenAll(tasks);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             _mediaLibrary.ClearCache();
 
             watch.Stop();
-            var ts = watch.Elapsed;
 
             // Inform the client(s) of the need to refresh
             await _notificationService.RefreshAsync(path);
+         }
+         catch (OperationCanceledException)
+         {
+            _logger.LogInformation("{} Scanning Was Cancelled.", type);
 
-            _logger.LogInformation("{} Scanning Finished: {}", type, path);
-            _logger.LogInformation("Took {} Days, {} Hours, {} Minutes, {} Seconds.",
-                                   ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
+            // Inform the client(s) of the cancellation
+            await _notificationService.ScanCancelledAsync(uuid, String.Format("{0} Scanning Cancelled", type), path);
          }
          catch (DirectoryNotFoundException)
          {
             _logger.LogWarning("Path Unavailable: {}", path);
-
-            return;
          }
          catch (UnauthorizedAccessException e)
          {
             _logger.LogWarning("{} Scanning Failed: {}, Because: {}", type, path, e.Message);
-
-            return;
          }
          catch (Exception e)
          {
             _logger.LogError("Unexpected Error While {} Scanning: {}", type, e.Message);
             _logger.LogDebug("{}", e.ToString());
+         }
+         finally
+         {
+            watch.Stop();
+         }
 
-            return;
+         var ts = watch.Elapsed;
+         _logger.LogInformation("{} Scanning {}: {}", type, path, cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished");
+         _logger.LogInformation("Took {} Days, {} Hours, {} Minutes, {} Seconds.", ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
+      }
+
+      public async Task RestartAsync(CancellationToken cancellationToken)
+      {
+         _logger.LogInformation("Restarting Scanner Service...");
+
+         // Ensure only one restart happens at a time.
+         await _semaphore.WaitAsync(cancellationToken);
+
+         try
+         {
+            // Stop the service
+            await StopAsync(cancellationToken);
+
+            // Start the service
+            await StartAsync(cancellationToken);
+
+            _logger.LogInformation("Scanner Service Restarted.");
+         }
+         catch (Exception ex)
+         {
+            _logger.LogError("Failed To Restart Scanner Service: {}", ex.Message);
+         }
+         finally
+         {
+            _semaphore.Release();
          }
       }
 
-      private async Task UpdateAsync(string uuid, CancellationToken cancellationToken)
+      public async Task UpdateAsync(string uuid, CancellationToken cancellationToken)
       {
          var watch = new Stopwatch();
 
@@ -320,73 +392,94 @@ namespace MediaCurator.Services
          try
          {
             // Use SemaphoreSlim to control concurrency
-            var semaphore = new SemaphoreSlim(_settings.ParallelScannerTasks);
-            var tasks = documents.Select(async document =>
+            var semaphore = new SemaphoreSlim(_settings.CurrentValue.ParallelScannerTasks);
+            var tasks = new List<Task>();
+
+            foreach (var document in documents)
             {
+               cancellationToken.ThrowIfCancellationRequested();
+
                await semaphore.WaitAsync(cancellationToken);
 
-               try
+               var task = Task.Run(async () =>
                {
-                  int currentIndex = Interlocked.Increment(ref index);
-
-                  if (string.IsNullOrEmpty(document.FullPath))
-                  {
-                     _logger.LogWarning("Invalid Media Container Detected: Id: {}, FullPath: {}", document.Id, document.FullPath);
-
-                     return;
-                  }
-
-                  // Inform the client(s) of the current progress
-                  await _notificationService.ShowUpdateProgressAsync(uuid, "Updating Media Library", document.FullPath, currentIndex, total);
-
                   try
                   {
-                     if (!string.IsNullOrEmpty(document.Id) && !string.IsNullOrEmpty(document.FullPath))
+                     int currentIndex = Interlocked.Increment(ref index);
+
+                     if (string.IsNullOrEmpty(document.FullPath))
                      {
-                        // Find duplicates in Solr
-                        var query = new SolrQueryByField("fullPath", document.FullPath);
-                        var orders = new[]
-                        {
-                           new SortOrder("dateAdded", Order.ASC)
-                        };
+                        _logger.LogWarning("Invalid Media Container Detected: Id: {}, FullPath: {}", document.Id, document.FullPath);
+                        return;
+                     }
 
-                        var results = solrIndexService.Get(query, orders);
-                        if (results.Count > 1)
-                        {
-                           _logger.LogWarning("{} Duplicate Solr Entries Detected: {}: {}", results.Count, "fullPath", document.FullPath);
+                     // Inform the client(s) of the current progress
+                     await _notificationService.ShowUpdateProgressAsync(uuid, "Updating Media Library", document.FullPath, currentIndex, total);
 
-                           for (int i = 1; i < results.Count; i++)
+                     cancellationToken.ThrowIfCancellationRequested();
+
+                     try
+                     {
+                        if (!string.IsNullOrEmpty(document.Id) && !string.IsNullOrEmpty(document.FullPath))
+                        {
+                           // Find duplicates in Solr
+                           var query = new SolrQueryByField("fullPath", document.FullPath);
+                           var orders = new[]
+                        {
+                                new SortOrder("dateAdded", Order.ASC)
+                               };
+
+                           var results = solrIndexService.Get(query, orders);
+                           if (results.Count > 1)
                            {
-                              var result = results[i];
-                              if (solrIndexService.Delete(result))
+                              _logger.LogWarning("{} Duplicate Solr Entries Detected: {}: {}", results.Count, "fullPath", document.FullPath);
+
+                              for (int i = 1; i < results.Count; i++)
                               {
-                                 _logger.LogInformation("Duplicate {} Removed: {}", result.Type, result.Id);
+                                 var result = results[i];
+                                 if (solrIndexService.Delete(result))
+                                 {
+                                    _logger.LogInformation("Duplicate {} Removed: {}", result.Type, result.Id);
+                                 }
                               }
                            }
-                        }
 
-                        // Ensure the path is in a watched and available folder
-                        if (availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
-                        {
-                           // Update the current media container
-                           using var mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                           // Ensure the path is in a watched and available folder
+                           if (availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
+                           {
+                              cancellationToken.ThrowIfCancellationRequested();
+
+                              // Update the current media container
+                              using var mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
+                           }
                         }
                      }
+                     catch (Exception e)
+                     {
+                        _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
+                        _logger.LogDebug("{}", e.ToString());
+                     }
                   }
-                  catch (Exception e)
+                  finally
                   {
-                     _logger.LogWarning("Failed To Update: {}, Because: {}", document.FullPath, e.Message);
-                     _logger.LogDebug("{}", e.ToString());
+                     semaphore.Release();
                   }
-               }
-               finally
-               {
-                  semaphore.Release();
-               }
-            });
+               }, CancellationToken.None);
+
+               tasks.Add(task);
+            }
 
             // Wait for all tasks to complete
             await Task.WhenAll(tasks);
+
+            cancellationToken.ThrowIfCancellationRequested();
+         }
+         catch (OperationCanceledException)
+         {
+            _logger.LogInformation("Update Was Cancelled.");
+
+            // Inform the client(s) of the cancellation
+            await _notificationService.UpdateCancelledAsync(uuid, "Media Library Update Cancelled");
          }
          catch (Exception e)
          {
@@ -394,15 +487,18 @@ namespace MediaCurator.Services
             _logger.LogDebug("{}", e.ToString());
          }
 
+         cancellationToken.ThrowIfCancellationRequested();
+
          _mediaLibrary.ClearCache();
 
          watch.Stop();
-         var ts = watch.Elapsed;
 
          // Inform the client(s) of the need to refresh
          await _notificationService.RefreshAsync("/");
 
-         _logger.LogInformation("Startup Update Finished After {} Days, {} Hours, {} Minutes, {} Seconds.",
+         var ts = watch.Elapsed;
+         _logger.LogInformation("Startup Update {} After {} Days, {} Hours, {} Minutes, {} Seconds.",
+                                cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished",
                                 ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
       }
 
@@ -414,15 +510,6 @@ namespace MediaCurator.Services
       private void UpdateFile(string file)
       {
          using MediaContainer? _ = _mediaLibrary.UpdateMediaContainer(path: file);
-      }
-
-      public Task StopAsync(CancellationToken cancellationToken)
-      {
-         _watchers.Clear();
-
-         _logger.LogInformation("Scanner Service Stopped.");
-
-         return Task.CompletedTask;
       }
 
       private void OnError(object source, ErrorEventArgs e)
@@ -437,9 +524,10 @@ namespace MediaCurator.Services
          Debug.WriteLine($"File {e.ChangeType}: {e.FullPath}");
 
          // Queue the add operation.
-         _taskQueue.QueueBackgroundTask(e.FullPath, cancellationToken =>
+         _taskQueue.Queue(e.FullPath, cancellationToken =>
          {
-            return Task.Run(() => AddFile(e.FullPath), cancellationToken);
+            var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken);
+            return Task.Run(() => AddFile(e.FullPath), linkedCancellationTokenSource.Token);
          });
       }
 
@@ -449,9 +537,10 @@ namespace MediaCurator.Services
          Debug.WriteLine($"File {e.ChangeType}: {e.FullPath}");
 
          // Queue the add operation.
-         _taskQueue.QueueBackgroundTask(e.FullPath, cancellationToken =>
+         _taskQueue.Queue(e.FullPath, cancellationToken =>
          {
-            return Task.Run(() => UpdateFile(e.FullPath), cancellationToken);
+            var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken);
+            return Task.Run(() => UpdateFile(e.FullPath), linkedCancellationTokenSource.Token);
          });
       }
 
@@ -461,15 +550,17 @@ namespace MediaCurator.Services
          Debug.WriteLine($"File Renamed: {e.OldFullPath} -> {e.FullPath}");
 
          // Queue the delete operation.
-         _taskQueue.QueueBackgroundTask(e.OldFullPath, cancellationToken =>
+         _taskQueue.Queue(e.OldFullPath, cancellationToken =>
          {
-            return Task.Run(() => UpdateFile(e.OldFullPath), cancellationToken);
+            var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken);
+            return Task.Run(() => UpdateFile(e.OldFullPath), linkedCancellationTokenSource.Token);
          });
 
          // Queue the add operation.
-         _taskQueue.QueueBackgroundTask(e.FullPath, cancellationToken =>
+         _taskQueue.Queue(e.FullPath, cancellationToken =>
          {
-            return Task.Run(() => AddFile(e.FullPath), cancellationToken);
+            var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken);
+            return Task.Run(() => AddFile(e.FullPath), linkedCancellationTokenSource.Token);
          });
       }
    }

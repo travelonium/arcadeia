@@ -13,6 +13,8 @@ namespace MediaCurator.Services
 
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
+      private readonly SemaphoreSlim _semaphore = new(1, 1);
+
       public List<FileSystemMount> Mounts
       {
          get
@@ -85,8 +87,33 @@ namespace MediaCurator.Services
          return Task.CompletedTask;
       }
 
-      public void Dispose()
+      public async Task RestartAsync(CancellationToken cancellationToken)
       {
+         _logger.LogInformation("Restarting FileSystem Service...");
+
+         // Ensure only one restart happens at a time.
+         await _semaphore.WaitAsync(cancellationToken);
+
+         try
+         {
+            // Stop the service
+            _logger.LogInformation("Stopping FileSystem Service...");
+            await StopAsync(cancellationToken);
+
+            // Start the service
+            _logger.LogInformation("Starting FileSystem Service...");
+            await StartAsync(cancellationToken);
+
+            _logger.LogInformation("FileSystem Service Restarted.");
+         }
+         catch (Exception ex)
+         {
+            _logger.LogError("Failed To Restart FileSystem Service: {}", ex.Message);
+         }
+         finally
+         {
+            _semaphore.Release();
+         }
       }
    }
 }

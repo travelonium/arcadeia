@@ -117,17 +117,16 @@ namespace MediaCurator
          services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 
          // Start the FileSystem Service
-         services.AddSingleton<FileSystemService>();
-         services.AddSingleton<IFileSystemService>(provider => provider.GetRequiredService<FileSystemService>());
-         services.AddHostedService<FileSystemService>();
+         services.AddSingleton<IFileSystemService, FileSystemService>();
+         services.AddHostedService(provider => provider.GetRequiredService<IFileSystemService>());
 
          // Start the Scanner Hosted Service
-         services.AddHostedService<ScannerService>();
+         services.AddSingleton<IScannerService, ScannerService>();
+         services.AddHostedService(provider => provider.GetRequiredService<IScannerService>());
 
          // Instantiate the Download Service
-         services.AddSingleton<DownloadService>();
-         services.AddSingleton<IDownloadService>(provider => provider.GetRequiredService<DownloadService>());
-         services.AddHostedService<DownloadService>();
+         services.AddSingleton<IDownloadService, DownloadService>();
+         services.AddHostedService(provider => provider.GetRequiredService<IDownloadService>());
 
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>

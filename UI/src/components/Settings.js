@@ -21,7 +21,7 @@ export default function Settings() {
             const scanner = encodeURI("/settings/scanner" + location.search);
             navigate(scanner, {replace: true});
         }
-    }, [location.pathname, navigate]);
+    }, [location.pathname, location.search, navigate]);
 
     // update the active key when the route changes
     useEffect(() => {

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MediaCurator.Configuration;
 using System.Formats.Asn1;
+using MediaCurator.Services;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -9,11 +10,15 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]
-   public class SettingsController(ILogger<MediaContainer> logger,
+   public class SettingsController(ILogger<SettingsController> logger,
+                                   IServiceProvider services,
+                                   IHostApplicationLifetime applicationLifetime,
                                    IConfiguration configuration) : Controller
    {
       private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
-      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IServiceProvider _services = services;
+      private readonly ILogger<SettingsController> _logger = logger;
+      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
       private readonly string[] _whitelist =
       [
          "Thumbnails",
@@ -29,18 +34,22 @@ namespace MediaCurator.Controllers
       // GET: /api/settings
       [HttpGet]
       [Produces("application/json")]
-      public IActionResult Get()
+      public async Task<IActionResult> Get()
       {
          // Manually reload the configuration to ensure that recent changes are reflected
-         _configuration.Reload();
+         await Task.Run(() => _configuration.Reload());
 
-         var json = _configuration.ToJson(_whitelist);
+         var json = await Task.Run(() => _configuration.ToJson(_whitelist));
 
          // Add the number of logical processors as Scanner:MaximumParallelScannerTasks
          if (json is not null)
          {
             var scanner = json["Scanner"];
             if (scanner is not null) scanner["MaximumParallelScannerTasks"] = Environment.ProcessorCount;
+         }
+         else
+         {
+            return StatusCode(500, new { message = "Failed to parse the configuration." });
          }
 
          return Ok(json);
@@ -50,7 +59,7 @@ namespace MediaCurator.Controllers
       [HttpPost]
       [Produces("application/json")]
       [Consumes("application/json")]
-      public IActionResult Post([FromBody] JsonObject configuration)
+      public async Task<IActionResult> Post([FromBody] JsonObject configuration)
       {
          try
          {
@@ -83,6 +92,29 @@ namespace MediaCurator.Controllers
 
             // Save the changes to the appropriate file
             provider.Update(configuration);
+
+            // Manually reload the configuration to ensure that recent changes are reflected
+            await Task.Run(() => _configuration.Reload());
+
+            // Restart the ScannerService if any changes have been made to the Scanner.
+            if (configuration.ContainsKey("Scanner"))
+            {
+               var scannerService = _services.GetService<IScannerService>();
+               if (scannerService != null)
+               {
+                  await scannerService.RestartAsync(_cancellationToken);
+               }
+            }
+
+            // Restart the FileSystemService if any changes have been made to the Mounts.
+            if (configuration.ContainsKey("Mounts"))
+            {
+               var fileSystemService = _services.GetService<IFileSystemService>();
+               if (fileSystemService != null)
+               {
+                  await fileSystemService.RestartAsync(_cancellationToken);
+               }
+            }
 
             return Ok();
          }

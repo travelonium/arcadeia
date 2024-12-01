@@ -86,6 +86,30 @@ class App extends Component {
                 this.showScannerProgressToast(value);
             });
         });
+        connection.on("ScanCancelled", (uuid, title, path) => {
+            const value = {
+                uuid: uuid,
+                title: title,
+                path: path,
+                item: null,
+                index: null,
+                total: null
+            };
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    scanner: update(prevState.scanner, {
+                        $merge: {
+                            scan: update(prevState.scanner.scan, {
+                                $merge: value
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.showScannerCancelledToast(value);
+            });
+        });
         connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
             const value = {
                 uuid: uuid,
@@ -107,6 +131,29 @@ class App extends Component {
                 }
             }, () => {
                 this.showScannerProgressToast(value);
+            });
+        });
+        connection.on("UpdateCancelled", (uuid, title) => {
+            const value = {
+                uuid: uuid,
+                title: title,
+                item: null,
+                index: null,
+                total: null
+            };
+            this.setState(prevState => {
+                return {
+                    ...prevState,
+                    scanner: update(prevState.scanner, {
+                        $merge: {
+                            update: update(prevState.scanner.update, {
+                                $merge: value
+                            })
+                        }
+                    })
+                }
+            }, () => {
+                this.showScannerCancelledToast(value);
             });
         });
     }
@@ -135,7 +182,7 @@ class App extends Component {
         const now = Date.now();
         if ((now - this.lastScannerProgressToastShowed < interval) && (index > 0) && ((index + 1) < total)) return;
         const progress = (index + 1) / total;
-        const render = this.renderScannerProgressToast(`${title}...`, item, 100);
+        const render = this.renderScannerProgressToast(`${title}...`, item);
         if (!this.scannerProgressToast) {
             this.scannerProgressToast = toast.info(render,
             {
@@ -158,13 +205,29 @@ class App extends Component {
         this.lastScannerProgressToastShowed = now;
     }
 
+    showScannerCancelledToast(state) {
+        const { title } = state || {};
+        if ([title].some(value => value == null)) return;
+        const render = this.renderScannerProgressToast(`${title}`);
+        if (this.scannerProgressToast) {
+            toast.update(this.scannerProgressToast, {
+                progress: null,
+                render: render,
+                type: 'warning'
+            });
+        }
+        this.scannerProgressToast = null;
+    }
+
     renderScannerProgressToast(title, subtitle) {
         return (
             <>
                 <div className="mb-1">
                     <strong>{title}</strong>
                 </div>
-                <small className="scanner-progress-subtitle">{shorten(subtitle, 100)}</small>
+            {
+                subtitle ? <small className="scanner-progress-subtitle">{shorten(subtitle, 100)}</small> : <></>
+            }
             </>
         );
     }
