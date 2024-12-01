@@ -300,8 +300,6 @@ namespace MediaCurator.Services
             // Wait for all tasks to complete
             await Task.WhenAll(tasks);
 
-            cancellationToken.ThrowIfCancellationRequested();
-
             _mediaLibrary.ClearCache();
 
             watch.Stop();
@@ -486,8 +484,6 @@ namespace MediaCurator.Services
             _logger.LogError("Unexpected Error While Updating: {}", e.Message);
             _logger.LogDebug("{}", e.ToString());
          }
-
-         cancellationToken.ThrowIfCancellationRequested();
 
          _mediaLibrary.ClearCache();
 
