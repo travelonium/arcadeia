@@ -36,7 +36,6 @@ export default function Scanner({ settings, write }) {
                 break;
 
             case 'PeriodicScanIntervalMilliseconds':
-                console.log(value * 60 * 60 * 1000)
                 setPeriodicScanIntervalMilliseconds(value * 60 * 60 * 1000);
                 write({Scanner: {PeriodicScanIntervalMilliseconds: value * 60 * 60 * 1000}});
                 break;
