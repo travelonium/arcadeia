@@ -1,8 +1,10 @@
-﻿using System.Text.Json.Nodes;
+﻿using MediaCurator.Services;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using MediaCurator.Configuration;
-using System.Formats.Asn1;
-using MediaCurator.Services;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -10,15 +12,21 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]
-   public class SettingsController(ILogger<SettingsController> logger,
-                                   IServiceProvider services,
-                                   IHostApplicationLifetime applicationLifetime,
-                                   IConfiguration configuration) : Controller
+   public partial class SettingsController(IServiceProvider services,
+                                           IConfiguration configuration,
+                                           IOptionsMonitor<Settings> settings,
+                                           ILogger<SettingsController> logger,
+                                           IHostApplicationLifetime applicationLifetime) : Controller
    {
-      private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
       private readonly IServiceProvider _services = services;
       private readonly ILogger<SettingsController> _logger = logger;
+      protected readonly IOptionsMonitor<Settings> _settings = settings;
+      private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
+
+      [GeneratedRegex(@"^([\w]+)$", RegexOptions.Multiline)]
+      private static partial Regex HardwareAcceleratorsRegex();
+
       private readonly string[] _whitelist =
       [
          "Thumbnails",
@@ -39,13 +47,22 @@ namespace MediaCurator.Controllers
          // Manually reload the configuration to ensure that recent changes are reflected
          await Task.Run(() => _configuration.Reload());
 
-         var json = await Task.Run(() => _configuration.ToJson(_whitelist));
+         var json = (await Task.Run(() => _configuration.ToJson(_whitelist))) as JsonObject;
 
-         // Add the number of logical processors as Scanner:MaximumParallelScannerTasks
          if (json is not null)
          {
-            var scanner = json["Scanner"];
-            if (scanner is not null) scanner["MaximumParallelScannerTasks"] = Environment.ProcessorCount;
+            json["System"] = new JsonObject
+            {
+               // Add the number of logical processors
+               ["ProcessorCount"] = Environment.ProcessorCount,
+
+               // Add supported hardware acceleration methods
+               ["HardwareAcceleration"] = JsonNode.Parse(JsonSerializer.Serialize(HardwareAccelerators())),
+
+               // Add the supported codecs
+               ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(Codecs())),
+            };
+
             // TODO: Add Scanning: bool and Updating: bool keys to the response.
          }
          else
@@ -125,6 +142,46 @@ namespace MediaCurator.Controllers
 
             return StatusCode(500, new { message = "An error occurred while updating the settings.", error = ex.Message });
          }
+      }
+
+      private Codecs? Codecs()
+      {
+         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            "-codecs"
+         ];
+
+         var result = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+
+         if (result != null)
+         {
+            return new Codecs(System.Text.Encoding.UTF8.GetString(result));
+         }
+
+         return null;
+      }
+
+      private IEnumerable<string> HardwareAccelerators()
+      {
+         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            "-hwaccels"
+         ];
+
+         var result = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+
+         if (result != null)
+         {
+            return HardwareAcceleratorsRegex().Matches(System.Text.Encoding.UTF8.GetString(result))
+                                              .Select(x => x.Groups[1].Value.Trim());
+
+         }
+
+         return [];
       }
    }
 }
