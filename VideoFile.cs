@@ -39,7 +39,7 @@ namespace MediaCurator
          }
       }
 
-      private long _width  = -1;
+      private long _width = -1;
       private long _height = -1;
 
       /// <summary>
@@ -208,19 +208,74 @@ namespace MediaCurator
          }
       }
 
-      private byte[]? GenerateThumbnail(string path, int position, int width, int height, bool crop)
+      public static byte[]? FFmpeg(string executable, string[] arguments, int timeout, bool output = false, ILogger? logger = null)
       {
-         byte[]? output = null;
-
-         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
-
-         int waitInterval = 100;
-         int totalWaitTime = 0;
-
          if (!File.Exists(executable))
          {
             throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
          }
+
+         using Process process = new()
+         {
+            StartInfo = new ProcessStartInfo
+            {
+               FileName = executable,
+               Arguments = string.Join(" ", arguments),
+               RedirectStandardOutput = output,
+               RedirectStandardError = true,
+               UseShellExecute = false,
+               CreateNoWindow = true
+            }
+         };
+
+         logger?.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+
+         process.Start();
+
+         Task<string> errorTask = process.StandardError.ReadToEndAsync();
+
+         int totalWaitTime = 0;
+         const int waitInterval = 100;
+
+         do
+         {
+            Thread.Sleep(waitInterval);
+            totalWaitTime += waitInterval;
+         } while (!process.HasExited && totalWaitTime < timeout);
+
+         if (!process.HasExited || process.ExitCode != 0)
+         {
+            if (!process.HasExited)
+            {
+               process.Kill();
+            }
+
+            if (process.HasExited)
+            {
+               logger?.LogDebug("{Errors}", errorTask.Result);
+            }
+            else
+            {
+               logger?.LogDebug("FFmpeg Execution Failed: {FileName} {Arguments}\n{Result}",
+                                process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
+            }
+
+            return null;
+         }
+
+         if (output)
+         {
+            using var memoryStream = new MemoryStream();
+            process.StandardOutput.BaseStream.CopyTo(memoryStream);
+            return memoryStream.ToArray();
+         }
+
+         return null;
+      }
+
+      private byte[]? GenerateThumbnail(string path, int position, int width, int height, bool crop)
+      {
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
 
          string[] arguments =
          [
@@ -242,55 +297,7 @@ namespace MediaCurator
             "-",
          ];
 
-         using (Process process = new())
-         {
-            process.StartInfo = new ProcessStartInfo
-            {
-               FileName = executable,
-               Arguments = string.Join(" ", arguments),
-               CreateNoWindow = true,
-               UseShellExecute = false,
-               RedirectStandardError = true,
-               RedirectStandardOutput = true
-            };
-
-            Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
-
-            process.Start();
-
-            Task<string> errorTask = process.StandardError.ReadToEndAsync();
-
-            do
-            {
-               Thread.Sleep(waitInterval);
-               totalWaitTime += waitInterval;
-            }
-            while (!process.HasExited && totalWaitTime < Settings.CurrentValue.FFmpeg.TimeoutMilliseconds);
-
-            if (process.HasExited)
-            {
-               if (process.ExitCode != 0)
-               {
-                  Logger.LogDebug("{Errors}", errorTask.Result);
-
-                  return null;
-               }
-
-               Stream baseStream = process.StandardOutput.BaseStream;
-               using var memoryStream = new MemoryStream();
-               baseStream.CopyTo(memoryStream);
-               output = memoryStream.ToArray();
-            }
-            else
-            {
-               // It's been too long. Kill it!
-               process.Kill();
-
-               Logger.LogDebug("Thumbnail Generation Timeout: {FullPath}", FullPath);
-            }
-         }
-
-         return output;
+         return FFmpeg(executable, arguments, Settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, Logger);
       }
 
       /// <summary>
@@ -499,14 +506,6 @@ namespace MediaCurator
          DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
          string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");
 
-         int waitInterval = 100;
-         int totalWaitTime = 0;
-
-         if (!File.Exists(executable))
-         {
-            throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
-         }
-
          string[] arguments =
          [
             // Start time
@@ -563,52 +562,19 @@ namespace MediaCurator
 
          if (qualitySettings.TryGetValue(quality, out var settings))
          {
-            _ = arguments.Append(string.Format(template, settings.height, settings.bitrate, settings.maxrate, settings.bufsize));
+            arguments = [.. arguments, string.Format(template, settings.height, settings.bitrate, settings.maxrate, settings.bufsize)];
          }
 
-         using (Process process = new())
+         FFmpeg(executable, arguments, Settings.CurrentValue.FFmpeg.TimeoutMilliseconds, false, Logger);
+
+         string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");
+
+         if (!File.Exists(filename))
          {
-            process.StartInfo = new ProcessStartInfo
-            {
-               FileName = executable,
-               Arguments = string.Join(" ", arguments),
-               RedirectStandardOutput = true,
-               RedirectStandardError = true,
-               RedirectStandardInput = false,
-               UseShellExecute = false,
-               CreateNoWindow = true
-            };
-
-            Logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
-
-            process.Start();
-
-            do
-            {
-               Thread.Sleep(waitInterval);
-               totalWaitTime += waitInterval;
-            }
-            while ((!process.HasExited) && (totalWaitTime < Settings.CurrentValue.FFmpeg.TimeoutMilliseconds));
-
-            if (!process.HasExited || (process.ExitCode != 0))
-            {
-               if (!process.HasExited) process.Kill();
-
-               throw new Exception(string.Format(
-                  "Segment generation failed: {0} {1}\n{2}",
-                  process.StartInfo.FileName, process.StartInfo.Arguments, process.StandardError.ReadToEnd()));
-            }
-
-            string filename = System.IO.Path.Combine(temp.FullName, "output-00000.ts");
-
-            if (!File.Exists(filename))
-            {
-               throw new FileNotFoundException("Unable to find the generated segment: " + filename);
-            }
-
-            output = File.ReadAllBytes(filename);
+            throw new FileNotFoundException("Unable to find the generated segment: " + filename);
          }
 
+         output = File.ReadAllBytes(filename);
          temp.Delete(true);
 
          return output;
