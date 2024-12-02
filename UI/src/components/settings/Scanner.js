@@ -73,7 +73,7 @@ export default function Scanner({ settings, write }) {
                                 </Card.Header>
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
-                                        <i class="bi bi-question-circle text-info pe-2"></i>
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
                                         Scan the watched, mounted and added folders for new media files at startup or manually.
                                     </Card.Text>
                                 </Card.Body>
@@ -96,7 +96,7 @@ export default function Scanner({ settings, write }) {
                                 </Card.Header>
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
-                                        <i class="bi bi-question-circle text-info pe-2"></i>
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
                                         Go through the library and update modified items and remove the deleted ones at startup or manually.
                                     </Card.Text>
                                 </Card.Body>
@@ -118,7 +118,7 @@ export default function Scanner({ settings, write }) {
                                 </Card.Header>
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
-                                        <i class="bi bi-question-circle text-info pe-2"></i>
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
                                         Regenerate any missing thumbnails upon access, scan or update.
                                     </Card.Text>
                                 </Card.Body>
@@ -156,7 +156,7 @@ export default function Scanner({ settings, write }) {
                                 </Card.Header>
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
-                                        <i class="bi bi-question-circle text-info pe-2"></i>
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
                                         Adjusts the interval at which a periodic scan is performed or disables it altogether.
                                     </Card.Text>
                                 </Card.Body>
