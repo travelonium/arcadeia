@@ -663,11 +663,12 @@ class Library extends Component {
             .then((response) => {
                 let name = extract(file.name, response, 'data', 0, 'name');
                 toast.update(extract(null, this.state.uploads.active, key, 'toast'), {
-                    progress: 1,
-                    theme: null,
-                    render: this.renderUploadToast.bind(this, prefix + "Complete", name),
-                    type: 'success',
                     icon: null,
+                    theme: null,
+                    progress: null,
+                    autoClose: null,
+                    type: 'success',
+                    render: this.renderUploadToast.bind(this, prefix + "Complete", name),
                 });
                 // remove the successfully uploaded item from the list of active uploads
                 this.setState(prevState => {
@@ -709,11 +710,11 @@ class Library extends Component {
                     // well, something else must've happened
                 }
                 toast.update(toastId, {
+                    icon: null,
                     progress: 0,
                     theme: null,
-                    render: this.renderUploadToast.bind(this, message, file.name),
                     type: 'error',
-                    icon: null,
+                    render: this.renderUploadToast.bind(this, message, file.name),
                 });
                 let failed = extract(null, this.state.uploads.active, key, 'file');
                 // remove the failed upload from the list of active uploads
@@ -772,8 +773,8 @@ class Library extends Component {
                                     toast: toast.info(this.renderUploadToast(prefix + "Resolving...", url),
                                     {
                                         progress: 0,
-                                        theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
                                         autoClose: false,
+                                        theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
                                         icon: <div className="Toastify__spinner"></div>
                                     }),
                                 }
@@ -791,7 +792,6 @@ class Library extends Component {
             let progress = null;
             let type = undefined;
             let icon = undefined;
-            let autoClose = false;
             let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
             const target = new URL("/api/library/upload", window.location.origin);
             target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
@@ -800,13 +800,13 @@ class Library extends Component {
             target.searchParams.set('url', url);
             fetch(target.toString())
             .then((response) => {
+                let show = true;
                 const reader = response.body.getReader();
                 const process = ({ done, value: chunk }) => {
                     if (done) {
                         progress = 1.0;
-                        autoClose = null;
                         title = "Complete";
-                        this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon, autoClose);
+                        this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon);
                         // remove the successfully uploaded item from the list of active uploads
                         this.setState(prevState => {
                             return {
@@ -842,17 +842,20 @@ class Library extends Component {
                             const k = match[1].trim();
                             const v = match[2].trim();
                             if (k === 'Name') {
+                                progress = 0;
                                 title = "Starting...";
                                 subtitle = fileName = v;
                             } else if (k === 'Downloading') {
                                 title = "Downloading...";
                                 if (!isNaN(v)) {
-                                    progress = Math.min(parseFloat(v), 0.999);
+                                    progress = parseFloat(v) !== 1.0 ? parseFloat(v) : 0;
                                 }
                             } else if (k === 'Merging') {
+                                progress = 0;
                                 title = "Merging...";
                                 subtitle = fileName = v;
                             } else if (k === 'Moving') {
+                                progress = 0;
                                 title = "Moving...";
                                 subtitle = fileName = v;
                             } else if (k === 'Processing') {
@@ -867,12 +870,13 @@ class Library extends Component {
                                 type =  'success';
                                 title = "Complete";
                                 result = JSON.parse(v);
+                                show = false;
                             } else if (k === 'Error') {
                                 // reject the promise to propagate the error
                                 return Promise.reject(new Error(v));
                             }
                             // Update the toast
-                            this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon, autoClose);
+                            if (show) this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon);
                         }
                     };
                     return reader.read().then(process);
@@ -882,7 +886,7 @@ class Library extends Component {
             .catch(error => {
                 console.error(error);
                 title = error.message;
-                this.onUploadUrlProgress(key, null, title, subtitle, undefined, 'error', null, null, 5000);
+                this.onUploadUrlProgress(key, null, title, subtitle, null, 'error', null);
                 let failed = extract(null, this.state.uploads.active, key, 'url');
                 // remove the failed upload from the list of active uploads
                 this.setState(prevState => {
@@ -1113,26 +1117,28 @@ class Library extends Component {
     }
 
     onUploadFileProgress(key, file, index, progressEvent) {
-        var progress = progressEvent.loaded / progressEvent.total;
-        let toastId = extract(null, this.state.uploads.active, key, 'toast');
-        const prefix = "[" + index + " / " + this.state.uploads.total + "] ";
+        const progress = progressEvent.loaded / progressEvent.total;
+        const toastId = extract(null, this.state.uploads.active, key, 'toast');
+        const prefix = `[${index} / ${this.state.uploads.total}] `;
+        const status = progress < 1 ? "Uploading" : "Processing";
         toast.update(toastId, {
-            progress: Math.min(progress, 0.999),
-            render: this.renderUploadToast.bind(this, prefix + ((progress < 1) ? "Uploading" : "Processing") + "...", file.name),
+            progress: progress === 1.0 ? 0 : progress,
+            autoClose: progress === 1.0 ? false : null,
+            render: this.renderUploadToast.bind(this, `${prefix}${status}...`, file.name),
         });
     }
 
-    onUploadUrlProgress(key, index, title, subtitle, progress = undefined, type = undefined, theme = undefined, icon = undefined, autoClose = undefined) {
-        let prefix = (index != null) ? "[" + index + " / " + this.state.uploads.total + "] " : "";
-        let options = {
-            render: this.renderUploadToast.bind(this, prefix + title, subtitle),
+    onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon) {
+        const prefix = index != null ? `[${index} / ${this.state.uploads.total}] ` : "";
+        const options = {
+            autoClose: progress === 0.0 ? false : null,
+            render: this.renderUploadToast.bind(this, `${prefix}${title}`, subtitle),
+            progress: progress !== 1.0 ? progress : null,
+            ...(icon !== undefined && { icon }),
+            ...(type !== undefined && { type }),
+            ...(theme !== undefined && { theme }),
         };
-        if (type !== undefined) options['type'] = type;
-        if (progress !== undefined) options['progress'] = progress;
-        if (theme !== undefined) options['theme'] = theme;
-        if (icon !== undefined) options['icon'] = icon;
-        if (autoClose !== undefined) options['autoClose'] = autoClose;
-        let toastId = extract(null, this.state.uploads.active, key, 'toast');
+        const toastId = extract(null, this.state.uploads.active, key, 'toast');
         toast.update(toastId, options);
     }
 
