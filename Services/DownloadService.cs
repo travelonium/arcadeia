@@ -84,7 +84,7 @@ namespace MediaCurator.Services
 
          if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
 
-         string options = string.Join(" ", _settings.CurrentValue.YtDlp.Options);
+         string options = string.Join(" ", _settings.CurrentValue.YtDlp.Options.Where(x => !string.IsNullOrEmpty(x)).ToArray());
 
          string[] arguments = [
             $"-o \"{template}\"",
@@ -99,7 +99,7 @@ namespace MediaCurator.Services
          ProcessStartInfo processStartInfo = new()
          {
             FileName = executable,
-            Arguments = string.Join(" ", arguments),
+            Arguments = string.Join(" ", arguments.Where(x => !string.IsNullOrEmpty(x)).ToArray()),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = false,

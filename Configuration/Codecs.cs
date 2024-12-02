@@ -14,9 +14,9 @@ namespace MediaCurator.Configuration
         [GeneratedRegex(@"^\s+([A-Z.]+)\s+([\w.]+)\s+(.*)$", RegexOptions.Multiline)]
         private static partial Regex CodecRegex();
 
-        public Codecs(string input)
+        public Codecs(string codecs)
         {
-            var matches = CodecRegex().Matches(input);
+            var matches = CodecRegex().Matches(codecs);
 
             foreach (Match match in matches)
             {
@@ -45,6 +45,47 @@ namespace MediaCurator.Configuration
                 {
                     Encoders.Add(type, new Codec { Name = name, Description = description });
                 }
+            }
+        }
+
+        public Codecs(string encoders, string decoders)
+        {
+            var matches = CodecRegex().Matches(encoders);
+
+            foreach (Match match in matches)
+            {
+                string capabilities = match.Groups[1].Value.Trim();
+                string name = match.Groups[2].Value.Trim();
+                string description = match.Groups[3].Value.Trim();
+
+                string? type = capabilities[0] switch
+                {
+                    'V' => "Video",
+                    'A' => "Audio",
+                    'S' => "Subtitle",
+                    _ => null
+                };
+
+                Encoders.Add(type, new Codec { Name = name, Description = description });
+            }
+
+            matches = CodecRegex().Matches(decoders);
+
+            foreach (Match match in matches)
+            {
+                string capabilities = match.Groups[1].Value.Trim();
+                string name = match.Groups[2].Value.Trim();
+                string description = match.Groups[3].Value.Trim();
+
+                string? type = capabilities[0] switch
+                {
+                    'V' => "Video",
+                    'A' => "Audio",
+                    'S' => "Subtitle",
+                    _ => null
+                };
+
+                Decoders.Add(type, new Codec { Name = name, Description = description });
             }
         }
     }

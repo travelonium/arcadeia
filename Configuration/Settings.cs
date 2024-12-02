@@ -116,6 +116,24 @@ namespace MediaCurator.Configuration
       [Required(ErrorMessage = "The 'TimeoutMilliseconds' property is required for FFmpeg settings.")]
       [Range(1, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be a positive integer.")]
       public int TimeoutMilliseconds { get; set; }
+
+      public string? HardwareAcceleration { get; set; }
+
+      public FFmpegTranscoderSettings? Encoder { get; set; }
+
+      public FFmpegTranscoderSettings? Decoder { get; set; }
+   }
+
+   public class FFmpegTranscoderSettings
+   {
+      [StringLength(32, ErrorMessage = "Video length must not exceed 32 characters.")]
+      public string? Video { get; set; }
+
+      [StringLength(32, ErrorMessage = "Audio length must not exceed 32 characters.")]
+      public string? Audio { get; set; }
+
+      [StringLength(32, ErrorMessage = "Subtitle length must not exceed 32 characters.")]
+      public string? Subtitle { get; set; }
    }
 
    public class YtDlpSettings

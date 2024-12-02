@@ -4,9 +4,9 @@ import { Container, Row, Col } from 'react-bootstrap';
 export default function Mounts({ settings, write }) {
 
     return (
-        <Container fluid>
+        <Container>
             <Row>
-                <Col className="my-1">
+                <Col className="my-1 mb-3">
                     <h2>Network Mounts</h2>
                 </Col>
             </Row>

@@ -56,11 +56,14 @@ namespace MediaCurator.Controllers
                // Add the number of logical processors
                ["ProcessorCount"] = Environment.ProcessorCount,
 
-               // Add supported hardware acceleration methods
-               ["HardwareAcceleration"] = JsonNode.Parse(JsonSerializer.Serialize(HardwareAccelerators())),
+               ["FFmpeg"] = new JsonObject
+               {
+                  // Add supported hardware acceleration methods
+                  ["HardwareAcceleration"] = JsonNode.Parse(JsonSerializer.Serialize(HardwareAccelerators())),
 
-               // Add the supported codecs
-               ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(Codecs())),
+                  // Add the supported codecs
+                  ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(Codecs())),
+               },
             };
 
             // TODO: Add Scanning: bool and Updating: bool keys to the response.
@@ -150,14 +153,21 @@ namespace MediaCurator.Controllers
 
          string[] arguments =
          [
-            "-codecs"
+            "-encoders"
          ];
 
-         var result = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+         var encoders = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
 
-         if (result != null)
+         arguments =
+         [
+            "-decoders"
+         ];
+
+         var decoders = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+
+         if (encoders is not null && decoders is not null)
          {
-            return new Codecs(System.Text.Encoding.UTF8.GetString(result));
+            return new Codecs(System.Text.Encoding.UTF8.GetString(encoders), System.Text.Encoding.UTF8.GetString(decoders));
          }
 
          return null;

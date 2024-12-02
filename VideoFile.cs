@@ -139,7 +139,7 @@ namespace MediaCurator
             process.StartInfo = new ProcessStartInfo
             {
                FileName = executable,
-               Arguments = string.Join(" ", arguments),
+               Arguments = string.Join(" ", arguments.Where(x => !string.IsNullOrEmpty(x)).ToArray()),
                CreateNoWindow = true,
                UseShellExecute = false,
                RedirectStandardOutput = true,
@@ -220,7 +220,7 @@ namespace MediaCurator
             StartInfo = new ProcessStartInfo
             {
                FileName = executable,
-               Arguments = string.Join(" ", arguments),
+               Arguments = string.Join(" ", arguments.Where(x => !string.IsNullOrEmpty(x)).ToArray()),
                RedirectStandardOutput = output,
                RedirectStandardError = true,
                UseShellExecute = false,
@@ -502,12 +502,23 @@ namespace MediaCurator
       public byte[] GenerateSegments(string quality, int sequence, int duration, int count = 0)
       {
          byte[] output = [];
+         string? ecv = Settings.CurrentValue.FFmpeg.Encoder?.Video;
+         string? eca = Settings.CurrentValue.FFmpeg.Encoder?.Audio;
+         string? dcv = Settings.CurrentValue.FFmpeg.Decoder?.Video;
+         string? dca = Settings.CurrentValue.FFmpeg.Decoder?.Audio;
+         string? hwaccel = Settings.CurrentValue.FFmpeg.HardwareAcceleration;
          string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
          DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
          string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");
 
          string[] arguments =
          [
+            // Add hardware acceleration method if enabled
+            !string.IsNullOrEmpty(hwaccel) ? $"-hwaccel {hwaccel}" : "",
+            // Set video decoder or fallback to libx264
+            !string.IsNullOrEmpty(dcv) ? $"-c:v {dcv}" : "",
+            // Set audio decoder or fallback to AAC
+            !string.IsNullOrEmpty(dca) ? $"-c:a {dca}" : "",
             // Start time
             $"-ss {sequence * duration}",
             // Duration of 10 seconds
@@ -515,15 +526,15 @@ namespace MediaCurator
             // Copy timestamps
             $"-copyts",
             // Input file
-            $"-i \"{FullPath}\" ",
+            $"-i \"{FullPath}\"",
             // Map all streams from the input
             $"-map 0",
             // Exclude all subtitle streams
             $"-map -0:s",
-            // Set video codec to libx264
-            $"-c:v libx264",
-            // Set audio codec to AAC
-            $"-c:a aac",
+            // Set video encoder or fallback to libx264
+            !string.IsNullOrEmpty(ecv) ? $"-c:v {ecv}" : $"-c:v libx264",
+            // Set audio encoder or fallback to AAC
+            !string.IsNullOrEmpty(eca) ? $"-c:a {eca}" : $"-c:a aac",
             // Segment duration in seconds
             $"-segment_time {duration}",
             // Reset timestamps

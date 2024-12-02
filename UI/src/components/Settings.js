@@ -1,10 +1,11 @@
 import { toast } from 'react-toastify';
+import Mounts from './settings/Mounts';
+import Scanner from './settings/Scanner';
 import { Nav, Tab } from 'react-bootstrap';
+import Transcoding from './settings/Transcoding';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router';
 import React, { useState, useEffect, useCallback } from 'react';
-import Scanner from './settings/Scanner';
-import Mounts from './settings/Mounts';
 
 export default function Settings() {
     const location = useLocation();
@@ -102,6 +103,9 @@ export default function Settings() {
                             <Nav.Item>
                                 <Nav.Link eventKey="mounts"><i className="bi bi-hdd-network me-3"></i>Network Mounts</Nav.Link>
                             </Nav.Item>
+                            <Nav.Item>
+                                <Nav.Link eventKey="transcoding"><i className="bi bi-arrow-repeat me-3"></i>Transcoding</Nav.Link>
+                            </Nav.Item>
                         </Nav>
                     </Col>
                     <Col className="content" sm={9}>
@@ -111,6 +115,9 @@ export default function Settings() {
                             </Tab.Pane>
                             <Tab.Pane eventKey="mounts">
                                 {activeKey === 'mounts' && <Mounts settings={settings} write={write}/>}
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="transcoding">
+                                {activeKey === 'transcoding' && <Transcoding settings={settings} write={write}/>}
                             </Tab.Pane>
                         </Tab.Content>
                     </Col>

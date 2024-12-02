@@ -4,6 +4,7 @@
         "ffprobe",
         "fieldtypes",
         "finalizer",
+        "hwaccel",
         "journaling",
         "libvpx",
         "Magick",
