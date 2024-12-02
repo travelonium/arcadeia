@@ -257,6 +257,26 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
+.upload-zone {
+    label {
+        .upload-zone-overlay.dragging {
+            width: 100%;
+            display: flex;
+            position: absolute;
+            border: 1px dashed;
+            pointer-events: none;
+            border-radius: .25rem;
+            height: calc(100% - 1rem);
+            z-index: $zindex-popover;
+            background-color: rgba($body-bg, 0.45);
+        }
+
+        .upload-zone-content.dragging {
+            opacity: .3;
+        }
+    }
+}
+
 .media-container {
     height: 100%;
 

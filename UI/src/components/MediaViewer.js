@@ -86,6 +86,15 @@ class MediaViewer extends Component {
         this.props.library.current.editing = editing;
     }
 
+
+    onDrag(event) {
+        this.props.uploadZone.current.onDrag(event);
+    }
+
+    onDrop(event) {
+        this.props.uploadZone.current.onDrop(event);
+    }
+
     view(sources, index) {
         let source = sources[index];
         if ((source.type !== "Photo") && (source.type !== "Video")) return;
@@ -167,7 +176,7 @@ class MediaViewer extends Component {
         const favorite = flags.includes('Favorite');
         return (
             <>
-                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)} backdrop={true} animation={true} size={this.state.expanded ? "fullscreen" : "xl"} aria-labelledby="contained-modal-title-vcenter" centered>
+                <Modal className="media-viewer" show={this.state.sources.length > 0} onShow={this.onShow.bind(this)} onHide={this.onHide.bind(this)}  onDragEnter={this.onDrag.bind(this)} onDragOver={this.onDrag.bind(this)} onDragExit={this.onDrag.bind(this)} onDrop={this.onDrop.bind(this)} backdrop={true} animation={true} size={this.state.expanded ? "fullscreen" : "xl"} aria-labelledby="contained-modal-title-vcenter" centered>
                     <Modal.Header className="flex-row align-items-center me-3" closeButton>
                         <Modal.Title id="contained-modal-title-vcenter" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
                             <EditableText row={1} value={name} onEditing={this.onEditing.bind(this)} onChange={this.rename.bind(this)} />

@@ -1,8 +1,8 @@
+import Badge from 'react-bootstrap/Badge';
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
 import * as pb from 'path-browserify';
 import cx from 'classnames';
-import './UploadZone.scss';
 
 export class UploadZone extends Component {
 
@@ -144,11 +144,23 @@ export class UploadZone extends Component {
 
     render() {
         return (
-            <form id="upload-zone-form" className="d-flex" onDragEnter={this.onDrag.bind(this)} onDragOver={this.onDrag.bind(this)} onDragExit={this.onDrag.bind(this)} onDrop={this.onDrop.bind(this)} onSubmit={(event) => event.preventDefault()}>
+            <form id="upload-zone-form"
+                className={cx("upload-zone d-flex position-absolute", this.props.className)}
+                style={{ width: this.props?.width }}
+                onSubmit={(event) => event.preventDefault()}
+                onDragEnter={this.onDrag.bind(this)}
+                onDragOver={this.onDrag.bind(this)}
+                onDragExit={this.onDrag.bind(this)}
+                onDrop={this.onDrop.bind(this)}
+            >
                 <input type="file" id="upload-zone-input" className="d-none" name="files" webkitdirectory="true" multiple={true} onChange={this.onChange.bind(this)} />
                 <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex" onClick={(event) => event.preventDefault()}>
                     <div className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")}>
-                        <p className="font-weight-light h5 text-uppercase">Drop Here To Upload</p>
+                        <Badge className="d-flex align-items-center px-4" bg="light" pill>
+                        <p className="d-flex fw-lighter text-dark text-uppercase h5 m-1">
+                            Drop To Upload
+                        </p>
+                        </Badge>
                     </div>
                     <div className={cx("upload-zone-content", this.state.dragging ? "dragging" : "")}>
                         {this.props.children}

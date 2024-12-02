@@ -32,6 +32,7 @@ class Library extends Component {
         this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
         this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
         this.grid = React.createRef();
+        this.uploadZone = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
         this.controller = new AbortController();
@@ -1230,7 +1231,7 @@ class Library extends Component {
                 const columnWidth = width / columnCount;
                 const rowCount = Math.ceil(items.length / columnCount);
                 return (
-                    <UploadZone onUpload={this.upload.bind(this)}>
+                    <UploadZone ref={this.uploadZone} width={width} height={height} onUpload={this.upload.bind(this)}>
                         <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
                         {
                             ({ columnIndex, rowIndex, style }) => {
@@ -1313,7 +1314,7 @@ class Library extends Component {
                                 <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
                             </Button>
                         </Container>
-                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>
