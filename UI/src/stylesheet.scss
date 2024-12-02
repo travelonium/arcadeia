@@ -239,6 +239,12 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
 .settings {
 
+    .card {
+        i {
+            font-size: x-large;
+        }
+    }
+
     .periodic-scan-interval {
 
         .badge {

@@ -46,6 +46,7 @@ namespace MediaCurator.Controllers
          {
             var scanner = json["Scanner"];
             if (scanner is not null) scanner["MaximumParallelScannerTasks"] = Environment.ProcessorCount;
+            // TODO: Add Scanning: bool and Updating: bool keys to the response.
          }
          else
          {
