@@ -90,26 +90,36 @@ namespace MediaCurator.Configuration
         }
     }
 
-    public class Codec
+    public class Codec : IComparable<Codec>
     {
         public required string Name { get; set; }
         public required string Description { get; set; }
+
+        public int CompareTo(Codec? other)
+        {
+            if (other is null)
+            {
+                return 1;
+            }
+
+            return string.Compare(Name, other.Name, StringComparison.Ordinal);
+        }
     }
 
     public class Encoders
     {
-        public List<Codec> Video { get; set; } = [];
-        public List<Codec> Audio { get; set; } = [];
-        public List<Codec> Subtitle { get; set; } = [];
-        public List<Codec> Data { get; set; } = [];
-        public List<Codec> Attachment { get; set; } = [];
+        public SortedSet<Codec> Video { get; set; } = [];
+        public SortedSet<Codec> Audio { get; set; } = [];
+        public SortedSet<Codec> Subtitle { get; set; } = [];
+        public SortedSet<Codec> Data { get; set; } = [];
+        public SortedSet<Codec> Attachment { get; set; } = [];
 
         public void Add(string? type, Codec codec)
         {
             Get(type)?.Add(codec);
         }
 
-        public List<Codec>? Get(string? type)
+        public SortedSet<Codec>? Get(string? type)
         {
             return type switch
             {
@@ -125,18 +135,18 @@ namespace MediaCurator.Configuration
 
     public class Decoders
     {
-        public List<Codec> Video { get; set; } = [];
-        public List<Codec> Audio { get; set; } = [];
-        public List<Codec> Subtitle { get; set; } = [];
-        public List<Codec> Data { get; set; } = [];
-        public List<Codec> Attachment { get; set; } = [];
+        public SortedSet<Codec> Video { get; set; } = [];
+        public SortedSet<Codec> Audio { get; set; } = [];
+        public SortedSet<Codec> Subtitle { get; set; } = [];
+        public SortedSet<Codec> Data { get; set; } = [];
+        public SortedSet<Codec> Attachment { get; set; } = [];
 
         public void Add(string? type, Codec codec)
         {
             Get(type)?.Add(codec);
         }
 
-        public List<Codec>? Get(string? type)
+        public SortedSet<Codec>? Get(string? type)
         {
             return type switch
             {
