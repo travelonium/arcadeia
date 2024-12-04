@@ -49,9 +49,9 @@ export default function Scanner({ settings, write }) {
     }
 
     return (
-        <Container >
-            <Row>
-                <Col className="my-1 mb-3">
+        <Container>
+            <Row className="align-items-center mb-2">
+                <Col className="my-1">
                     <h2>Media Scanner</h2>
                 </Col>
             </Row>

@@ -70,7 +70,7 @@ export default function Mounts({ settings, write }) {
 
     return (
         <Container>
-            <Row className="align-items-center mb-3">
+            <Row className="align-items-center mb-2">
                 <Col className="my-1">
                     <h2>Network Mounts</h2>
                 </Col>
