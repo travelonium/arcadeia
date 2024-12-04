@@ -56,6 +56,11 @@ namespace MediaCurator.Services
          _logger.LogInformation("Stopping FileSystem Service...");
 
          // Unmount all the configured mounts.
+         foreach (var mount in Mounts)
+         {
+            mount.Dispose();
+         }
+
          Mounts.Clear();
 
          _logger.LogInformation("FileSystem Service Stopped.");
