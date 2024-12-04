@@ -14,12 +14,14 @@ namespace MediaCurator.Controllers
    [Route("api/[controller]")]
    public partial class SettingsController(IServiceProvider services,
                                            IConfiguration configuration,
+                                           ILoggerFactory loggerFactory,
                                            IOptionsMonitor<Settings> settings,
                                            ILogger<SettingsController> logger,
                                            IHostApplicationLifetime applicationLifetime) : Controller
    {
       private readonly IServiceProvider _services = services;
       private readonly ILogger<SettingsController> _logger = logger;
+      private readonly ILoggerFactory _loggerFactory = loggerFactory;
       protected readonly IOptionsMonitor<Settings> _settings = settings;
       private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
@@ -66,7 +68,56 @@ namespace MediaCurator.Controllers
                },
             };
 
-            // TODO: Add Scanning: bool and Updating: bool keys to the response.
+            // Add an Available key for each mount
+            var mounts = json["Mounts"]?.AsArray();
+            if (mounts is not null)
+            {
+               foreach (var item in mounts)
+               {
+                  try
+                  {
+                     if (item is null) continue;
+                     var mount = _settings.CurrentValue.Mounts.FirstOrDefault(mount => mount.Folder == item?["Folder"]?.ToString());
+                     if (mount is null) continue;
+
+                     // Mask the password in Options
+                     if (!string.IsNullOrEmpty(mount.Options))
+                     {
+                        var options = mount.Options.Split(',');
+                        for (int i = 0; i < options.Length; i++)
+                        {
+                           if (options[i].StartsWith("password=", StringComparison.OrdinalIgnoreCase))
+                           {
+                              var parts = options[i].Split('=');
+                              if (parts.Length == 2)
+                              {
+                                 options[i] = $"password={new string('*', parts[1].Length)}";
+                              }
+                           }
+                        }
+                        item["Options"] = string.Join(",", options);
+                     }
+                     var fileSystemMount = new FileSystemMount(mount, _loggerFactory.CreateLogger<FileSystemMount>());
+                     item["Available"] = fileSystemMount.Available;
+                  }
+                  catch (Exception)
+                  {
+                     continue;
+                  }
+               }
+            }
+
+            // Add Scanning and Updating keys to Scanner
+            var scannerService = _services.GetService<IScannerService>();
+            if (scannerService != null)
+            {
+               var scanner = json["Scanner"];
+               if (scanner is not null)
+               {
+                  scanner["Scanning"] = scannerService.Scanning;
+                  scanner["Updating"] = scannerService.Updating;
+               }
+            }
          }
          else
          {

@@ -17,6 +17,8 @@ namespace MediaCurator.Services
 
       public bool Attached { get; private set; }
 
+      private readonly ILogger<FileSystemMount>? _logger;
+
       public bool Available
       {
          get
@@ -47,8 +49,10 @@ namespace MediaCurator.Services
 
                return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+               _logger?.LogWarning("Failed To Check Availability For: {}, Because: {}", Folder, e.Message);
+
                return false;
             }
          }
@@ -58,13 +62,14 @@ namespace MediaCurator.Services
 
       #region Constructors
 
-      public FileSystemMount(MountSettings mount)
+      public FileSystemMount(MountSettings mount, ILogger<FileSystemMount>? logger = null)
       {
          Attached = false;
          Types = mount.Types;
          Options = mount.Options;
          Device = mount.Device;
          Folder = mount.Folder;
+         _logger = logger;
 
          if (string.IsNullOrEmpty(Types) || string.IsNullOrEmpty(Options) || string.IsNullOrEmpty(Device) || string.IsNullOrEmpty(Folder))
          {
@@ -100,7 +105,7 @@ namespace MediaCurator.Services
 
          if (!process.HasExited || (process.ExitCode != 0))
          {
-               throw new Exception(string.Format("Failed To Mount: {0} Because: {1}", Device, output));
+            throw new Exception(string.Format("Failed To Mount: {0} Because: {1}", Device, output));
          }
 
          Attached = true;

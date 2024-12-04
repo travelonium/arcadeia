@@ -9,6 +9,14 @@ namespace MediaCurator
       private readonly ConcurrentDictionary<string, Timer> _timers = new();
       private readonly ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _tasks = new();
 
+      public IEnumerable<string> Tasks
+      {
+         get
+         {
+            return _tasks.ToArray().Select(task => task.Item1);
+         }
+      }
+
       public void Queue(string key, Func<CancellationToken, Task> task)
       {
          ArgumentNullException.ThrowIfNull(task, nameof(task));

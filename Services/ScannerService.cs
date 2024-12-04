@@ -28,6 +28,18 @@ namespace MediaCurator.Services
       private readonly NotificationService _notificationService = notificationService;
       private readonly IHostApplicationLifetime _applicationLifetime = applicationLifetime;
 
+      public bool Updating
+      {
+         get;
+         set;
+      } = false;
+
+      public bool Scanning
+      {
+         get;
+         set;
+      } = false;
+
       /// <summary>
       /// The lists of folders to be scanned for changes that are mounted or exist.
       /// </summary>
@@ -216,6 +228,7 @@ namespace MediaCurator.Services
 
       public async Task ScanAsync(string uuid, string path, string type, CancellationToken cancellationToken)
       {
+         Scanning = true;
          var watch = new Stopwatch();
          var patterns = _settings.CurrentValue.IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList();
 
@@ -332,6 +345,7 @@ namespace MediaCurator.Services
             watch.Stop();
          }
 
+         Scanning = false;
          var ts = watch.Elapsed;
          _logger.LogInformation("{} Scanning {}: {}", type, path, cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished");
          _logger.LogInformation("Took {} Days, {} Hours, {} Minutes, {} Seconds.", ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
@@ -366,6 +380,7 @@ namespace MediaCurator.Services
 
       public async Task UpdateAsync(string uuid, CancellationToken cancellationToken)
       {
+         Updating = true;
          var watch = new Stopwatch();
 
          _logger.LogInformation("Startup Update Started.");
@@ -492,6 +507,7 @@ namespace MediaCurator.Services
          // Inform the client(s) of the need to refresh
          await _notificationService.RefreshAsync("/");
 
+         Updating = false;
          var ts = watch.Elapsed;
          _logger.LogInformation("Startup Update {} After {} Days, {} Hours, {} Minutes, {} Seconds.",
                                 cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished",

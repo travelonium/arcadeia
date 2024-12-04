@@ -240,8 +240,10 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 .settings {
 
     .card {
-        i {
-            font-size: x-large;
+        .card-text {
+            i {
+                font-size: x-large;
+            }
         }
     }
 

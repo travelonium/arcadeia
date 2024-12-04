@@ -3,13 +3,16 @@ using Microsoft.Extensions.Options;
 
 namespace MediaCurator.Services
 {
-   public class FileSystemService(IOptionsMonitor<Settings> settings,
+   public class FileSystemService(ILoggerFactory loggerFactory,
                                   ILogger<FileSystemService> logger,
+                                  IOptionsMonitor<Settings> settings,
                                   IHostApplicationLifetime applicationLifetime) : IFileSystemService
    {
       protected readonly IOptionsMonitor<Settings> _settings = settings;
 
       private readonly ILogger<FileSystemService> _logger = logger;
+
+      private readonly ILoggerFactory _loggerFactory = loggerFactory;
 
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
@@ -25,7 +28,7 @@ namespace MediaCurator.Services
             {
                try
                {
-                  mounts.Add(new FileSystemMount(item));
+                  mounts.Add(new FileSystemMount(item, _loggerFactory.CreateLogger<FileSystemMount>()));
                }
                catch (Exception e)
                {
