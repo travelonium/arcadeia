@@ -12,17 +12,13 @@ namespace MediaCurator.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]
-   public partial class SettingsController(IServiceProvider services,
-                                           IConfiguration configuration,
-                                           ILoggerFactory loggerFactory,
-                                           IOptionsMonitor<Settings> settings,
-                                           ILogger<SettingsController> logger,
+   public partial class SettingsController(IConfiguration configuration,
+                                           IScannerService _scannerService,
+                                           ILogger<SettingsController> _logger,
+                                           IOptionsMonitor<Settings> _settings,
+                                           IFileSystemService fileSystemService,
                                            IHostApplicationLifetime applicationLifetime) : Controller
    {
-      private readonly IServiceProvider _services = services;
-      private readonly ILogger<SettingsController> _logger = logger;
-      private readonly ILoggerFactory _loggerFactory = loggerFactory;
-      protected readonly IOptionsMonitor<Settings> _settings = settings;
       private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
@@ -81,6 +77,7 @@ namespace MediaCurator.Controllers
                      if (mount is null) continue;
 
                      // Mask the password in Options
+                     /*
                      if (!string.IsNullOrEmpty(mount.Options))
                      {
                         var options = mount.Options.Split(',');
@@ -97,8 +94,14 @@ namespace MediaCurator.Controllers
                         }
                         item["Options"] = string.Join(",", options);
                      }
-                     var fileSystemMount = new FileSystemMount(mount, _loggerFactory.CreateLogger<FileSystemMount>());
-                     item["Available"] = fileSystemMount.Available;
+                     */
+
+                     var fileSystemMount = fileSystemService.Mounts.Where(x => x.Folder == mount.Folder).FirstOrDefault();
+                     if (fileSystemMount is not null)
+                     {
+                        item["Error"] = fileSystemMount.Error;
+                        item["Available"] = fileSystemMount.Available;
+                     }
                   }
                   catch (Exception)
                   {
@@ -108,15 +111,11 @@ namespace MediaCurator.Controllers
             }
 
             // Add Scanning and Updating keys to Scanner
-            var scannerService = _services.GetService<IScannerService>();
-            if (scannerService != null)
+            var scanner = json["Scanner"];
+            if (scanner is not null)
             {
-               var scanner = json["Scanner"];
-               if (scanner is not null)
-               {
-                  scanner["Scanning"] = scannerService.Scanning;
-                  scanner["Updating"] = scannerService.Updating;
-               }
+               scanner["Scanning"] = _scannerService.Scanning;
+               scanner["Updating"] = _scannerService.Updating;
             }
          }
          else
@@ -168,24 +167,16 @@ namespace MediaCurator.Controllers
             // Manually reload the configuration to ensure that recent changes are reflected
             await Task.Run(() => _configuration.Reload());
 
-            // Restart the ScannerService if any changes have been made to the Scanner.
+            // Restart the _scannerService if any changes have been made to the Scanner.
             if (configuration.ContainsKey("Scanner"))
             {
-               var scannerService = _services.GetService<IScannerService>();
-               if (scannerService != null)
-               {
-                  await scannerService.RestartAsync(_cancellationToken);
-               }
+               await _scannerService.RestartAsync(_cancellationToken);
             }
 
             // Restart the FileSystemService if any changes have been made to the Mounts.
             if (configuration.ContainsKey("Mounts"))
             {
-               var fileSystemService = _services.GetService<IFileSystemService>();
-               if (fileSystemService != null)
-               {
-                  await fileSystemService.RestartAsync(_cancellationToken);
-               }
+               await fileSystemService.RestartAsync(_cancellationToken);
             }
 
             return Ok();
@@ -239,7 +230,6 @@ namespace MediaCurator.Controllers
          {
             return HardwareAcceleratorsRegex().Matches(System.Text.Encoding.UTF8.GetString(result))
                                               .Select(x => x.Groups[1].Value.Trim());
-
          }
 
          return [];

@@ -20,25 +20,8 @@ namespace MediaCurator.Services
 
       public List<FileSystemMount> Mounts
       {
-         get
-         {
-            List<FileSystemMount> mounts = [];
-
-            foreach (var item in _settings.CurrentValue.Mounts)
-            {
-               try
-               {
-                  mounts.Add(new FileSystemMount(item, _loggerFactory.CreateLogger<FileSystemMount>()));
-               }
-               catch (Exception e)
-               {
-                  _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
-               }
-            }
-
-            return mounts;
-         }
-      }
+         get; private set;
+      } = [];
 
       #region Constructors
 
@@ -49,17 +32,17 @@ namespace MediaCurator.Services
          _logger.LogInformation("Starting FileSystem Service...");
 
          // Try to mount all the configured mounts.
-         foreach (var mount in Mounts)
+         foreach (var item in _settings.CurrentValue.Mounts)
          {
             try
             {
-               mount.Attach();
+               var mount = new FileSystemMount(item, _loggerFactory.CreateLogger<FileSystemMount>());
 
-               _logger.LogInformation("Mounted: {} @ {}", mount.Device, mount.Folder);
+               Mounts.Add(mount);
             }
             catch (Exception e)
             {
-               _logger.LogError("Failed To Mount: {} Because: {}", mount.Device, e.Message);
+               _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
             }
          }
 
@@ -71,19 +54,7 @@ namespace MediaCurator.Services
       public Task StopAsync(CancellationToken cancellationToken)
       {
          // Unmount all the configured mounts.
-         foreach (var mount in Mounts)
-         {
-            try
-            {
-               mount.Detach();
-
-               _logger.LogInformation("Unmounted: {} @ {}", mount.Device, mount.Folder);
-            }
-            catch (Exception e)
-            {
-               _logger.LogError("Failed To Unmount: {} Because: {}", mount.Device, e.Message);
-            }
-         }
+         Mounts.Clear();
 
          _logger.LogInformation("FileSystem Service Stopped.");
 

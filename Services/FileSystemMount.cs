@@ -3,7 +3,7 @@ using MediaCurator.Configuration;
 
 namespace MediaCurator.Services
 {
-   public class FileSystemMount
+   public class FileSystemMount : IDisposable
    {
       #region Fields
 
@@ -16,6 +16,8 @@ namespace MediaCurator.Services
       public string Folder;
 
       public bool Attached { get; private set; }
+
+      public string Error = string.Empty;
 
       private readonly ILogger<FileSystemMount>? _logger;
 
@@ -31,12 +33,14 @@ namespace MediaCurator.Services
                using Process process = new();
 
                process.StartInfo.FileName = executable;
-               process.StartInfo.Arguments = "-q " + Folder;
+               process.StartInfo.Arguments = $"-q {Folder}";
                process.StartInfo.CreateNoWindow = true;
                process.StartInfo.UseShellExecute = false;
                process.StartInfo.RedirectStandardOutput = true;
 
                process.Start();
+
+               _logger?.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
                output = process.StandardOutput.ReadToEnd();
 
@@ -69,11 +73,25 @@ namespace MediaCurator.Services
          Options = mount.Options;
          Device = mount.Device;
          Folder = mount.Folder;
+
          _logger = logger;
 
          if (string.IsNullOrEmpty(Types) || string.IsNullOrEmpty(Options) || string.IsNullOrEmpty(Device) || string.IsNullOrEmpty(Folder))
          {
             throw new ArgumentException("One or more mount keys are missing or are empty.");
+         }
+
+         try
+         {
+            Attach();
+
+            _logger?.LogInformation("Mounted: {} @ {}", Device, Folder);
+         }
+         catch (Exception e)
+         {
+            Error = e.Message;
+
+            _logger?.LogError(e, "Failed To Mount: {} Because: {}", Device, e.Message);
          }
       }
 
@@ -81,6 +99,7 @@ namespace MediaCurator.Services
 
       public void Attach()
       {
+         string? error = null;
          string? output = null;
          string executable = "/bin/mount";
 
@@ -89,23 +108,24 @@ namespace MediaCurator.Services
          using Process process = new();
 
          process.StartInfo.FileName = executable;
-         process.StartInfo.Arguments = "-t " + Types;
-         process.StartInfo.Arguments += " -o " + Options;
-         process.StartInfo.Arguments += " " + Device;
-         process.StartInfo.Arguments += " " + Folder;
+         process.StartInfo.Arguments = $"-t {Types} -o {Options} {Device} {Folder}";
          process.StartInfo.CreateNoWindow = true;
          process.StartInfo.UseShellExecute = false;
+         process.StartInfo.RedirectStandardError = true;
          process.StartInfo.RedirectStandardOutput = true;
 
          process.Start();
 
+         _logger?.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+
+         error = process.StandardError.ReadToEnd();
          output = process.StandardOutput.ReadToEnd();
 
          process.WaitForExit(10000);
 
          if (!process.HasExited || (process.ExitCode != 0))
          {
-            throw new Exception(string.Format("Failed To Mount: {0} Because: {1}", Device, output));
+            throw new Exception(string.IsNullOrEmpty(error) ? output : error);
          }
 
          Attached = true;
@@ -113,6 +133,7 @@ namespace MediaCurator.Services
 
       public void Detach()
       {
+         string? error = null;
          string? output = null;
          string executable = "/bin/umount";
 
@@ -122,20 +143,40 @@ namespace MediaCurator.Services
          process.StartInfo.Arguments = Folder;
          process.StartInfo.CreateNoWindow = true;
          process.StartInfo.UseShellExecute = false;
+         process.StartInfo.RedirectStandardError = true;
          process.StartInfo.RedirectStandardOutput = true;
 
          process.Start();
 
+         _logger?.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+
+         error = process.StandardError.ReadToEnd();
          output = process.StandardOutput.ReadToEnd();
 
          process.WaitForExit(10000);
 
          if (!process.HasExited || (process.ExitCode != 0))
          {
-            throw new Exception(string.Format("Failed To Unmount: {0} Because: {1}", Device, output));
+            throw new Exception(string.IsNullOrEmpty(error) ? output : error);
          }
 
          Attached = false;
+      }
+
+      public void Dispose()
+      {
+         try
+         {
+            Detach();
+
+            _logger?.LogInformation("Unmounted: {} @ {}", Device, Folder);
+         }
+         catch (Exception e)
+         {
+            Error = e.Message;
+
+            _logger?.LogError(e, "Failed To Unmount: {} Because: {}", Device, e.Message);
+         }
       }
    }
 }

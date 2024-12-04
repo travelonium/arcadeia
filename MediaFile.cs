@@ -194,7 +194,7 @@ namespace MediaCurator
          if (!Exists())
          {
             // Avoid updating or removing the file if it was located in a network mount that is currently unavailable.
-            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Available))
+            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Attached))
             {
                Skipped = true;
             }
