@@ -1,7 +1,7 @@
 import cx from 'classnames';
+import { isEqual } from 'lodash';
 import { clone } from '../../utils';
 import Tab from 'react-bootstrap/Tab';
-import { isEqual, omit } from 'lodash';
 import Tabs from 'react-bootstrap/Tabs';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
@@ -24,21 +24,37 @@ export default function Mounts({ settings, write }) {
         setMounts(settings?.Mounts);
     }, [settings]);
 
-    const Mount = ({ index, mount, title, available, error, children }) => {
+    function add() {
+        setMounts([{ Types: "cifs", Options: "", Device: "", Folder: "" }, ...clone(mounts)]);
+    }
+
+    const Mount = ({ mounts, index, mount, title, available, error, children }) => {
 
         const [state, setState] = useState(clone(mount));
         const [applyButtonState, setApplyButtonState] = useState(true);
         const [resetButtonState, setResetButtonState] = useState(true);
 
         useEffect(() => {
-            if (isEqual(mount, state)) {
-                setApplyButtonState(false);
-                setResetButtonState(false);
-            } else {
+            if (!isEqual(mount, state) && validate(state)) {
                 setApplyButtonState(true);
                 setResetButtonState(true);
+            } else {
+                setApplyButtonState(false);
+                setResetButtonState(false);
             }
         }, [state, mount]);
+
+        function validate(mount) {
+            if (mount.Types === "cifs") {
+                if (!mount.Device) return false;
+                if (!mount.Folder) return false;
+                if (mounts.map(item => item.Folder).filter((item, i) => i !== index && item === mount.Folder).length > 0) return false;
+            } else {
+                return false;
+            }
+
+            return true;
+        }
 
         function reset() {
             setState(clone(mount))
@@ -54,6 +70,12 @@ export default function Mounts({ settings, write }) {
             write({ Mounts: updates });
         }
 
+        function remove() {
+            let updates = clone(mounts).filter((_, i) => i !== index);
+            setMounts(updates);
+            write({ Mounts: updates });
+        }
+
         return (
             <Row className="startup-scan align-items-center mb-3">
                 <Card className="px-0">
@@ -64,7 +86,7 @@ export default function Mounts({ settings, write }) {
                             </Col>
                             <Col><b>{title}</b></Col>
                             <Col xs="auto">
-                                <Button variant="outline-secondary" size="sm" disabled>
+                                <Button variant="danger" size="sm" onClick={remove}>
                                     <i className="bi bi-dash-lg"></i>
                                 </Button>
                             </Col>
@@ -121,7 +143,7 @@ export default function Mounts({ settings, write }) {
             const value = event.target.value;
             setState({
                 ...state,
-                Device: `//${value}`
+                Device: value ? `//${value}` : ""
             });
         }
 
@@ -199,7 +221,7 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label htmlFor="server">Server</Form.Label>
                                 <InputGroup id="server" className="mb-3">
-                                    <InputGroup.Text>//</InputGroup.Text>
+                                    <InputGroup.Text>{"//"}</InputGroup.Text>
                                     <Form.Control aria-label="Server" aria-describedby="server" value={server} onChange={onServerChange} />
                                 </InputGroup>
                             </Col>
@@ -270,7 +292,7 @@ export default function Mounts({ settings, write }) {
                     <h2>Network Mounts</h2>
                 </Col>
                 <Col xs="auto">
-                    <Button className="me-2" variant="info" size="sm" disabled><i className="bi bi-plus-lg"></i></Button>
+                    <Button className="me-2" variant="info" size="sm" onClick={add}><i className="bi bi-plus-lg"></i></Button>
                 </Col>
             </Row>
             <Row>
@@ -283,7 +305,7 @@ export default function Mounts({ settings, write }) {
                                 const available = mount?.Available ?? false;
                                 const error = mount?.Error;
                                 if (type === "cifs") return (
-                                    <Mount key={index} index={index} mount={mount} title={title} available={available} error={error}>
+                                    <Mount key={index} index={index} mount={mount} mounts={mounts} title={title} available={available} error={error}>
                                         <CIFS />
                                     </Mount>
                                 ); else if (type === "nfs") return (

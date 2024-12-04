@@ -7,8 +7,10 @@ export default function Transcoding({ settings, write }) {
 
     const [hardwareAcceleration, setHardwareAcceleration] = useState(null);
     const [videoEncoder, setVideoEncoder] = useState(null);
+    // eslint-disable-next-line
     const [videoDecoder, setVideoDecoder] = useState(null);
     const [audioEncoder, setAudioEncoder] = useState(null);
+    // eslint-disable-next-line
     const [audioDecoder, setAudioDecoder] = useState(null);
 
     useEffect(() => {

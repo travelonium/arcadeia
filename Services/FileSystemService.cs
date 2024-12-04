@@ -53,6 +53,8 @@ namespace MediaCurator.Services
 
       public Task StopAsync(CancellationToken cancellationToken)
       {
+         _logger.LogInformation("Stopping FileSystem Service...");
+
          // Unmount all the configured mounts.
          Mounts.Clear();
 
@@ -71,11 +73,9 @@ namespace MediaCurator.Services
          try
          {
             // Stop the service
-            _logger.LogInformation("Stopping FileSystem Service...");
             await StopAsync(cancellationToken);
 
             // Start the service
-            _logger.LogInformation("Starting FileSystem Service...");
             await StartAsync(cancellationToken);
 
             _logger.LogInformation("FileSystem Service Restarted.");

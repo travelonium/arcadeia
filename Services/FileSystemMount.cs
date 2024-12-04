@@ -3,7 +3,7 @@ using MediaCurator.Configuration;
 
 namespace MediaCurator.Services
 {
-   public class FileSystemMount : IDisposable
+   public class FileSystemMount
    {
       #region Fields
 
@@ -97,6 +97,28 @@ namespace MediaCurator.Services
 
       #endregion // Constructors
 
+      #region Destructors
+
+      ~FileSystemMount()
+      {
+         if (!Attached) return;
+
+         try
+         {
+            Detach();
+
+            _logger?.LogInformation("Unmounted: {} @ {}", Device, Folder);
+         }
+         catch (Exception e)
+         {
+            Error = e.Message;
+
+            _logger?.LogError(e, "Failed To Unmount: {} Because: {}", Device, e.Message);
+         }
+      }
+
+      #endregion // Destructors
+
       public void Attach()
       {
          string? error = null;
@@ -161,22 +183,6 @@ namespace MediaCurator.Services
          }
 
          Attached = false;
-      }
-
-      public void Dispose()
-      {
-         try
-         {
-            Detach();
-
-            _logger?.LogInformation("Unmounted: {} @ {}", Device, Folder);
-         }
-         catch (Exception e)
-         {
-            Error = e.Message;
-
-            _logger?.LogError(e, "Failed To Unmount: {} Because: {}", Device, e.Message);
-         }
       }
    }
 }
