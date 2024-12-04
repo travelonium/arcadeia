@@ -89,40 +89,42 @@ export default function Settings() {
     };
 
     return (
-        <Container className="settings d-flex flex-column flex-grow-1 mb-3">
-            <Tab.Container activeKey={activeKey} onSelect={onSelect}>
-                <Row className="wrapper flex-md-grow-1">
-                    <Col className="sidebar mb-3" sm={3}>
-                        <Container className="title mb-4" fluid>
-                            <h1>Settings</h1>
-                        </Container>
-                        <Nav variant="pills" className="flex-column">
-                            <Nav.Item>
-                                <Nav.Link eventKey="scanner"><i className="bi bi-binoculars me-3"></i>Media Scanner</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                                <Nav.Link eventKey="mounts"><i className="bi bi-hdd-network me-3"></i>Network Mounts</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                                <Nav.Link eventKey="transcoding"><i className="bi bi-arrow-repeat me-3"></i>Transcoding</Nav.Link>
-                            </Nav.Item>
-                        </Nav>
-                    </Col>
-                    <Col className="content" sm={9}>
-                        <Tab.Content>
-                            <Tab.Pane eventKey="scanner">
-                                {activeKey === 'scanner' && <Scanner settings={settings} write={write}/>}
-                            </Tab.Pane>
-                            <Tab.Pane eventKey="mounts">
-                                {activeKey === 'mounts' && <Mounts settings={settings} write={write}/>}
-                            </Tab.Pane>
-                            <Tab.Pane eventKey="transcoding">
-                                {activeKey === 'transcoding' && <Transcoding settings={settings} write={write}/>}
-                            </Tab.Pane>
-                        </Tab.Content>
-                    </Col>
-                </Row>
-            </Tab.Container>
+        <Container className="settings d-flex flex-grow-1 overflow-auto" fluid>
+            <Container className="wrapper d-flex flex-grow-1">
+                <Tab.Container activeKey={activeKey} onSelect={onSelect}>
+                    <Row className="flex-md-grow-1">
+                        <Col className="sidebar mb-3" sm={3}>
+                            <Container className="title mb-4" fluid>
+                                <h1>Settings</h1>
+                            </Container>
+                            <Nav variant="pills" className="flex-column">
+                                <Nav.Item>
+                                    <Nav.Link eventKey="scanner"><i className="bi bi-binoculars me-3"></i>Media Scanner</Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="mounts"><i className="bi bi-hdd-network me-3"></i>Network Mounts</Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="transcoding"><i className="bi bi-arrow-repeat me-3"></i>Transcoding</Nav.Link>
+                                </Nav.Item>
+                            </Nav>
+                        </Col>
+                        <Col className="content" sm={9}>
+                            <Tab.Content>
+                                <Tab.Pane eventKey="scanner">
+                                    {activeKey === 'scanner' && <Scanner settings={settings} write={write}/>}
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="mounts">
+                                    {activeKey === 'mounts' && <Mounts settings={settings} write={write}/>}
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="transcoding">
+                                    {activeKey === 'transcoding' && <Transcoding settings={settings} write={write}/>}
+                                </Tab.Pane>
+                            </Tab.Content>
+                        </Col>
+                    </Row>
+                </Tab.Container>
+            </Container>
         </Container>
     );
 };

@@ -94,7 +94,7 @@ class NavMenu extends Component {
                 params.delete('recursive');
             }
             return params;
-        }, {replace: replace});
+        }, { replace: replace });
     }
 
     onKeyDown(event) {
@@ -198,42 +198,40 @@ class NavMenu extends Component {
         const settings = encodeURI("/settings" + this.props.location.search);
         const disabled = this.props.location.pathname?.startsWith('/settings') ?? false;
         return (
-            <header>
-                <Navbar collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"} className="mb-3 p-2">
-                    <Navbar.Brand className="py-0" href="/" onClick={this.onBrandClick.bind(this)}>
-                        <svg width="35" height="35" className="animate__animated animate__rotateIn">
-                            <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
-                        </svg>
-                        <svg width="225" height="40" className="ms-2 animate__animated animate__fast animate__slideInLeft">
-                            <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-text"></use>
-                        </svg>
-                    </Navbar.Brand>
-                    <Navbar.Toggle onClick={this.toggleNavbar} className="me-2" label="responsive-navbar-nav" />
-                    <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
-                        <Nav className={"toolbar flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2")}>
-                            <Nav.Item>
-                                <div className="d-flex align-items-center px-2">
-                                    <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
-                                    <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
-                                    <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
-                                    <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} disabled={disabled} />
-                                    <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} disabled={disabled} />
-                                    <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
-                                    <Button className="me-1" name="settings" icon="bi-gear" tooltip="Settings" onClick={() => this.props.navigate(settings)} />
-                                </div>
-                            </Nav.Item>
-                            <Nav.Item style={{flexShrink: 1, flexGrow: 1}}>
-                                <InputGroup>
-                                    <InputGroup.Text>
-                                        <i className="bi bi-search"></i>
-                                    </InputGroup.Text>
-                                    <Form.Control value={this.state.query} onChange={this.onSearchChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" disabled={disabled} />
-                                </InputGroup>
-                            </Nav.Item>
-                        </Nav>
-                    </Navbar.Collapse>
-                </Navbar>
-            </header>
+            <Navbar className="d-flex mb-3 p-2" collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"}>
+                <Navbar.Brand className="py-0" href="/" onClick={this.onBrandClick.bind(this)}>
+                    <svg width="35" height="35" className="animate__animated animate__rotateIn">
+                        <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
+                    </svg>
+                    <svg width="225" height="40" className="ms-2 animate__animated animate__fast animate__slideInLeft">
+                        <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-text"></use>
+                    </svg>
+                </Navbar.Brand>
+                <Navbar.Toggle onClick={this.toggleNavbar} className="me-2" label="responsive-navbar-nav" />
+                <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
+                    <Nav className={"toolbar flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2")}>
+                        <Nav.Item>
+                            <div className="d-flex align-items-center px-2">
+                                <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
+                                <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
+                                <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
+                                <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} disabled={disabled} />
+                                <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} disabled={disabled} />
+                                <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
+                                <Button className="me-1" name="settings" icon="bi-gear" tooltip="Settings" onClick={() => this.props.navigate(settings)} />
+                            </div>
+                        </Nav.Item>
+                        <Nav.Item style={{ flexShrink: 1, flexGrow: 1 }}>
+                            <InputGroup>
+                                <InputGroup.Text>
+                                    <i className="bi bi-search"></i>
+                                </InputGroup.Text>
+                                <Form.Control value={this.state.query} onChange={this.onSearchChange.bind(this)} onKeyDown={this.onKeyDown.bind(this)} type="text" placeholder="Search" className="me-sm-2" disabled={disabled} />
+                            </InputGroup>
+                        </Nav.Item>
+                    </Nav>
+                </Navbar.Collapse>
+            </Navbar>
         );
     }
 }

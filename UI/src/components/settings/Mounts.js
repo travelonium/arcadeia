@@ -64,7 +64,7 @@ export default function Mounts({ settings, write }) {
                 defaultActiveKey="basic"
                 id="type"
                 className="mb-3"
-                variant="tabs"
+                variant="pills"
                 justify
             >
                 <Tab eventKey="basic" title="Basic" className="mb-2">
