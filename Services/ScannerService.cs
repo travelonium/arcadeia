@@ -248,10 +248,23 @@ namespace MediaCurator.Services
          {
             _logger.LogInformation("Enumerating Files...");
 
-            var files = new DirectoryInfo(path).GetFiles("*.*", SearchOption.AllDirectories)
-                                               .OrderBy(file => file.LastWriteTime)
-                                               .Select(file => file.FullName)
-                                               .ToList();
+            var files = new List<string>();
+
+            {
+               var fileInfos = new List<FileInfo>();
+
+               foreach (var file in new DirectoryInfo(path).EnumerateFiles("*.*", SearchOption.AllDirectories))
+               {
+                  cancellationToken.ThrowIfCancellationRequested();
+
+                  fileInfos.Add(file);
+               }
+
+               files = fileInfos.Where(file => file.LastWriteTime >= DateTime.MinValue && file.LastWriteTime <= DateTime.MaxValue)
+                                .OrderBy(file => file.LastWriteTime)
+                                .Select(file => file.FullName)
+                                .ToList();
+            }
 
             int index = -1;
             int total = files.Count;
@@ -286,6 +299,7 @@ namespace MediaCurator.Services
                         if (pattern.IsMatch(file) || pattern.IsMatch(name))
                         {
                            _logger.LogDebug("File Ignored: {}", file);
+
                            return;
                         }
                      }
