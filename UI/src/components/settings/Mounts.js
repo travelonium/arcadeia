@@ -121,7 +121,6 @@ export default function Mounts({ settings, write }) {
         const folder = state.Folder;
         const device = state.Device;
         const options = state.Options;
-        const server = device.replace(/\/\//, "");
         const fields = { username: "", password: "", vers: "" };
 
         options?.split(',').forEach(pair => {
@@ -132,6 +131,14 @@ export default function Mounts({ settings, write }) {
         });
 
         function onFolderChange(event) {
+            const value = event.target.value;
+            setState({
+                ...state,
+                Folder: value ? `/Network/${value}` : ""
+            });
+        }
+
+        function onAdvancedFolderChange(event) {
             const value = event.target.value;
             setState({
                 ...state,
@@ -213,7 +220,8 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label htmlFor="folder">Folder</Form.Label>
                                 <InputGroup id="folder" className="mb-3">
-                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder} onChange={onFolderChange} />
+                                    <InputGroup.Text className={cx((folder.startsWith("/Network/") || !folder) ? "" : "text-decoration-line-through")} >{"/Network/"}</InputGroup.Text>
+                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -221,8 +229,8 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label htmlFor="server">Server</Form.Label>
                                 <InputGroup id="server" className="mb-3">
-                                    <InputGroup.Text>{"//"}</InputGroup.Text>
-                                    <Form.Control aria-label="Server" aria-describedby="server" value={server} onChange={onServerChange} />
+                                    <InputGroup.Text className={cx((device.startsWith("//") || !device) ? "" : "text-decoration-line-through")}>{"//"}</InputGroup.Text>
+                                    <Form.Control aria-label="Server" aria-describedby="server" value={device.replace(/\/\//, "")} onChange={onServerChange} />
                                 </InputGroup>
                             </Col>
                             <Col>
@@ -258,7 +266,7 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label id="folderLabel" htmlFor="folder">Folder</Form.Label>
                                 <InputGroup className="mb-3">
-                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onFolderChange} />
+                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} />
                                 </InputGroup>
                             </Col>
                         </Row>
