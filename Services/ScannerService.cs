@@ -260,10 +260,31 @@ namespace MediaCurator.Services
                   fileInfos.Add(file);
                }
 
+               cancellationToken.ThrowIfCancellationRequested();
+
                files = fileInfos.Where(file => file.LastWriteTime >= DateTime.MinValue && file.LastWriteTime <= DateTime.MaxValue)
                                 .OrderBy(file => file.LastWriteTime)
                                 .Select(file => file.FullName)
                                 .ToList();
+
+               cancellationToken.ThrowIfCancellationRequested();
+
+               List<string> invalidFiles = fileInfos.Where(file => file.LastWriteTime < DateTime.MinValue || file.LastWriteTime > DateTime.MaxValue)
+                                                    .Select(file => file.FullName)
+                                                    .ToList();
+
+               cancellationToken.ThrowIfCancellationRequested();
+
+               foreach (var file in invalidFiles)
+               {
+                  _logger.LogDebug("File Has Invalid LastWriteTime: {}", file);
+               }
+
+               cancellationToken.ThrowIfCancellationRequested();
+
+               files.AddRange(invalidFiles);
+
+               cancellationToken.ThrowIfCancellationRequested();
             }
 
             int index = -1;
@@ -277,7 +298,7 @@ namespace MediaCurator.Services
 
             foreach (var file in files)
             {
-               cancellationToken.ThrowIfCancellationRequested(); // Stop processing if canceled
+               cancellationToken.ThrowIfCancellationRequested();
 
                await semaphore.WaitAsync(cancellationToken);
 
