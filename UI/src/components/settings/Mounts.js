@@ -6,6 +6,7 @@ import Tabs from 'react-bootstrap/Tabs';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
+import Dropdown from 'react-bootstrap/Dropdown';
 import React, { useState, useEffect } from 'react';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { Container, Row, Col } from 'react-bootstrap';
@@ -24,8 +25,8 @@ export default function Mounts({ settings, write }) {
         setMounts(settings?.Mounts);
     }, [settings]);
 
-    function add() {
-        setMounts([{ Types: "cifs", Options: "", Device: "", Folder: "" }, ...clone(mounts)]);
+    function add(types) {
+        setMounts([{ Types: types, Options: "", Device: "", Folder: "" }, ...clone(mounts ?? {})]);
     }
 
     const Mount = ({ mounts, index, mount, title, available, error, children }) => {
@@ -35,6 +36,19 @@ export default function Mounts({ settings, write }) {
         const [resetButtonState, setResetButtonState] = useState(true);
 
         useEffect(() => {
+            function validate(mount) {
+                const types = mount.Types;
+                const device = mount.Device;
+                const folder = mount.Folder;
+                if (types === "cifs" || types === "nfs") {
+                    if (!device) return false;
+                    if (!folder) return false;
+                    if (mounts.map(item => item.Folder).filter((item, i) => i !== index && item === folder).length > 0) return false;
+                } else {
+                    return false;
+                }
+                return true;
+            }
             if (!isEqual(mount, state) && validate(state)) {
                 setApplyButtonState(true);
                 setResetButtonState(true);
@@ -42,19 +56,7 @@ export default function Mounts({ settings, write }) {
                 setApplyButtonState(false);
                 setResetButtonState(false);
             }
-        }, [state, mount]);
-
-        function validate(mount) {
-            if (mount.Types === "cifs") {
-                if (!mount.Device) return false;
-                if (!mount.Folder) return false;
-                if (mounts.map(item => item.Folder).filter((item, i) => i !== index && item === mount.Folder).length > 0) return false;
-            } else {
-                return false;
-            }
-
-            return true;
-        }
+        }, [state, mount, mounts, index]);
 
         function reset() {
             setState(clone(mount))
@@ -257,7 +259,7 @@ export default function Mounts({ settings, write }) {
                             </Col>
                             <Col>
                                 <Form.Label id="passwordLabel" htmlFor="password">Password</Form.Label>
-                                <Form.Control type="password" id="password" aria-describedby="passwordLabel" value={fields.password} onChange={onPasswordChange}/>
+                                <Form.Control type="password" id="password" aria-describedby="passwordLabel" value={fields.password} onChange={onPasswordChange} />
                             </Col>
                         </Row>
                     </Container>
@@ -296,6 +298,88 @@ export default function Mounts({ settings, write }) {
         );
     }
 
+    const NFS = ({ mount, state, setState }) => {
+
+        const folder = state.Folder;
+        const device = state.Device;
+        const options = state.Options;
+        // const fields = {};
+
+        /*
+        options?.split(',').forEach(pair => {
+            const [key, value] = pair.split('=');
+        });
+        */
+
+        const [showOptions, setShowOptions] = useState(false);
+
+        function onAdvancedFolderChange(event) {
+            const value = event.target.value;
+            setState({
+                ...state,
+                Folder: value
+            });
+        }
+
+        function onDeviceChange(event) {
+            const value = event.target.value;
+            setState({
+                ...state,
+                Device: value
+            });
+        }
+
+        function onOptionsChange(event) {
+            const value = event.target.value;
+            setState({
+                ...state,
+                Options: value
+            });
+        }
+
+        return (
+            <Tabs
+                defaultActiveKey="advanced"
+                id="type"
+                className="mb-3"
+                variant="pills"
+                justify
+            >
+                <Tab eventKey="basic" title="Basic" className="mb-2" disabled>
+                </Tab>
+                <Tab eventKey="advanced" title="Advanced" className="mb-2">
+                    <Container>
+                        <Row>
+                            <Col>
+                                <Form.Label id="folderLabel" htmlFor="folder">Folder</Form.Label>
+                                <InputGroup className="mb-3">
+                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} />
+                                </InputGroup>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <Form.Label id="deviceLabel" htmlFor="folder">Device</Form.Label>
+                                <InputGroup className="mb-3">
+                                    <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} />
+                                </InputGroup>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <Form.Label id="optionsLabel" htmlFor="folder">Options</Form.Label>
+                                <InputGroup className="">
+                                    <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} />
+                                    <Button variant="outline-secondary" onClick={() => setShowOptions(!showOptions)}><i className={cx("bi", showOptions ? "bi-eye-slash" : "bi-eye")}></i></Button>
+                                </InputGroup>
+                            </Col>
+                        </Row>
+                    </Container>
+                </Tab>
+            </Tabs>
+        );
+    }
+
     return (
         <Container>
             <Row className="align-items-center mb-2">
@@ -303,7 +387,16 @@ export default function Mounts({ settings, write }) {
                     <h2>Network Mounts</h2>
                 </Col>
                 <Col xs="auto">
-                    <Button className="me-2" variant="info" size="sm" onClick={add}><i className="bi bi-plus-lg"></i></Button>
+                    <Dropdown className="me-2" align="end">
+                        <Dropdown.Toggle size="sm" variant="info">
+                            <i className="bi bi-plus-lg" />
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                            <Dropdown.Item onClick={() => add("nfs")}>NFS</Dropdown.Item>
+                            <Dropdown.Item onClick={() => add("cifs")}>CIFS</Dropdown.Item>
+                            <Dropdown.Item onClick={() => add("sshfs")} disabled>SSHFS</Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown>
                 </Col>
             </Row>
             <Row>
@@ -320,9 +413,12 @@ export default function Mounts({ settings, write }) {
                                         <CIFS />
                                     </Mount>
                                 ); else if (type === "nfs") return (
-                                    <></>
+                                    <Mount key={index} index={index} mount={mount} mounts={mounts} title={title} available={available} error={error}>
+                                        <NFS />
+                                    </Mount>
                                 ); else if (type === "sshfs") return (
-                                    <></>
+                                    <Mount key={index} index={index} mount={mount} mounts={mounts} title={title} available={available} error={error}>
+                                    </Mount>
                                 ); else return (
                                     <></>
                                 );
