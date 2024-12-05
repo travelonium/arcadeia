@@ -248,44 +248,24 @@ namespace MediaCurator.Services
          {
             _logger.LogInformation("Enumerating Files...");
 
-            var files = new List<string>();
+            var files = new DirectoryInfo(path).EnumerateFiles("*.*", SearchOption.AllDirectories)
+                                               .AsParallel()
+                                               .WithCancellation(cancellationToken)
+                                               .OrderBy(file =>
+                                               {
+                                                  try
+                                                  {
+                                                     return file.LastWriteTime;
+                                                  }
+                                                  catch (ArgumentOutOfRangeException)
+                                                  {
+                                                     return DateTime.MinValue;
+                                                  }
+                                               })
+                                               .Select(file => file.FullName)
+                                               .ToList();
 
-            {
-               var fileInfos = new List<FileInfo>();
-
-               foreach (var file in new DirectoryInfo(path).EnumerateFiles("*.*", SearchOption.AllDirectories))
-               {
-                  cancellationToken.ThrowIfCancellationRequested();
-
-                  fileInfos.Add(file);
-               }
-
-               cancellationToken.ThrowIfCancellationRequested();
-
-               files = fileInfos.Where(file => file.LastWriteTime >= DateTime.MinValue && file.LastWriteTime <= DateTime.MaxValue)
-                                .OrderBy(file => file.LastWriteTime)
-                                .Select(file => file.FullName)
-                                .ToList();
-
-               cancellationToken.ThrowIfCancellationRequested();
-
-               List<string> invalidFiles = fileInfos.Where(file => file.LastWriteTime < DateTime.MinValue || file.LastWriteTime > DateTime.MaxValue)
-                                                    .Select(file => file.FullName)
-                                                    .ToList();
-
-               cancellationToken.ThrowIfCancellationRequested();
-
-               foreach (var file in invalidFiles)
-               {
-                  _logger.LogDebug("File Has Invalid LastWriteTime: {}", file);
-               }
-
-               cancellationToken.ThrowIfCancellationRequested();
-
-               files.AddRange(invalidFiles);
-
-               cancellationToken.ThrowIfCancellationRequested();
-            }
+            _logger.LogTrace("Counting Files...");
 
             int index = -1;
             int total = files.Count;
