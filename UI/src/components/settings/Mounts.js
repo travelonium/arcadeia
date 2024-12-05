@@ -130,6 +130,8 @@ export default function Mounts({ settings, write }) {
             else if (key === "vers") fields.vers = value;
         });
 
+        const [showOptions, setShowOptions] = useState(false);
+
         function onFolderChange(event) {
             const value = event.target.value;
             setState({
@@ -282,7 +284,8 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label id="optionsLabel" htmlFor="folder">Options</Form.Label>
                                 <InputGroup className="">
-                                    <Form.Control aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} />
+                                    <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} />
+                                    <Button variant="outline-secondary" onClick={() => setShowOptions(!showOptions)}><i className={cx("bi", showOptions ? "bi-eye-slash" : "bi-eye")}></i></Button>
                                 </InputGroup>
                             </Col>
                         </Row>
