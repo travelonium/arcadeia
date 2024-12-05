@@ -265,7 +265,7 @@ namespace MediaCurator.Services
                                                .Select(file => file.FullName)
                                                .ToList();
 
-            _logger.LogTrace("Counting Files...");
+            _logger.LogDebug("Counting Files...");
 
             int index = -1;
             int total = files.Count;

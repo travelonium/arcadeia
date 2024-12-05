@@ -326,7 +326,7 @@ class Library extends Component {
             wt: "json",
             sort: this.sort(sort.fields, sort.direction),
             children: {
-                q: "{!terms f=parent v=$row.id}",
+                q: "{!prefix f=path v=$row.fullPath}",
                 fq: ["-type:Folder", "-type:Drive", "-type:Server"],
                 sort: "views desc, dateAdded asc, name asc",
                 rows: 3,

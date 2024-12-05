@@ -94,5 +94,42 @@ namespace MediaCurator.Services
             _semaphore.Release();
          }
       }
+
+      public async Task ReloadAsync(CancellationToken cancellationToken)
+      {
+         _logger.LogInformation("Reloading FileSystem Service...");
+
+         // Ensure only one restart happens at a time.
+         await _semaphore.WaitAsync(cancellationToken);
+
+         try
+         {
+            foreach (var item in _settings.CurrentValue.Mounts)
+            {
+               var mount = Mounts.Where(x => x.Folder == item.Folder).FirstOrDefault();
+               if (mount is not null)
+               {
+                  if (mount.Types != item.Types || mount.Device != item.Device || mount.Options != item.Options || mount.Attached)
+                  {
+                     // Remount it.
+                  }
+               }
+               else
+               {
+                  // We have a new mount.
+               }
+            }
+
+            _logger.LogInformation("FileSystem Service Restarted.");
+         }
+         catch (Exception ex)
+         {
+            _logger.LogError("Failed To Restart FileSystem Service: {}", ex.Message);
+         }
+         finally
+         {
+            _semaphore.Release();
+         }
+      }
    }
 }
