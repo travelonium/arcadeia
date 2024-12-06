@@ -13,6 +13,48 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 @import "~bootstrap/scss/bootstrap";
 @import "~bootswatch/dist/spacelab/bootswatch";
 
+.logo-text {
+
+    $blue: #1871b9;
+    $red: #e34220;
+    $yellow: #f4ce0c;
+    $green: #17b152;
+
+    /* fill: $green; */
+
+    .a-1 {
+        fill: $red;
+    }
+
+    .r {
+        fill: $red;
+    }
+
+    .c {
+        fill: $yellow;
+    }
+
+    .a-2 {
+        fill: $yellow;
+    }
+
+    .d {
+        fill: $green;
+    }
+
+    .e {
+        fill: $green;
+    }
+
+    .i {
+        fill: $blue;
+    }
+
+    .a-3 {
+        fill: $blue;
+    }
+}
+
 .breadcrumb {
     border: 1px solid rgba($secondary, .25);
     border-radius: var(--bs-border-radius);
@@ -154,6 +196,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 }
 
 .toolbar {
+
     .flag,
     .icon,
     .button {
@@ -181,6 +224,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 
     :disabled {
+
         .flag,
         .icon {
             opacity: $btn-disabled-opacity;
@@ -381,7 +425,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
                 left: 10px;
             }
 
-            .thumbnail.childless ~ .type {
+            .thumbnail.childless~.type {
                 display: none;
             }
         }
@@ -540,9 +584,10 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
             @media all and (hover: hover) {
 
                 &:not(:hover) {
+
                     // in case of drives, servers and folders, hide the name and description when not hovered only when they have a thumbnail
                     @at-root .drive#{&}, .server#{&}, .folder#{&} {
-                        :not(.thumbnail-container:has(.thumbnail.childless)) ~ .content-container {
+                        :not(.thumbnail-container:has(.thumbnail.childless))~.content-container {
                             opacity: 0.0;
                         }
                     }
@@ -604,6 +649,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
     &.folder {
         .card {
+
             .card-title,
             .card-text {
                 text-align: center;
@@ -794,8 +840,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
-/*
-@-webkit-keyframes spinner {
+@-webkit-keyframes spinner-svg {
     0% {
         -webkit-transform: rotate(0deg);
         transform: rotate(0deg);
@@ -807,7 +852,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
-@keyframes spinner {
+@keyframes spinner-svg {
     0% {
         -webkit-transform: rotate(0deg);
         transform: rotate(0deg);
@@ -819,24 +864,12 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
-.spinner::after {
-    -webkit-animation: spinner 1s linear infinite;
-    animation: spinner 1s linear infinite;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-left-color: rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    content: '';
-    display: inline-block;
-    height: 40px;
-    left: 50%;
-    margin-left: -20px;
-    margin-top: -20px;
-    position: absolute;
-    top: 50%;
-    width: 40px;
-    z-index: 1;
+.spinner-svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    -webkit-animation: spinner-svg 0.5s linear infinite;
+    animation: spinner-svg 0.5s linear infinite;
 }
-*/
 
 :root {
     overflow: hidden;
@@ -857,8 +890,12 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
 .scanner-progress-subtitle {
     display: -webkit-box;
+    display: box;
+    display: flex;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
+    box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2em;
