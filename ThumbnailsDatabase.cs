@@ -1,105 +1,52 @@
-﻿using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+﻿using MediaCurator.Configuration;
 using Microsoft.Data.Sqlite;
-using System.Diagnostics;
-using System.Data.Common;
+using Microsoft.Extensions.Options;
 
 namespace MediaCurator
 {
    class ThumbnailsDatabase : IThumbnailsDatabase
    {
-      private readonly IConfiguration _configuration;
+      private readonly IOptionsMonitor<Settings> _settings;
 
       private readonly ILogger<ThumbnailsDatabase> _logger;
 
-      private static readonly string[] ThumbnailsSections = ["Thumbnails:Video", "Thumbnails:Photo", "Thumbnails:Audio"];
+      public readonly Dictionary<string, string> Columns = [];
 
-      private Lazy<string> _path => new(() =>
-      {
-         var path = _configuration["Thumbnails:Database:Path"];
-
-         return path ?? throw new InvalidOperationException("Thumbnails database path is not configured.");
-      });
-
-      private Lazy<string> _fullPath => new(_configuration["Thumbnails:Database:Path"] + Platform.Separator.Path + _configuration["Thumbnails:Database:Name"]);
-
-      private Dictionary<string, string> _columns = new();
-
-      private Lazy<string> _connectionString => new(new SqliteConnectionStringBuilder
+      private string ConnectionString => new(new SqliteConnectionStringBuilder
       {
          Pooling = true,
          DataSource = FullPath,
          Cache = SqliteCacheMode.Shared,
       }.ToString());
 
-      private Lazy<int> _maximum => new(() =>
-      {
-         int maximum = 0;
-
-         foreach (var name in ThumbnailsSections)
-         {
-            var section = _configuration.GetSection(name);
-
-            if (section.Exists())
-            {
-               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
-               {
-                  if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
-                  {
-                     maximum = Math.Max(count, maximum);
-                  }
-               }
-            }
-         }
-
-         return maximum;
-      });
-
       /// <summary>
       /// The directory in which where the database file is to be found or created.
       /// </summary>
-      public string Path
-      {
-         get
-         {
-            return _path.Value;
-         }
-      }
+      public string Path => _settings.CurrentValue.Thumbnails.Database.Path;
 
       /// <summary>
       /// The full path to the database file.
       /// </summary>
-      public string FullPath
-      {
-         get
-         {
-            return _fullPath.Value;
-         }
-      }
+      public string FullPath => System.IO.Path.Combine(_settings.CurrentValue.Thumbnails.Database.Path, _settings.CurrentValue.Thumbnails.Database.Name);
 
       /// <summary>
       /// The maximum count of thumbnails the database is able to store.
       /// </summary>
-      public int Maximum
+      public int Count => new[]
       {
-         get
-         {
-            return _maximum.Value;
-         }
+         _settings.CurrentValue.Thumbnails.Video,
+         _settings.CurrentValue.Thumbnails.Photo,
+         _settings.CurrentValue.Thumbnails.Audio
       }
+      .SelectMany(x => x.Values).Where(x => !x.Sprite && x.Count > 0).Max(x => x.Count);
 
       /// <summary>
       /// Initializes a new instance of the <see cref="ThumbnailsDatabase"/> class.
       /// </summary>
-      public ThumbnailsDatabase(IConfiguration configuration, ILogger<ThumbnailsDatabase> logger)
+      public ThumbnailsDatabase(IOptionsMonitor<Settings> settings, ILogger<ThumbnailsDatabase> logger)
       {
          _logger = logger;
-         _configuration = configuration;
+         _settings = settings;
 
          // Check if the Thumbnails Database file already exists.
          if (!File.Exists(FullPath))
@@ -110,7 +57,7 @@ namespace MediaCurator
                Directory.CreateDirectory(Path);
 
                // Create the new database file
-               using SqliteConnection connection = new(_connectionString.Value);
+               using SqliteConnection connection = new(ConnectionString);
                connection.Open();
 
                _logger.LogInformation("Thumbnails Database Created: {}", FullPath);
@@ -125,7 +72,7 @@ namespace MediaCurator
          UpdateDatabaseLayout();
 
          // Retrieve and store the list of all the columns
-         _columns = GetColumns("Thumbnails");
+         Columns = GetColumns("Thumbnails");
       }
 
       /// <summary>
@@ -160,7 +107,7 @@ namespace MediaCurator
          string column = "T" + index.ToString();
          string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE ID='" + id + "'";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);
@@ -178,7 +125,7 @@ namespace MediaCurator
          string column = label.ToUpper();
          string sql = "UPDATE Thumbnails SET " + column + "= @" + column + " WHERE ID='" + id + "'";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);
@@ -192,9 +139,9 @@ namespace MediaCurator
          byte[] thumbnail = Array.Empty<byte>();
          string sql = "SELECT " + column + " FROM Thumbnails WHERE ID='" + id + "'";
 
-         if (!_columns.ContainsKey(column)) return thumbnail;
+         if (!Columns.ContainsKey(column)) return thumbnail;
 
-         using (SqliteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(ConnectionString))
          {
             connection.Open();
 
@@ -233,9 +180,9 @@ namespace MediaCurator
          byte[] thumbnail = Array.Empty<byte>();
          string sql = "SELECT " + column + " FROM Thumbnails WHERE ID='" + id + "'";
 
-         if (!_columns.ContainsKey(column)) return thumbnail;
+         if (!Columns.ContainsKey(column)) return thumbnail;
 
-         using (SqliteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(ConnectionString))
          {
             await connection.OpenAsync(cancellationToken);
 
@@ -278,7 +225,7 @@ namespace MediaCurator
          int count = 0;
          string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
 
-         using (SqliteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(ConnectionString))
          {
             connection.Open();
 
@@ -287,7 +234,7 @@ namespace MediaCurator
 
             while (reader.Read())
             {
-               for (int i = 0; i < Maximum; i++)
+               for (int i = 0; i < Count; i++)
                {
                   string column = "T" + i.ToString();
                   int ordinal = reader.GetOrdinal(column);
@@ -314,7 +261,7 @@ namespace MediaCurator
          var columns = new List<string>();
          string sql = "SELECT * FROM Thumbnails WHERE ID='" + id + "'";
 
-         using (SqliteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(ConnectionString))
          {
             connection.Open();
 
@@ -323,7 +270,7 @@ namespace MediaCurator
 
             while (reader.Read())
             {
-               foreach (var column in _columns.Keys)
+               foreach (var column in Columns.Keys)
                {
                   int ordinal = reader.GetOrdinal(column);
 
@@ -368,7 +315,7 @@ namespace MediaCurator
                throw new ArgumentException(string.Format("The {0} is an invalid journal mode!", mode));
          }
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
 
          connection.Open();
 
@@ -381,7 +328,7 @@ namespace MediaCurator
       {
          string sql = string.Format("PRAGMA wal_checkpoint{0};", (argument.Length > 0) ? "(PASSIVE)" : "");
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
 
          connection.Open();
 
@@ -394,7 +341,7 @@ namespace MediaCurator
       {
          string sql = "VACUUM;";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
 
          connection.Open();
 
@@ -428,34 +375,36 @@ namespace MediaCurator
          }
 
          // Add the thumbnails columns as configured
-         foreach (var name in ThumbnailsSections)
+         var formats = new[]
          {
-            var section = _configuration.GetSection(name);
+            _settings.CurrentValue.Thumbnails.Video,
+            _settings.CurrentValue.Thumbnails.Photo,
+            _settings.CurrentValue.Thumbnails.Audio
+         };
 
-            if (section.Exists())
+         foreach (var items in formats)
+         {
+            foreach (var item in items)
             {
-               foreach (var item in section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [])
+               if (item.Value.Count > 0 && !item.Value.Sprite)
                {
-                  if (item.Value.TryGetValue("Count", out int count) && !item.Value.ContainsKey("Sprite"))
+                  for (int i = 0; i < item.Value.Count; i++)
                   {
-                     for (int i = 0; i < count; i++)
-                     {
-                        string column = item.Key.ToUpper() + i.ToString();
-
-                        if (!ColumnExists("Thumbnails", column))
-                        {
-                           AddColumn("Thumbnails", column, "BLOB");
-                        }
-                     }
-                  }
-                  else
-                  {
-                     string column = item.Key.ToUpper();
+                     string column = item.Key.ToUpper() + i.ToString();
 
                      if (!ColumnExists("Thumbnails", column))
                      {
                         AddColumn("Thumbnails", column, "BLOB");
                      }
+                  }
+               }
+               else
+               {
+                  string column = item.Key.ToUpper();
+
+                  if (!ColumnExists("Thumbnails", column))
+                  {
+                     AddColumn("Thumbnails", column, "BLOB");
                   }
                }
             }
@@ -471,7 +420,7 @@ namespace MediaCurator
       {
          string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '" + table + "'";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
 
          connection.Open();
 
@@ -491,7 +440,7 @@ namespace MediaCurator
       {
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
 
          connection.Open();
 
@@ -522,7 +471,7 @@ namespace MediaCurator
       {
          string sql = "SELECT COUNT(*) FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);
@@ -541,7 +490,7 @@ namespace MediaCurator
          Dictionary<string, string> columns = [];
          string sql = "PRAGMA table_info( " + table + " )";
 
-         using (SqliteConnection connection = new(_connectionString.Value))
+         using (SqliteConnection connection = new(ConnectionString))
          {
             connection.Open();
 
@@ -574,7 +523,7 @@ namespace MediaCurator
       {
          string sql = "CREATE TABLE Thumbnails (ID text primary key not null)";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);
@@ -591,7 +540,7 @@ namespace MediaCurator
       {
          string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);
@@ -602,7 +551,7 @@ namespace MediaCurator
       {
          string sql = "INSERT INTO " + table + " (" + column + ") VALUES (@" + column + ")";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);
@@ -616,7 +565,7 @@ namespace MediaCurator
       {
          string sql = "DELETE FROM " + table + " WHERE " + column + "='" + value + "'";
 
-         using SqliteConnection connection = new(_connectionString.Value);
+         using SqliteConnection connection = new(ConnectionString);
          connection.Open();
 
          using SqliteCommand command = new(sql, connection);

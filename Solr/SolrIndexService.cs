@@ -1,26 +1,26 @@
 ﻿using SolrNet;
 using SolrNet.Exceptions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.Json;
-using System.Collections.Generic;
-using System.Threading;
-using System.Xml.Linq;
 using SolrNet.Commands.Parameters;
+using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
 
 namespace MediaCurator.Solr
 {
-   public class SolrIndexService<T, TSolrOperations> : ISolrIndexService<T> where TSolrOperations : ISolrOperations<T>
+   public class SolrIndexService<T, TSolrOperations>(ISolrOperations<T> solr,
+                                                     IHttpClientFactory factory,
+                                                     IOptionsMonitor<Settings> settings,
+                                                     ILogger<SolrIndexService<T, TSolrOperations>> logger) : ISolrIndexService<T>
+                                                     where TSolrOperations : ISolrOperations<T>
+                                                     where T : Models.MediaContainer
    {
-      private readonly TSolrOperations Solr;
+      private readonly TSolrOperations Solr = (TSolrOperations)solr;
 
-      private readonly IConfiguration Configuration;
+      private readonly IOptionsMonitor<Settings> Settings = settings;
 
-      private readonly IHttpClientFactory Factory;
+      private readonly IHttpClientFactory Factory = factory;
 
-      private readonly ILogger<SolrIndexService<T, TSolrOperations>> Logger;
+      private readonly ILogger<SolrIndexService<T, TSolrOperations>> Logger = logger;
 
       private readonly Dictionary<string, Dictionary<string, object>> Types = new()
       {
@@ -357,21 +357,8 @@ namespace MediaCurator.Solr
       {
          get
          {
-            var url = Configuration.GetSection("Solr:URL").Get<string>();
-
-            return url ?? throw new InvalidOperationException("The Solr URL is not configured.");
+            return Settings.CurrentValue.Solr.URL;
          }
-      }
-
-      public SolrIndexService(ISolrOperations<T> solr,
-                              IHttpClientFactory factory,
-                              IConfiguration configuration,
-                              ILogger<SolrIndexService<T, TSolrOperations>> logger)
-      {
-         Logger = logger;
-         Factory = factory;
-         Configuration = configuration;
-         Solr = (TSolrOperations)solr;
       }
 
       public SolrQueryResults<T> Get(string field, string value)
@@ -458,8 +445,17 @@ namespace MediaCurator.Solr
          {
             SolrQueryResults<T> documents = Solr.Query(new SolrHasValueQuery("dateAccessed"), new QueryOptions
             {
-               Fields = new[] { "id" }
+               Fields = ["id"]
             });
+
+            if (documents.Count == 0)
+            {
+               return true;
+            }
+
+            var updates = documents.Where(document => !string.IsNullOrEmpty(document.Id)).ToList().Select(document => new KeyValuePair<string, IEnumerable<AtomicUpdateSpec>>(
+               document.Id!, [new AtomicUpdateSpec("dateAccessed", AtomicUpdateType.Set, null as string)]
+            )).ToList();
 
             foreach (var document in documents)
             {
@@ -638,7 +634,7 @@ namespace MediaCurator.Solr
          }
 
          var copyFields = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(copyFieldsJson) ?? throw new InvalidOperationException("Failed to deserialize copy fields data.");
-            foreach (var item in copyFields)
+         foreach (var item in copyFields)
          {
             if (item.TryGetValue("dest", out var fieldName) && fieldName?.ToString() == name)
             {

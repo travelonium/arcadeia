@@ -1,39 +1,14 @@
-import { createSlice } from '@reduxjs/toolkit';
 import initialState from './initialState';
+import { createSlice } from '@reduxjs/toolkit';
 
 export const searchSlice = createSlice({
     name: 'search',
     initialState: initialState,
     reducers: {
-        setPath: (state, action) => {
-            return {
-                ...state,
-                path: action.payload,
-                query: initialState.query,
-            }
-        },
-        setQuery: (state, action) => {
-            return {
-                ...state,
-                query: action.payload,
-            }
-        },
-        setFavorite: (state, action) => {
-            return {
-                ...state,
-                favorite: action.payload,
-            }
-        },
-        setRecursive: (state, action) => {
-            return {
-                ...state,
-                recursive: action.payload,
-            }
-        },
         setSort: (state, action) => {
             const path = action.payload?.path;
             const search = path === "search";
-            let newState = {
+            const newState = {
                 ...state,
                 sort: {
                     ...state.sort,
@@ -51,7 +26,7 @@ export const searchSlice = createSlice({
         },
         resetSort: (state, action) => {
             const path = action.payload?.path;
-            let newState = {
+            const newState = {
                 ...state,
                 sort: {
                     ...state.sort,
@@ -83,35 +58,9 @@ export const searchSlice = createSlice({
                 }
             }
         },
-        reset: (state, action) => {
-            let path = action.payload?.split('?')[0];
-            let params = new URLSearchParams(action.payload?.split('?')[1] ?? window.location.search);
-            let query = params.get("query");
-            let flags = parseInt(params.get("flags"));
-            let values = parseInt(params.get("values"));
-            let recursive = params.get("recursive");
-            let newState = {
-                ...state,
-                query: query ?? initialState.query,
-                path: path ?? initialState.path
-            };
-            if (flags && values) {
-                if (flags & (1 << 1)) {
-                    newState.favorite = ((values & (1 << 1)) !== 0);
-                }
-            } else {
-                newState.favorite = initialState.favorite;
-            }
-            if (recursive) {
-                newState.recursive = (recursive === "true");
-            } else {
-                newState.recursive = initialState.recursive;
-            }
-            return newState;
-        },
     },
 });
 
 const { actions, reducer } = searchSlice;
-export const { setPath, setQuery, setFavorite, setRecursive, setSort, resetSort, setSortFields, setSortDirection, reset } = actions;
+export const { setSort, resetSort, setSortFields, setSortDirection } = actions;
 export default reducer;

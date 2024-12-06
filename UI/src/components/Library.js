@@ -9,18 +9,14 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
-import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
-import { clone, extract, size, updateBit, querify } from './../utils';
-import { reset, setPath } from '../features/search/slice';
+import { clone, extract, size, querify, shorten, withRouter, isEqualExcluding, getFlag } from './../utils';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { UploadZone } from './UploadZone';
-import { useParams } from "react-router";
 import { toast } from 'react-toastify';
-import { isEqual, omit } from 'lodash';
 import { connect } from "react-redux";
-import * as pb from 'path-browserify';
+import { isEqual } from 'lodash';
+import pb from 'path-browserify';
 import cx from 'classnames';
 import axios from 'axios';
 
@@ -34,9 +30,9 @@ class Library extends Component {
         this.current = -1;          // the current item index being viewed in the MediaViewer
         this.viewing = false;       // indicates that a media is being viewed in the MediaViewer
         this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
-        this.history = false;       // notifies the search function that the call is coming from the history
         this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
         this.grid = React.createRef();
+        this.uploadZone = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
         this.controller = new AbortController();
@@ -45,12 +41,10 @@ class Library extends Component {
         this.storeScrollPositionTimeout = null;
         this.uploadTimeout = null;
         this.signalRConnection = null;
-        this.scannerProgressToast = null;
-        this.lastScannerProgressToastShowed = 0;
         this.state = {
             loading: false,
             status: "",
-            items: [],
+            items: null,    // a null value indicates that no search has yet been performed
             uploads: {
                 total: 0,
                 queued: [],
@@ -72,235 +66,148 @@ class Library extends Component {
                         hasTooltip: true,
                     },
                 }
-            },
-            scanner: {
-                scan: {
-                    uuid: null,
-                    title: null,
-                    path: null,
-                    item: null,
-                    index: null,
-                    total: null
-                },
-                update: {
-                    uuid: null,
-                    title: null,
-                    item: null,
-                    index: null,
-                    total: null
-                }
             }
         };
+    }
+
+    get pathname() {
+        try {
+            return decodeURI(this.props?.location?.pathname || "");
+        } catch (error) {
+            console.error('Error decoding the URI:', error);
+            return null;
+        }
+    }
+
+    get path() {
+        return this.getPath(this.props?.location?.pathname);
+    }
+
+    get name() {
+        return this.getName(this.props?.location?.pathname)
+    }
+
+    get query() {
+        return this.props.searchParams.get('query');
+    }
+
+    get favorite() {
+        return this.getFlag(1);
+    }
+
+    get recursive() {
+        return this.props.searchParams.get("recursive") === "true";
+    }
+
+    get searching() {
+        return this.props.searchParams.get('query') ? true : false;
     }
 
     componentDidMount() {
         // install the event handler for keydown keyboard events
         document.addEventListener('keydown', this.onKeyDown.bind(this));
-        // handle the startup query parsing
-        let path = "/" + extract("", this.props, "match", "params", "*") + window.location.search;
-        this.props.dispatch(reset(path));
-        // handles the browser history operations
-        window.onpopstate = (event) => {
-            this.history = true;
-            this.props.dispatch(reset(extract("", event, "state", "path")));
-            this.mediaViewer.current.hide();
-        };
-        // create the signalR connection and setup notifications
-        this.setupSignalRConnection(this.setupNotifications.bind(this));
+        // perform a refresh on load
+        this.refresh((succeeded) => {
+            const name = this.name;
+            if (succeeded) {
+                const index = this.state.items.findIndex(x => x.name === name);
+                if (index !== -1) {
+                    this.view(this.state.items[index], index);
+                }
+            }
+        })
+    }
+
+    componentWillUnmount() {
+        // remove the installed event handler
+        document.removeEventListener('keydown', this.onKeyDown.bind(this));
     }
 
     shouldComponentUpdate(nextProps, nextState) {
-        let selectedNextProps = nextProps;
-        let selectedCurrentProps = this.props;
-        let selectedNextState = clone(nextState);
-        let selectedCurrentState = clone(this.state);
-        // ignore the keys that shouldn't cause a reload
-        selectedNextState = omit(selectedNextState, ['uploads', 'scanner']);
-        selectedCurrentState = omit(selectedCurrentState, ['uploads', 'scanner']);
-        // ignore the scrollPosition key as its changes shouldn't cause a reload
-        let should = (isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition)) &&
-                     (!isEqual(selectedCurrentProps, selectedNextProps) || (!isEqual(selectedCurrentState, selectedNextState)));
-        return should;
+        const currentProps = this.props;
+        const currentState = this.state;
+
+        const nextPath = this.getPath(nextProps?.location?.pathname);
+        const nextName = this.getName(nextProps?.location?.pathname);
+        const currentPath = this.getPath(currentProps?.location?.pathname);
+        const currentName = this.getName(currentProps?.location?.pathname);
+
+        // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
+        const didMediaViewerShowOrHide = (currentPath === nextPath) && ((currentName && !nextName) || (!currentName && nextName));
+
+        // was this triggered by a browser back / forward?
+        const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
+
+        // determine if the scroll position remains unchanged
+        const didScrollPositionChange = !isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition);
+
+        // check if significant differences exist in props or state, excluding specific keys
+        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef');
+        const hasStateChanged = !isEqualExcluding(currentState, nextState, 'uploads');
+
+        const shouldUpdate = (!didMediaViewerShowOrHide || wasBrowserBackOrForward) && !didScrollPositionChange && (havePropsChanged || hasStateChanged);
+
+        return shouldUpdate;
     }
 
     componentDidUpdate(prevProps) {
-        const history = this.history;
-        if (!isEqual(this.props.search, prevProps.search)) {
-            this.refresh((succeeded, name) => {
-                if (succeeded && name) {
-                    const index = this.state.items.findIndex(x => x.name === name);
-                    if (index !== -1) {
-                        this.view(this.state.items[index], index, true, history);
+        const currentPath = this.path;
+        const prevPath = this.getPath(prevProps?.location?.pathname);
+        if (this.state.items == null ||
+            !isEqualExcluding(prevProps.location, this.props.location, 'key') ||
+            !isEqual(prevProps.search, this.props.search)) {
+            const name = this.name;
+            if (name && (prevPath === currentPath)) {
+                // the path has not changed since last update, no refresh necessary
+                const index = this.state.items.findIndex(x => x.name === name);
+                if (index !== -1) {
+                    this.view(this.state.items[index], index);
+                }
+            } else {
+                // hide the media viewer in case this is a history event
+                this.mediaViewer.current.hide();
+
+                // the path has changed since last update refresh and view
+                this.refresh((succeeded) => {
+                    if (succeeded && name) {
+                        const index = this.state.items.findIndex(x => x.name === name);
+                        if (index !== -1) {
+                            this.view(this.state.items[index], index);
+                        }
                     }
-                }
-            })
-        }
-    }
-
-    setupNotifications(connection) {
-        connection.on("Refresh", (path) => {
-            this.refresh();
-        });
-        connection.on("ShowScanProgress", (uuid, title, path, item, index, total) => {
-            const value = {
-                uuid: uuid,
-                title: title,
-                path: path,
-                item: item,
-                index: index,
-                total: total
-            };
-            this.setState(prevState => {
-                return {
-                    ...prevState,
-                    scanner: update(prevState.scanner, {
-                        $merge: {
-                            scan: update(prevState.scanner.scan, {
-                                $merge: value
-                            })
-                        }
-                    })
-                }
-            }, () => {
-                this.showScannerProgressToast(value);
-            });
-        });
-        connection.on("ShowUpdateProgress", (uuid, title, item, index, total) => {
-            const value = {
-                uuid: uuid,
-                title: title,
-                item: item,
-                index: index,
-                total: total
-            };
-            this.setState(prevState => {
-                return {
-                    ...prevState,
-                    scanner: update(prevState.scanner, {
-                        $merge: {
-                            update: update(prevState.scanner.update, {
-                                $merge: value
-                            })
-                        }
-                    })
-                }
-            }, () => {
-                this.showScannerProgressToast(value);
-            });
-        });
-    }
-
-    setupSignalRConnection(callback = undefined) {
-        const connection = new HubConnectionBuilder()
-                               .withUrl("/signalr", { transport: HttpTransportType.WebSockets })
-                               .withAutomaticReconnect()
-                               .withHubProtocol(new MessagePackHubProtocol())
-                               .configureLogging(LogLevel.Information)
-                               .build();
-        connection.start()
-        .then(() => {
-            this.signalRConnection = connection;
-            if (callback !== undefined) {
-                callback(connection);
-            }
-        })
-        .catch(error => console.error("Error while starting a SignalR connection: ", error));
-    }
-
-    showScannerProgressToast(state) {
-        const { index, total, title, item } = state || {};
-        if ([index, total, title, item].some(value => value == null)) return;
-        const interval = 10; // the throttling interval in ms
-        const now = Date.now();
-        if ((now - this.lastScannerProgressToastShowed < interval) && (index > 0) && ((index + 1) < total)) return;
-        const progress = (index + 1) / total;
-        const render = this.renderScannerProgressToast(`${title}...`, item, 100);
-        if (!this.scannerProgressToast) {
-            this.scannerProgressToast = toast.info(render,
-            {
-                theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
-                progress: progress,
-                icon: <div className="Toastify__spinner"></div>,
-                type: (progress === 1) ? 'success' : 'info',
-            });
-        } else {
-            toast.update(this.scannerProgressToast, {
-                render: render,
-                progress: progress,
-                type: (progress === 1) ? 'success' : 'info',
-            });
-        }
-        if (progress === 1) {
-            if (toast.isActive(null)) toast.dismiss(this.scannerProgressToast);
-            this.scannerProgressToast = null;
-        }
-        this.lastScannerProgressToastShowed = now;
-    }
-
-    shorten(input, length) {
-        if (input.length <= length) return input;
-
-        const ellipsis = "...";
-        const isURL = /^(https?:\/\/)/.test(input);
-
-        let protocol = "";
-        let domain = "";
-        let path = "";
-        let fileName = input;
-
-        if (isURL) {
-            // handle URLs
-            const matches = input.match(/^(https?:\/\/)([^/]+)(\/?.*?)($|\?)/);
-            if (matches) {
-                protocol = matches[1]; // e.g., "http://"
-                domain = matches[2];   // e.g., "example.com"
-                path = matches[3];     // e.g., "/path/to/resource"
-                const parts = path.split("/");
-                fileName = parts.pop(); // extract file name or last path segment
-                path = parts.join("/") + (parts.length ? "/" : "");
-            }
-        } else if (input.includes("/")) {
-            // handle file paths
-            const parts = input.split("/");
-            fileName = parts.pop();
-            path = parts.join("/") + "/";
-        }
-
-        // calculate the base length (protocol + domain + ellipsis if there's a path + file name)
-        const baseLength = protocol.length + domain.length + (path ? ellipsis.length : 0) + fileName.length;
-
-        if (baseLength > length) {
-            // if the file name alone exceeds the length, truncate the file name
-            const extIndex = fileName.lastIndexOf(".");
-            const ext = extIndex !== -1 ? fileName.substring(extIndex) : "";
-            const namePart = fileName.substring(0, fileName.length - ext.length);
-            const truncatedName = namePart.substring(0, length - ellipsis.length - ext.length - 1) + "…" + ext;
-            return protocol + domain + truncatedName;
-        }
-
-        // calculate the remaining length for the path
-        const remainingLength = length - baseLength;
-        let shortenedPath = path;
-
-        if (path.length > remainingLength) {
-            // ensure truncation doesn't remove trailing slash after directories
-            const parts = path.split("/");
-            let totalLength = 0;
-            shortenedPath = "";
-
-            for (let i = 0; i < parts.length; i++) {
-                const part = parts[i];
-                const partWithSlash = part + "/";
-                if (totalLength + partWithSlash.length > remainingLength) {
-                    shortenedPath += ellipsis;
-                    break;
-                }
-                shortenedPath += partWithSlash;
-                totalLength += partWithSlash.length;
+                })
             }
         }
+    }
 
-        return protocol + domain + shortenedPath + fileName;
+    getPath(pathname) {
+        try {
+            const decodedPath = decodeURI(pathname || "");
+            const components = decodedPath.match(/(.*\/)(.*)?/);
+            if (components) return components[1];
+            return null;
+        } catch (error) {
+            console.error('Error decoding the URI:', error);
+            return null;
+        }
+    }
+
+    getName(pathname) {
+        try {
+            const decodedPath = decodeURI(pathname || "");
+            const components = decodedPath.match(/(.*\/)(.*)?/);
+            if (components) return components[2];
+            return null;
+        } catch (error) {
+            console.error('Error decoding the URI', error);
+            return null;
+        }
+    }
+
+    getFlag(bit) {
+        const flags = parseInt(this.props.searchParams.get("flags") ?? 0);
+        const values = parseInt(this.props.searchParams.get("values") ?? 0);
+        return getFlag(flags, values, bit) ?? false;
     }
 
     set(index, source, refresh = true, callback = undefined) {
@@ -319,7 +226,7 @@ class Library extends Component {
         } else {
             // eslint-disable-next-line
             this.state.items = items;
-            this.mediaContainers[index].current.set(source, (_) => {
+            this.mediaContainers[index]?.current.set(source, (_) => {
                 if (callback !== undefined) {
                     callback(this.state.items[index], true);
                 }
@@ -341,35 +248,12 @@ class Library extends Component {
         });
     }
 
-
-    list(path = undefined, callback = undefined) {
-        const components = this.props.search.path.match(/(.*\/)(.*)?/);
-        if (!path && components) path = components[1];
-        this.search(path, 0, callback);
-    }
-
     refresh(callback = undefined) {
-        if (this.props.search.query) {
-            this.search(null, 0, (succeeded, name) => {
-                if (callback !== undefined) {
-                    callback(succeeded, name);
-                }
-
-            });
-        } else {
-            const components = this.props.search.path.match(/(.*\/)(.*)?/);
-            if (components) {
-                const path = components[1];
-                const name = components[2];
-                this.list(path, (succeeded, _) => {
-                    if (callback !== undefined) {
-                        callback(succeeded, name);
-                    }
-                });
-            } else {
-                this.list(this.props.search.path);
+        this.search(this.path, 0, (succeeded) => {
+            if (callback !== undefined) {
+                callback(succeeded);
             }
-        }
+        });
     }
 
     /**
@@ -389,7 +273,7 @@ class Library extends Component {
             toast.error("Unable to find the item that was to be updated.");
             return;
         }
-        fetch("/library" + item.fullPath, {
+        fetch("/api/library" + item.fullPath, {
             method: "PATCH",
             headers: {
                 accept: "application/json",
@@ -418,48 +302,18 @@ class Library extends Component {
         });
     }
 
-    search(browse = null, start = 0, callback = undefined) {
+    search(path = this.path, start = 0, callback = undefined) {
         const rows = 10000;
-        let path = browse;
-        let name = null;
-        const components = this.props.search.path.match(/(.*\/)(.*)?/);
-        if (!browse && components) {
-            // this seems to be a search with a query, extract the required details
-            path = components[1];
-            name = components[2];
-        }
-        if (!path) return;
-        let history = this.history;
-        let params = new URLSearchParams();
-        let query = browse ? "*" : this.props.search.query;
-        let flags = parseInt(params.get("flags") ?? 0);
-        let values = parseInt(params.get("values") ?? 0);
-        if (!browse) {
-            // update the query parameter
-            params.set("query", query);
-        }
-        let deleted = false;
-        let favorite = this.props.search.favorite;
-        let recursive = this.props.search.recursive;
-        // update the recursive parameter
-        params.set("recursive", recursive);
-        // update the favorite flags parameters
-        flags = updateBit(flags, 1, favorite);
-        values = updateBit(values, 1, favorite);
-        // update the deleted flags bits to exclude the deleted files
-        flags = updateBit(flags, 0, deleted);
-        values = updateBit(values, 0, deleted);
-        if (flags) {
-            params.set("flags", flags);
-        }
-        if (values) {
-            params.set("values", values);
-        }
+        const deleted = false;
+        const searching = this.searching;
+        const query = searching ? this.query : "*";
+        const recursive = this.recursive;
+        const favorite = this.favorite;
         let solr = "/solr/Library/select";
         if (process.env.NODE_ENV !== "production") {
             solr = "http://localhost:8983/solr/Library/select";
         }
-        const sort = (browse ? this.props.search.sort[this.props.search.path] : this.props.search.sort['search']) ?? this.props.search.sort;
+        const sort = (searching ? this.props.search.sort['search'] : this.props.search.sort[path]) ?? this.props.search.sort;
         const input = {
             q: query,
             fq: [],
@@ -472,7 +326,7 @@ class Library extends Component {
             wt: "json",
             sort: this.sort(sort.fields, sort.direction),
             children: {
-                q: "{!terms f=parent v=$row.id}",
+                q: "{!prefix f=path v=$row.fullPath}",
                 fq: ["-type:Folder", "-type:Drive", "-type:Server"],
                 sort: "views desc, dateAdded asc, name asc",
                 rows: 3,
@@ -486,13 +340,11 @@ class Library extends Component {
         } else {
             input.fq.push("-flags:Deleted");
         }
-        if (!recursive || browse) {
+        if (!recursive || !searching) {
             input.fq.push("path:\"" + path.split('?')[0] + "\"");
         } else {
             input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
         }
-        path = path.split('?')[0] + (params.toString() ? ("?" + params.toString()) : "");
-        this.history = false;
         this.controller.abort();
         this.controller = new AbortController();
         // clear the update scroll position timeout, it's too late to do that
@@ -503,12 +355,9 @@ class Library extends Component {
         }
         this.setState({
             items: [],
-            path: path,
             loading: true,
             status: "Requesting",
         }, () => {
-            // change the url and the history before going any further
-            if (!history && !start) window.history.pushState({path: path}, "", path);
             fetch(solr + "?" + querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
@@ -548,15 +397,14 @@ class Library extends Component {
                     items: more ? this.state.items : this.items
                 }, () => {
                     if (more) {
-                        this.search(browse, start + rows);
+                        this.search(path, start + rows);
                     } else {
-                        let searching = this.props.search.query ? true : false;
-                        let index = searching ? 0 : extract(0, this.props.ui.scrollPosition, this.props.search.path);
+                        let index = (searching ? 0 : this.props.ui.scrollPosition[path]) ?? 0;
                         this.showScrollToTop((index && !searching) ? true : false);
                         this.scrollToItem(index);
                         this.items = [];
                         if (callback !== undefined) {
-                            callback(true, name);
+                            callback(true);
                         }
                     }
                 });
@@ -699,7 +547,7 @@ class Library extends Component {
                     }
                 }
             };
-            let traverse = (item, path = this.props.search.path) => {
+            let traverse = (item, path = this.path) => {
                 if (item.isFile) {
                     item.file(file => process(file, path));
                 } else if (item.isDirectory) {
@@ -715,12 +563,12 @@ class Library extends Component {
                 if (item.webkitGetAsEntry) item = item.webkitGetAsEntry();
                 if (item === null) return;
                 if (typeof item === 'string') {
-                    process(item, this.props.search.path);
+                    process(item, this.path);
                 } else if (item.isDirectory) {
                     traverse(item);
                 } else {
-                    if (item instanceof File) process(item, this.props.search.path);
-                    else item.file(file => process(file, this.props.search.path));
+                    if (item instanceof File) process(item, this.path);
+                    else item.file(file => process(file, this.path));
                 }
             });
             return;
@@ -809,18 +657,19 @@ class Library extends Component {
                 },
                 onUploadProgress: this.onUploadFileProgress.bind(this, key, file, index),
             };
-            let params = new URLSearchParams();
-            params.set('overwrite', this.props.ui.uploads.overwrite);
-            params.set('duplicate', this.props.ui.uploads.duplicate);
-            axios.post("/library" + path + "?" + params.toString(), data, config)
+            const target = new URL("/api/library" + path, window.location.origin);
+            target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
+            target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
+            axios.post(target.toString(), data, config)
             .then((response) => {
                 let name = extract(file.name, response, 'data', 0, 'name');
                 toast.update(extract(null, this.state.uploads.active, key, 'toast'), {
-                    progress: 1,
-                    theme: null,
-                    render: this.renderUploadToast.bind(this, prefix + "Complete", name),
-                    type: 'success',
                     icon: null,
+                    theme: null,
+                    progress: null,
+                    autoClose: null,
+                    type: 'success',
+                    render: this.renderUploadToast.bind(this, prefix + "Complete", name),
                 });
                 // remove the successfully uploaded item from the list of active uploads
                 this.setState(prevState => {
@@ -836,7 +685,7 @@ class Library extends Component {
                     }
                 }, () => {
                     // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
-                    if ((path === this.props.search.path) || pb.normalize(pb.dirname(path) + "/") === this.props.search.path) {
+                    if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
                         this.refresh((succeeded) => {
                             if (succeeded) {
                                 const index = this.state.items.findIndex(x => x.name === file.name);
@@ -862,11 +711,11 @@ class Library extends Component {
                     // well, something else must've happened
                 }
                 toast.update(toastId, {
+                    icon: null,
                     progress: 0,
                     theme: null,
-                    render: this.renderUploadToast.bind(this, message, file.name),
                     type: 'error',
-                    icon: null,
+                    render: this.renderUploadToast.bind(this, message, file.name),
                 });
                 let failed = extract(null, this.state.uploads.active, key, 'file');
                 // remove the failed upload from the list of active uploads
@@ -925,8 +774,8 @@ class Library extends Component {
                                     toast: toast.info(this.renderUploadToast(prefix + "Resolving...", url),
                                     {
                                         progress: 0,
-                                        theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
                                         autoClose: false,
+                                        theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
                                         icon: <div className="Toastify__spinner"></div>
                                     }),
                                 }
@@ -944,22 +793,21 @@ class Library extends Component {
             let progress = null;
             let type = undefined;
             let icon = undefined;
-            let autoClose = false;
             let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
-            let params = new URLSearchParams();
-            params.set('url', url);
-            params.set('path', path);
-            params.set('overwrite', this.props.ui.uploads.overwrite);
-            params.set('duplicate', this.props.ui.uploads.duplicate);
-            fetch("/library/upload?" + params.toString())
+            const target = new URL("/api/library/upload", window.location.origin);
+            target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
+            target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
+            target.searchParams.set('path', path);
+            target.searchParams.set('url', url);
+            fetch(target.toString())
             .then((response) => {
+                let show = true;
                 const reader = response.body.getReader();
                 const process = ({ done, value: chunk }) => {
                     if (done) {
                         progress = 1.0;
-                        autoClose = null;
                         title = "Complete";
-                        this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon, autoClose);
+                        this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon);
                         // remove the successfully uploaded item from the list of active uploads
                         this.setState(prevState => {
                             return {
@@ -974,7 +822,7 @@ class Library extends Component {
                             }
                         }, () => {
                             // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
-                            if ((path === this.props.search.path) || pb.normalize(pb.dirname(path) + "/") === this.props.search.path) {
+                            if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
                                 this.refresh((succeeded) => {
                                     if (succeeded) {
                                         const index = this.state.items.findIndex(x => x.name === fileName);
@@ -995,17 +843,20 @@ class Library extends Component {
                             const k = match[1].trim();
                             const v = match[2].trim();
                             if (k === 'Name') {
+                                progress = 0;
                                 title = "Starting...";
                                 subtitle = fileName = v;
                             } else if (k === 'Downloading') {
                                 title = "Downloading...";
                                 if (!isNaN(v)) {
-                                    progress = Math.min(parseFloat(v), 0.999);
+                                    progress = parseFloat(v) !== 1.0 ? parseFloat(v) : 0;
                                 }
                             } else if (k === 'Merging') {
+                                progress = 0;
                                 title = "Merging...";
                                 subtitle = fileName = v;
                             } else if (k === 'Moving') {
+                                progress = 0;
                                 title = "Moving...";
                                 subtitle = fileName = v;
                             } else if (k === 'Processing') {
@@ -1020,12 +871,13 @@ class Library extends Component {
                                 type =  'success';
                                 title = "Complete";
                                 result = JSON.parse(v);
+                                show = false;
                             } else if (k === 'Error') {
                                 // reject the promise to propagate the error
                                 return Promise.reject(new Error(v));
                             }
                             // Update the toast
-                            this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon, autoClose);
+                            if (show) this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon);
                         }
                     };
                     return reader.read().then(process);
@@ -1035,7 +887,7 @@ class Library extends Component {
             .catch(error => {
                 console.error(error);
                 title = error.message;
-                this.onUploadUrlProgress(key, null, title, subtitle, undefined, 'error', null, null, 5000);
+                this.onUploadUrlProgress(key, null, title, subtitle, null, 'error', null);
                 let failed = extract(null, this.state.uploads.active, key, 'url');
                 // remove the failed upload from the list of active uploads
                 this.setState(prevState => {
@@ -1077,13 +929,32 @@ class Library extends Component {
     }
 
     open(source) {
-        this.props.dispatch(setPath(source.fullPath));
+        let url = encodeURI(source.fullPath) + this.props.location.search;
+        this.props.navigate(url);
     }
 
-    view(source, index = 0, player = true, history = false) {
+    view(source, index = 0, player = true) {
         this.current = index;
-        let origin = this.props.search.path + window.location.search;
-        this.mediaViewer.current.view([source], 0, player, history, origin);
+        if (player) {
+            const path = source.fullPath;
+            // did the view request come from a direct link to the file?
+            this.mediaViewer.current.view([source], 0);
+            if (path !== this.pathname) {
+                const url = encodeURI(path + this.props.location.search);
+                this.props.navigate(url, {state: {path: this.path, search: this.props.location.search}});
+            }
+        } else {
+            switch (source.type) {
+                case "Photo":
+                    window.open(source.fullPath, "_blank");
+                    break;
+                case "Video":
+                    window.open(source.fullPath, "_blank");
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     previous() {
@@ -1092,7 +963,7 @@ class Library extends Component {
         if ((index >= 0) && (index < this.state.items.length)) {
             this.current = index;
             let source = this.state.items[index];
-            this.mediaViewer.current.view([source], 0, true);
+            this.view(source);
         }
     }
 
@@ -1102,12 +973,13 @@ class Library extends Component {
         if ((index >= 0) && (index < this.state.items.length)) {
             this.current = index;
             let source = this.state.items[index];
-            this.mediaViewer.current.view([source], 0, true);
+            this.view(source);
         }
     }
 
     files() {
-        let count = this.state.items.reduce((count, item) => {
+        const items = this.state.items ?? [];
+        let count = items.reduce((count, item) => {
             if ((item.type === "Video") || (item.type === "Audio") || (item.type === "Photo")) return (count + 1);
             return count;
         }, 0);
@@ -1126,6 +998,10 @@ class Library extends Component {
 
     onMediaViewerHide() {
         this.viewing = false;
+        const path = encodeURI(this.props.location?.state?.path || this.path);
+        const search = this.props.location?.state?.search || this.props.location.search;
+        const url = path + search;
+        this.props.navigate(url);
         this.reload(extract(null, this.state.items, this.current, 'id'));
     }
 
@@ -1242,26 +1118,28 @@ class Library extends Component {
     }
 
     onUploadFileProgress(key, file, index, progressEvent) {
-        var progress = progressEvent.loaded / progressEvent.total;
-        let toastId = extract(null, this.state.uploads.active, key, 'toast');
-        const prefix = "[" + index + " / " + this.state.uploads.total + "] ";
+        const progress = progressEvent.loaded / progressEvent.total;
+        const toastId = extract(null, this.state.uploads.active, key, 'toast');
+        const prefix = `[${index} / ${this.state.uploads.total}] `;
+        const status = progress < 1 ? "Uploading" : "Processing";
         toast.update(toastId, {
-            progress: Math.min(progress, 0.999),
-            render: this.renderUploadToast.bind(this, prefix + ((progress < 1) ? "Uploading" : "Processing") + "...", file.name),
+            progress: progress === 1.0 ? 0 : progress,
+            autoClose: progress === 1.0 ? false : null,
+            render: this.renderUploadToast.bind(this, `${prefix}${status}...`, file.name),
         });
     }
 
-    onUploadUrlProgress(key, index, title, subtitle, progress = undefined, type = undefined, theme = undefined, icon = undefined, autoClose = undefined) {
-        let prefix = (index != null) ? "[" + index + " / " + this.state.uploads.total + "] " : "";
-        let options = {
-            render: this.renderUploadToast.bind(this, prefix + title, subtitle),
+    onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon) {
+        const prefix = index != null ? `[${index} / ${this.state.uploads.total}] ` : "";
+        const options = {
+            autoClose: progress === 0.0 ? false : null,
+            render: this.renderUploadToast.bind(this, `${prefix}${title}`, subtitle),
+            progress: progress !== 1.0 ? progress : null,
+            ...(icon !== undefined && { icon }),
+            ...(type !== undefined && { type }),
+            ...(theme !== undefined && { theme }),
         };
-        if (type !== undefined) options['type'] = type;
-        if (progress !== undefined) options['progress'] = progress;
-        if (theme !== undefined) options['theme'] = theme;
-        if (icon !== undefined) options['icon'] = icon;
-        if (autoClose !== undefined) options['autoClose'] = autoClose;
-        let toastId = extract(null, this.state.uploads.active, key, 'toast');
+        const toastId = extract(null, this.state.uploads.active, key, 'toast');
         toast.update(toastId, options);
     }
 
@@ -1276,7 +1154,7 @@ class Library extends Component {
 
     async storeScrollPosition(horizontalScrollDirection, scrollLeft, scrollTop, scrollUpdateWasRequested, verticalScrollDirection, timeout=500) {
         // don't store the position when searching
-        if (this.props.search.query) return;
+        if (this.searching) return;
         // hide the scroll to top button
         this.showScrollToTop(false);
         // make sure the user has stopped scrolling for now
@@ -1288,9 +1166,9 @@ class Library extends Component {
             let columnCount = grid.props.columnCount;
             let firstVisibleRowIndex = Math.floor(scrollTop / rowHeight);
             let firstVisibleItemIndex = (firstVisibleRowIndex * columnCount);
-            if (extract(null, this.props.ui.scrollPosition, this.props.search.path) !== firstVisibleItemIndex) {
+            if (this.props.ui.scrollPosition[this.path] !== firstVisibleItemIndex) {
                 this.props.dispatch(setScrollPosition({
-                    path: this.props.search.path,
+                    path: this.path,
                     index: firstVisibleItemIndex,
                 }));
             }
@@ -1336,18 +1214,7 @@ class Library extends Component {
                 <div>
                     <strong>{title}</strong>
                 </div>
-                <small>{this.shorten(subtitle, 100)}</small>
-            </>
-        );
-    }
-
-    renderScannerProgressToast(title, subtitle) {
-        return (
-            <>
-                <div className="mb-1">
-                    <strong>{title}</strong>
-                </div>
-                <small className="scanner-progress-subtitle">{this.shorten(subtitle, 100)}</small>
+                <small>{shorten(subtitle, 100)}</small>
             </>
         );
     }
@@ -1356,20 +1223,21 @@ class Library extends Component {
         return (
             <AutoSizer>
             {({ height, width }) => {
-                let size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
-                let offset = (size - this.gridWrapper.current.offsetWidth) / 2;
-                let columnCount = Math.ceil(size / 400);
-                let rowHeight = (width / columnCount);
-                let columnWidth = width / columnCount;
-                let rowCount = Math.ceil(this.state.items.length / columnCount);
+                const items = this.state.items ?? [];
+                const size = (window.innerWidth > 0) ? window.innerWidth : window.screen.width;
+                const offset = (size - this.gridWrapper.current.offsetWidth) / 2;
+                const columnCount = Math.ceil(size / 400);
+                const rowHeight = (width / columnCount);
+                const columnWidth = width / columnCount;
+                const rowCount = Math.ceil(items.length / columnCount);
                 return (
-                    <UploadZone onUpload={this.upload.bind(this)}>
+                    <UploadZone ref={this.uploadZone} width={width} height={height} onUpload={this.upload.bind(this)}>
                         <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
                         {
                             ({ columnIndex, rowIndex, style }) => {
                                 let index = (rowIndex * columnCount) + columnIndex;
-                                let source = this.state.items[index];
-                                const view = this.props.ui.view[this.props.search.query ? "search" : this.props.search.path] ?? this.props.ui.view.default;
+                                let source = items[index];
+                                const view = this.props.ui.view[this.searching ? "search" : this.path] ?? this.props.ui.view.default;
                                 if (source !== undefined) {
                                     this.mediaContainers[index] = React.createRef();
                                     return (
@@ -1394,13 +1262,12 @@ class Library extends Component {
 
     render() {
         let location = "/";
-        let url = "Library".concat(this.props.search.path);
-        let path = url.split('?')[0];
-        if (path.includes('/')) path = path.match(/.*\//g)[0]; // exclude the file name from the path used for the breadcrumb
-        let status = this.state.status;
-        let loading = this.state.loading;
-        let search = this.props.search.query ? true : false;
-        let components = (search) ? (path.concat("/Search Results").split("/")) : (path.split("/"));
+        const status = this.state.status;
+        const loading = this.state.loading;
+        const items = this.state.items ?? [];
+        const searching = this.searching ? true : false;
+        let path = "Library".concat(this.path);
+        const components = searching ? path.concat("/Search Results").split("/") : path.split("/");
         return (
             <>
                 <div className="library d-flex flex-column align-content-stretch" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
@@ -1411,7 +1278,7 @@ class Library extends Component {
                                 let active = false;
                                 let last = (index === (array.length - 1));
                                 if (index) {
-                                    if (last && search) {
+                                    if (last && searching) {
                                         link = "";
                                         active = true;
                                     } else {
@@ -1424,14 +1291,20 @@ class Library extends Component {
                                         event.preventDefault();
                                         event.stopPropagation();
                                         let link = event.target.getAttribute("link");
-                                        if (link) this.props.dispatch(setPath(link));
+                                        if (link) {
+                                            // remove the query parameter before navigating to the new path
+                                            const params = new URLSearchParams(this.props.location.search);
+                                            params.delete('query');
+                                            if (params.size) link += "?" + params.toString();
+                                            this.props.navigate(link);
+                                        }
                                     }} >{component}</Breadcrumb.Item>
                                 );
                             })
                         }
                         <div className="statistics d-none d-md-block ms-auto">
                             <span className="statistics-files">{this.files()}</span>
-                            <span className="statistics-size ms-1">{size(this.state.items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
+                            <span className="statistics-size ms-1">{size(items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
@@ -1441,7 +1314,7 @@ class Library extends Component {
                                 <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
                             </Button>
                         </Container>
-                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>
@@ -1475,14 +1348,10 @@ const mapStateToProps = (state) => ({
         uploads: state.ui.uploads,
     },
     search: {
-        sort: state.search.sort,
-        path: state.search.path,
-        query: state.search.query,
-        favorite: state.search.favorite,
-        recursive: state.search.recursive,
+        sort: state.search.sort
     }
 });
 
-export default connect(mapStateToProps, null, null, { forwardRef: true })(React.forwardRef((props, ref) => (
-    <Library ref={ref} {...props} match={{ params: useParams() }} />
-)));
+export default connect(mapStateToProps, null, null, { forwardRef: true })(
+    withRouter(Library)
+);

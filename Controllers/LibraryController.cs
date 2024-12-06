@@ -1,63 +1,38 @@
 ﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
-using MediaCurator.Services;
-using MediaCurator.Solr;
 using System.Text.Json;
 using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Mvc;
+using MediaCurator.Configuration;
+using MediaCurator.Services;
+using MediaCurator.Solr;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]")]
-   public class LibraryController(ILogger<MediaContainer> logger,
-                                  IServiceProvider services,
-                                  IConfiguration configuration,
+   [Route("api/[controller]")]
+   public class LibraryController(IServiceProvider services,
+                                  IOptionsMonitor<Settings> settings,
+                                  IMediaLibrary mediaLibrary,
                                   IThumbnailsDatabase thumbnailsDatabase,
-                                  IMediaLibrary mediaLibrary) : Controller
+                                  ILogger<MediaContainer> logger) : Controller
    {
       private readonly IServiceProvider _services = services;
       private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
-      private readonly IConfiguration _configuration = configuration;
-      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IOptionsMonitor<Settings> _settings = settings;
       private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
+      private readonly ILogger<MediaContainer> _logger = logger;
 
-      /// <summary>
-      /// A list of regex patterns specifying which file names to ignore when scanning.
-      /// </summary>
-      public List<String> IgnoredFileNames
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:IgnoredFileNames").Get<List<String>>() ?? [];
-         }
-      }
-
-      public List<string> Folders
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:Folders").Get<List<string>>() ?? [];
-         }
-      }
-
-      public List<string> WatchedFolders
-      {
-         get
-         {
-            return _configuration.GetSection("Scanner:WatchedFolders").Get<List<string>>() ?? [];
-         }
-      }
-
-      private async Task WriteAsync(HttpResponse response, string text)
+      private static async Task WriteAsync(HttpResponse response, string text)
       {
          await response.WriteAsync(text);
          await response.Body.FlushAsync();
       }
 
-      private string RemoveEmojis(string fileName)
+      private static string RemoveEmojis(string fileName)
       {
          var result = new System.Text.StringBuilder();
 
@@ -74,7 +49,7 @@ namespace MediaCurator.Controllers
          return result.ToString();
       }
 
-      private string RemoveSpaces(string fileName)
+      private static string RemoveSpaces(string fileName)
       {
          // Normalize spaces in the file name
          fileName = Regex.Replace(fileName, @"\s+", " ");
@@ -87,7 +62,7 @@ namespace MediaCurator.Controllers
          return $"{name.Trim()}{extension.Trim()}";
       }
 
-      private string GetUniqueFileName(string path, string fileName, bool absolute = true)
+      private static string GetUniqueFileName(string path, string fileName, bool absolute = true)
       {
          fileName = RemoveSpaces(RemoveEmojis(fileName));
 
@@ -127,7 +102,7 @@ namespace MediaCurator.Controllers
       private bool IsPathAllowed(string path)
       {
          string fullPath = Path.GetFullPath(path);
-         return Folders.Concat(WatchedFolders).Any(folder =>
+         return _settings.CurrentValue.Scanner.Folders.Concat(_settings.CurrentValue.Scanner.WatchedFolders).Any(folder =>
          {
             string folderPath = Path.GetFullPath(folder);
             if (fullPath.Length < folderPath.Length) return false;
@@ -136,6 +111,7 @@ namespace MediaCurator.Controllers
          });
       }
 
+      // PATCH: /api/library/{path}
       [HttpPatch]
       [Route("{*path}")]
       [Produces("application/json")]
@@ -165,7 +141,7 @@ namespace MediaCurator.Controllers
             });
 
             // Create the parent container of the right type.
-            using IMediaContainer? mediaContainer = Activator.CreateInstance(type, _logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null) as IMediaContainer;
+            using IMediaContainer? mediaContainer = Activator.CreateInstance(type, _logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, modified.Id, null, null) as IMediaContainer;
 
             if (mediaContainer == null) return StatusCode((int)HttpStatusCode.InternalServerError, new
             {
@@ -189,11 +165,14 @@ namespace MediaCurator.Controllers
          }
       }
 
+      // POST: /api/library/{path}
       /// <summary>
-      /// Upload a file failing if a file with the same name already exists.
+      /// Upload a file choosing whether to overwrite it or create one with an index if already exists.
       /// </summary>
-      /// <param name="files"></param>
-      /// <param name="path"></param>
+      /// <param name="files">List of files to upload.</param>
+      /// <param name="path">The directory where the files shall be uploaded to.</param>
+      /// <param name="overwrite">If true, the file shall be overwritten.</param>
+      ///  <param name="duplicate">If true, the file will be created with an index if one exists with the same name.</param>
       /// <returns></returns>
       [HttpPost]
       [Route("{*path}")]
@@ -235,7 +214,7 @@ namespace MediaCurator.Controllers
          {
             var name = Path.GetFileName(file.FileName);
             var fullPath = Path.Combine(path, file.FileName);
-            var patterns = IgnoredFileNames.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
+            var patterns = _settings.CurrentValue.Scanner.IgnoredPatterns.Select(pattern => new Regex(pattern, RegexOptions.IgnoreCase)).ToList<Regex>();
 
             if (System.IO.File.Exists(fullPath))
             {
@@ -328,15 +307,18 @@ namespace MediaCurator.Controllers
          return Ok(result);
       }
 
+      // PUT: /api/library/{path}
       [HttpPut]
       [Route("{*path}")]
       [Produces("application/json")]
-      public IActionResult Put(List<IFormFile> files, string path = "")
+      [RequestSizeLimit(10L * 1024 * 1024 * 1024)]
+      [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
+      public async Task<IActionResult> Put(List<IFormFile> files, string path = "")
       {
-         // TODO: Upload a file overwriting existing files with the same name.
-         return StatusCode(StatusCodes.Status501NotImplemented);
+         return await Post(files, path, overwrite: true, duplicate: false);
       }
 
+      // GET: /api/library/upload
       [HttpGet]
       [Route("upload")]
       public async Task Upload([FromQuery] String url, [FromQuery] string path, [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
@@ -424,8 +406,9 @@ namespace MediaCurator.Controllers
          }
       }
 
+      // GET: /api/library/clear/history
       [HttpGet]
-      [Route("history/clear")]
+      [Route("clear/history")]
       [Produces("application/json")]
       public IActionResult ClearHistory()
       {

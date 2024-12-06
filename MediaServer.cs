@@ -1,6 +1,5 @@
-﻿using System;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
 
 namespace MediaCurator
 {
@@ -14,12 +13,12 @@ namespace MediaCurator
 
       public MediaServer(ILogger<MediaContainer> logger,
                          IServiceProvider services,
-                         IConfiguration configuration,
+                         IOptionsMonitor<Settings> settings,
                          IThumbnailsDatabase thumbnailsDatabase,
                          IMediaLibrary mediaLibrary,
                          string? id = null, string? path = null,
                          IProgress<float>? progress = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
+      ) : base(logger, services, settings, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.

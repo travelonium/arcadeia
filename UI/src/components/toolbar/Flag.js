@@ -33,17 +33,18 @@ export class Flag extends Component {
     }
 
     render() {
-        let icon = (this.props.value === this.props.true) ? this.props.set : this.props.unset;
+        const disabled = this.props.disabled ?? false;
+        const icon = (this.props.value === this.props.true) ? this.props.set : this.props.unset;
         return (
             <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                 (this.props.tooltip) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
             }>
                 {
                     (this.props.button) ?
-                    <Button className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" onClick={this.onToggle.bind(this)}>
+                    <Button className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" onClick={this.onToggle.bind(this)} disabled={disabled}>
                         <i className={cx("flag bi", icon, this.props.name, ((this.props.value === this.props.true) ? "set" : ""))}></i>
                     </Button> :
-                    <i className={cx(this.props.className, "flag bi", icon, this.props.name, ((this.props.value === this.props.true) ? "set" : ""))} onClick={this.onToggle.bind(this)}></i>
+                    <i className={cx(this.props.className, "flag bi", icon, this.props.name, ((this.props.value === this.props.true) ? "set" : ""), disabled ? "disabled" : "")} onClick={!disabled ? this.onToggle.bind(this) : undefined}></i>
                 }
             </OverlayTrigger>
         );

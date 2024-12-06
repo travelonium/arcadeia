@@ -9,7 +9,7 @@ namespace MediaCurator
    {
       string Path { get; }
       string FullPath { get; }
-      int Maximum { get; }
+      int Count { get; }
 
       void Create(string id);
       bool Exists(string id);

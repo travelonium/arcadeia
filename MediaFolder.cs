@@ -1,4 +1,6 @@
-﻿using MediaCurator.Services;
+﻿using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
+using MediaCurator.Services;
 
 namespace MediaCurator
 {
@@ -12,12 +14,12 @@ namespace MediaCurator
 
       public MediaFolder(ILogger<MediaContainer> logger,
                          IServiceProvider services,
-                         IConfiguration configuration,
+                         IOptionsMonitor<Settings> settings,
                          IThumbnailsDatabase thumbnailsDatabase,
                          IMediaLibrary mediaLibrary,
                          string? id = null, string? path = null,
                          IProgress<float>? progress = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, EnsureTrailingSlash(path), progress)
+      ) : base(logger, services, settings, thumbnailsDatabase, mediaLibrary, id, EnsureTrailingSlash(path), progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -29,7 +31,7 @@ namespace MediaCurator
          if (!Exists())
          {
             // Avoid updating or removing the folder if it was located in a network mount that is currently unavailable.
-            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Available))
+            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Attached))
             {
                Skipped = true;
             }

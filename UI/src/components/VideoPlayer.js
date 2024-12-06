@@ -21,7 +21,7 @@ export class VideoPlayer extends React.Component {
         if (this.props.sources.length === 1) {
             let source = this.props.sources[0];
             this.player.vttThumbnails({
-                src: window.location.origin + "/thumbnails/" + source.id + "/sprite.vtt",
+                src: window.location.origin + "/api/thumbnails/" + source.id + "/sprite.vtt",
                 showTimestamp: false,
             });
             this.player.hlsQualitySelector({
@@ -69,7 +69,7 @@ export class VideoPlayer extends React.Component {
         // a maximum of two attempts are enough to give up
         if (this.attempt > 2) return null;
         return items.map((item) => {
-            if (force) return "/preview/video/" + item.id + "/original.m3u8";
+            if (force) return "/api/preview/video/" + item.id + "/original.m3u8";
             switch (item.extension) {
                 case "wmv":
                 case "flv":
@@ -78,9 +78,9 @@ export class VideoPlayer extends React.Component {
                 case "asf":
                 case "vob":
                 case "mkv":
-                    return "/preview/video/" + item.id + "/original.m3u8"; // To enable quality selection: "/master.m3u8"
+                    return "/api/preview/video/" + item.id + "/original.m3u8"; // To enable quality selection: "/master.m3u8"
                 default:
-                    return "/preview/video/" + item.id + "/" + item.name;
+                    return "/api/preview/video/" + item.id + "/" + item.name;
             }
         });
     }

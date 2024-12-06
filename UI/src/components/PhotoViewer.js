@@ -36,11 +36,10 @@ export class PhotoViewer extends React.Component {
     }
 
     onViewed() {
-        // console.log(this);
     }
 
     sources(items) {
-        return items.map((item) => ("/preview/photo/" + item.id + "/" + item.name));
+        return items.map((item) => ("/api/preview/photo/" + item.id + "/" + item.name));
     }
 
     render() {

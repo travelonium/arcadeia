@@ -1,6 +1,8 @@
 ﻿using SolrNet;
 using MediaCurator.Solr;
 using System.Globalization;
+using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
 
 namespace MediaCurator
 {
@@ -8,7 +10,7 @@ namespace MediaCurator
    {
       protected readonly IServiceProvider Services;
 
-      protected readonly IConfiguration Configuration;
+      protected readonly IOptionsMonitor<Settings> Settings;
 
       protected readonly ILogger<MediaContainer> Logger;
 
@@ -150,7 +152,7 @@ namespace MediaCurator
 
                   if (type == null) throw new ArgumentNullException(nameof(type), "The child type could not be determined.");
 
-                  using MediaContainer? mediaContainer = Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, id, null, Progress) as MediaContainer;
+                  using MediaContainer? mediaContainer = Activator.CreateInstance(type, Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, id, null, Progress) as MediaContainer;
 
                   if (mediaContainer != null) {
                      result.Add(mediaContainer);
@@ -498,7 +500,7 @@ namespace MediaCurator
                   if (type == null) throw new ArgumentNullException(nameof(type), "The parent type could not be determined.");
 
                   // Create the parent container of the right type.
-                  parent = Activator.CreateInstance(type, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, value.Parent, null, Progress) as MediaContainer;
+                  parent = Activator.CreateInstance(type, Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, value.Parent, null, Progress) as MediaContainer;
                }
 
                Parent = parent;
@@ -521,7 +523,7 @@ namespace MediaCurator
 
       public MediaContainer(ILogger<MediaContainer> logger,
                             IServiceProvider services,
-                            IConfiguration configuration,
+                            IOptionsMonitor<Settings> settings,
                             IThumbnailsDatabase thumbnailsDatabase,
                             IMediaLibrary? mediaLibrary,
                             // Optional Named Arguments
@@ -531,7 +533,7 @@ namespace MediaCurator
       {
          Logger = logger;
          Services = services;
-         Configuration = configuration;
+         Settings = settings;
          ThumbnailsDatabase = thumbnailsDatabase;
          MediaLibrary = mediaLibrary ?? (IMediaLibrary)this;
          Progress = progress;
@@ -578,7 +580,7 @@ namespace MediaCurator
                if (parentType != null)
                {
                   // Now let's instantiate the Parent.
-                  Parent = Activator.CreateInstance(parentType, Logger, Services, Configuration, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress) as MediaContainer;
+                  Parent = Activator.CreateInstance(parentType, Logger, Services, Settings, ThumbnailsDatabase, MediaLibrary, null, pathComponents.Parent, Progress) as MediaContainer;
                   ParentType = parentType.ToMediaContainerType().ToString();
                }
             }
@@ -739,8 +741,6 @@ namespace MediaCurator
             }
 
             // It's probably a file then, let's find its type.
-            var supportedExtensions = new SupportedExtensions(Configuration);
-
             // Extract the file extension including the '.' character.
             string extension = System.IO.Path.GetExtension(container).ToLower();
 
@@ -749,21 +749,21 @@ namespace MediaCurator
                // It appears that the file does have an extension. We may proceed.
 
                // Check if it's a recognized video format.
-               if (supportedExtensions[MediaContainerType.Video].Contains(extension))
+               if (Settings.CurrentValue.SupportedExtensions.Video.Contains(extension))
                {
                   // Looks like the file is a recognized video format.
                   return typeof(VideoFile);
                }
 
                // Check if it's a recognized photo format.
-               if (supportedExtensions[MediaContainerType.Photo].Contains(extension))
+               if (Settings.CurrentValue.SupportedExtensions.Photo.Contains(extension))
                {
                   // Looks like the file is a recognized photo format.
                   return typeof(PhotoFile);
                }
 
                // Check if it's a recognized audio format.
-               if (supportedExtensions[MediaContainerType.Audio].Contains(extension))
+               if (Settings.CurrentValue.SupportedExtensions.Audio.Contains(extension))
                {
                   // Looks like the file is a recognized audio format.
                   throw new NotImplementedException("Audio files cannot yet be handled!");

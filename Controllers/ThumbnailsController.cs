@@ -1,61 +1,36 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using static System.Net.Mime.MediaTypeNames;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using static System.Collections.Specialized.BitVector32;
-using System.Linq;
-using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using ImageMagick;
-using System.IO;
+using MediaCurator.Configuration;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   public class ThumbnailsController : Controller
+   [Route("api/[controller]")]
+   public class ThumbnailsController(ILogger<MediaContainer> logger,
+                                     IServiceProvider services,
+                                     IHostApplicationLifetime applicationLifetime,
+                                     IThumbnailsDatabase thumbnailsDatabase,
+                                     IOptionsMonitor<Settings> settings,
+                                     IMediaLibrary mediaLibrary) : Controller
    {
       #region Constants
 
-      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
-      {
-         var comparer = StringComparer.OrdinalIgnoreCase;
-
-         return new Dictionary<string, Dictionary<string, int>>(_configuration.GetSection("Thumbnails:Video").Get<Dictionary<string, Dictionary<string, int>>>() ?? [], comparer);
-      });
-
       #endregion // Constants
 
-      private readonly IServiceProvider _services;
-      private readonly IMediaLibrary _mediaLibrary;
-      private readonly IConfiguration _configuration;
-      private readonly ILogger<MediaContainer> _logger;
-      private readonly IThumbnailsDatabase _thumbnailsDatabase;
-      private readonly CancellationToken _cancellationToken;
+      private readonly IServiceProvider _services = services;
+      private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
+      private readonly IOptionsMonitor<Settings> _settings = settings;
+      private readonly ILogger<MediaContainer> _logger = logger;
+      private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
+      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
-      public ThumbnailsController(ILogger<MediaContainer> logger,
-                                  IServiceProvider services,
-                                  IHostApplicationLifetime applicationLifetime,
-                                  IThumbnailsDatabase thumbnailsDatabase,
-                                  IConfiguration configuration,
-                                  IMediaLibrary mediaLibrary)
-      {
-         _logger = logger;
-         _services = services;
-         _mediaLibrary = mediaLibrary;
-         _configuration = configuration;
-         _thumbnailsDatabase = thumbnailsDatabase;
-         _cancellationToken = applicationLifetime.ApplicationStopping;
-      }
-
-      // GET: /<controller>/{id}/{index}.jpg
-      [Route("[controller]/{id}/{label}.jpg")]
+      // GET: /api/thumbnails/{id}/{index}.jpg
+      [Route("{id}/{label}.jpg")]
       public async Task<IActionResult> Index(string id, string label)
       {
          byte[] thumbnail;
@@ -81,38 +56,33 @@ namespace MediaCurator.Controllers
          return NotFound();
       }
 
-      // GET: /<controller>/{id}/{index}.vtt
-      [Route("[controller]/{id}/{label}.vtt")]
+      // GET: /api/thumbnails/{id}/{index}.vtt
+      [Route("{id}/{label}.vtt")]
       public async Task<IActionResult> WebVTT(string id, string label)
       {
          byte[] thumbnail;
          var content = new StringBuilder();
 
-         if (!ThumbnailsConfiguration.Value.ContainsKey(label))
+         var item = _settings.CurrentValue.Thumbnails.Video.FirstOrDefault(x => string.Equals(x.Key, label, StringComparison.OrdinalIgnoreCase)).Value;
+
+         if (item is null)
          {
             return NotFound();
          }
 
-         VideoFile videoFile = new(_logger, _services, _configuration, _thumbnailsDatabase, _mediaLibrary, id: id);
+         VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
 
          if ((videoFile.Type != MediaContainerType.Video.ToString()) || (videoFile.Duration <= 0))
          {
             return NotFound();
          }
 
-         var item = ThumbnailsConfiguration.Value.GetValueOrDefault(label);
-
-         int count = 0;
-         string from = "00:00:00";
+         long width = item.Width;
+         long height = item.Height;
+         bool sprite = item.Sprite;
          double duration = videoFile.Duration;
-         long width = item?.GetValueOrDefault("Width") ?? -1;
-         long height = item?.GetValueOrDefault("Height") ?? -1;
-         bool sprite = item?.GetValueOrDefault("Sprite") > 0;
-
-         if (item?.ContainsKey("Count") == true)
-         {
-            count = (int)Math.Min(item["Count"], Math.Floor(duration));
-         }
+         string from = "00:00:00";
+         int count = (item.Count > 0) ? (int)Math.Min(item.Count, Math.Floor(duration)) : 0;
 
          if (!sprite || (count <= 1))
          {
@@ -148,8 +118,8 @@ namespace MediaCurator.Controllers
          return Content(content.ToString(), "text/plain", Encoding.UTF8);
       }
 
-      // GET: /<controller>/{id}
-      [Route("[controller]/{id}")]
+      // GET: /api/thumbnails/{id}
+      [Route("{id}")]
       public async Task<IActionResult> Index(string id)
       {
          return await Index(id, "0");

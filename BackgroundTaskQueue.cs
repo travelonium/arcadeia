@@ -4,16 +4,24 @@ namespace MediaCurator
 {
    public class BackgroundTaskQueue(ILogger<BackgroundTaskQueue> logger) : IBackgroundTaskQueue
    {
-      private readonly ILogger<BackgroundTaskQueue> _logger = logger;
-      private readonly ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _tasks = new();
-      private readonly ConcurrentDictionary<string, Timer> _timers = new();
       private readonly SemaphoreSlim _signal = new(0);
+      private readonly ILogger<BackgroundTaskQueue> _logger = logger;
+      private readonly ConcurrentDictionary<string, Timer> _timers = new();
+      private readonly ConcurrentQueue<Tuple<string, Func<CancellationToken, Task>>> _tasks = new();
 
-      public void QueueBackgroundTask(string key, Func<CancellationToken, Task> task)
+      public IEnumerable<string> Tasks
+      {
+         get
+         {
+            return _tasks.ToArray().Select(task => task.Item1);
+         }
+      }
+
+      public void Queue(string key, Func<CancellationToken, Task> task)
       {
          ArgumentNullException.ThrowIfNull(task, nameof(task));
 
-         // Make sure the item has not already been added to the queue.
+         // Ensure the task is not already queued
          foreach (var entry in _tasks)
          {
             if (entry.Item1 == key)
@@ -41,6 +49,7 @@ namespace MediaCurator
 
       public async Task<Func<CancellationToken, Task>> DequeueAsync(CancellationToken cancellationToken)
       {
+         // Wait for a signal while respecting the caller's cancellation token
          await _signal.WaitAsync(cancellationToken);
 
          if (_tasks.TryDequeue(out var task))
@@ -55,6 +64,32 @@ namespace MediaCurator
 
             throw new InvalidOperationException("Failed to dequeue a task because the queue is empty.");
          }
+      }
+
+      public void Clear()
+      {
+         // Clear all tasks in the queue
+         while (_tasks.TryDequeue(out var task))
+         {
+            _logger.LogInformation("Discarded: {TaskName}", task.Item1);
+         }
+
+         // Dispose of and remove all associated timers
+         foreach (var key in _timers.Keys)
+         {
+            if (_timers.TryRemove(key, out var timer))
+            {
+               timer.Dispose();
+            }
+         }
+
+         // Reset the semaphore to avoid releasing unnecessary signals
+         while (_signal.CurrentCount > 0)
+         {
+            _signal.Wait(0);
+         }
+
+         _logger.LogInformation("Background Task Queue Cleared.");
       }
    }
 }

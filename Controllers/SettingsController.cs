@@ -1,92 +1,238 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using MediaCurator.Services;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using MediaCurator.Configuration;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace MediaCurator.Controllers
 {
    [ApiController]
-   [Route("[controller]")]
-   public class SettingsController : Controller
+   [Route("api/[controller]")]
+   public partial class SettingsController(IConfiguration configuration,
+                                           IScannerService _scannerService,
+                                           ILogger<SettingsController> _logger,
+                                           IOptionsMonitor<Settings> _settings,
+                                           IFileSystemService fileSystemService,
+                                           IHostApplicationLifetime applicationLifetime) : Controller
    {
-      private readonly IConfiguration _configuration;
-      private readonly ILogger<MediaContainer> _logger;
-      private readonly List<String> _serializableKeys = new()
-      {
+      private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
+      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
+
+      [GeneratedRegex(@"^([\w]+)$", RegexOptions.Multiline)]
+      private static partial Regex HardwareAcceleratorsRegex();
+
+      private readonly string[] _whitelist =
+      [
          "Thumbnails",
          "Streaming",
          "SupportedExtensions",
          "FFmpeg",
+         "YtDlp",
          "Solr",
          "Scanner",
-         "Mounts", 
-      };
+         "Mounts",
+      ];
 
-      public SettingsController(ILogger<MediaContainer> logger,
-                                     IConfiguration configuration)
-      {
-         _logger = logger;
-         _configuration = configuration;
-      }
-
-      // GET: /<controller>/appsettings.json
+      // GET: /api/settings
       [HttpGet]
-      [Route("appsettings.json")]
       [Produces("application/json")]
-      public IActionResult Index()
+      public async Task<IActionResult> Get()
       {
-         // return Ok(_configuration.AsEnumerable().ToDictionary(k => k.Key, v => v.Value));
-         return Ok(Serialize(_configuration));
+         // Manually reload the configuration to ensure that recent changes are reflected
+         await Task.Run(() => _configuration.Reload());
+
+         var json = (await Task.Run(() => _configuration.ToJson(_whitelist))) as JsonObject;
+
+         if (json is not null)
+         {
+            json["System"] = new JsonObject
+            {
+               // Add the number of logical processors
+               ["ProcessorCount"] = Environment.ProcessorCount,
+
+               ["FFmpeg"] = new JsonObject
+               {
+                  // Add supported hardware acceleration methods
+                  ["HardwareAcceleration"] = JsonNode.Parse(JsonSerializer.Serialize(HardwareAccelerators())),
+
+                  // Add the supported codecs
+                  ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(Codecs())),
+               },
+            };
+
+            // Add an Available key for each mount
+            var mounts = json["Mounts"]?.AsArray();
+            if (mounts is not null)
+            {
+               foreach (var item in mounts)
+               {
+                  try
+                  {
+                     if (item is null) continue;
+                     var mount = _settings.CurrentValue.Mounts.FirstOrDefault(mount => mount.Folder == item?["Folder"]?.ToString());
+                     if (mount is null) continue;
+
+                     // Mask the password in Options
+                     /*
+                     if (!string.IsNullOrEmpty(mount.Options))
+                     {
+                        var options = mount.Options.Split(',');
+                        for (int i = 0; i < options.Length; i++)
+                        {
+                           if (options[i].StartsWith("password=", StringComparison.OrdinalIgnoreCase))
+                           {
+                              var parts = options[i].Split('=');
+                              if (parts.Length == 2)
+                              {
+                                 options[i] = $"password={new string('*', parts[1].Length)}";
+                              }
+                           }
+                        }
+                        item["Options"] = string.Join(",", options);
+                     }
+                     */
+
+                     var fileSystemMount = fileSystemService.Mounts.Where(x => x.Folder == mount.Folder).FirstOrDefault();
+                     if (fileSystemMount is not null)
+                     {
+                        item["Error"] = fileSystemMount.Error;
+                        item["Available"] = fileSystemMount.Available;
+                     }
+                  }
+                  catch (Exception)
+                  {
+                     continue;
+                  }
+               }
+            }
+
+            // Add Scanning and Updating keys to Scanner
+            var scanner = json["Scanner"];
+            if (scanner is not null)
+            {
+               scanner["Scanning"] = _scannerService.Scanning;
+               scanner["Updating"] = _scannerService.Updating;
+            }
+         }
+         else
+         {
+            return StatusCode(500, new { message = "Failed to parse the configuration." });
+         }
+
+         return Ok(json);
       }
 
-      private JsonNode? Serialize(IConfiguration config, int level = 0)
+      // POST: /api/settings
+      [HttpPost]
+      [Produces("application/json")]
+      [Consumes("application/json")]
+      public async Task<IActionResult> Post([FromBody] JsonObject configuration)
       {
-         JsonObject result = new();
-
-         foreach (var child in config.GetChildren())
+         try
          {
-            if (level == 0 && !_serializableKeys.Contains(child.Key)) continue;
-
-            if (child.Path.EndsWith(":0"))
+            // Validate top-level keys against the allowed list
+            var invalidKeys = configuration.Select(x => x.Key).Except(_whitelist).ToList();
+            if (invalidKeys.Count != 0)
             {
-               var arr = new JsonArray();
-
-               foreach (var arrayChild in config.GetChildren())
+               return BadRequest(new
                {
-                  arr.Add(Serialize(arrayChild, level + 1));
-               }
-
-               return arr;
+                  message = "One or more of the keys in the request are either invalid or non-updatable.",
+                  detail = invalidKeys
+               });
             }
-            else
+
+            // Get the configuration root and the writable provider
+            if (_configuration is not IConfigurationRoot configurationRoot)
             {
-               result.Add(child.Key, Serialize(child, level + 1));
+               return StatusCode(500, new { message = "Configuration root is not accessible." });
             }
-         }
 
-         if (result.Count == 0 && config is IConfigurationSection section)
+            // Select the appsettings.{environment}.json configuration file
+            var provider = configurationRoot.Providers.OfType<WritableJsonConfigurationProvider>()
+                                                      .Where(provider => provider?.Source?.Path != null && System.IO.File.Exists(provider.Source.Path))
+                                                      .LastOrDefault();
+
+            if (provider == null)
+            {
+               return StatusCode(500, new { message = "No writable JSON configuration providers are available." });
+            }
+
+            // Save the changes to the appropriate file
+            provider.Update(configuration);
+
+            // Manually reload the configuration to ensure that recent changes are reflected
+            await Task.Run(() => _configuration.Reload());
+
+            // Restart the _scannerService if any changes have been made to the Scanner.
+            if (configuration.ContainsKey("Scanner"))
+            {
+               await _scannerService.RestartAsync(_cancellationToken);
+            }
+
+            // Restart the FileSystemService if any changes have been made to the Mounts.
+            if (configuration.ContainsKey("Mounts"))
+            {
+               await fileSystemService.RestartAsync(_cancellationToken);
+            }
+
+            return Ok();
+         }
+         catch (Exception ex)
          {
-            if (bool.TryParse(section.Value, out bool boolean))
-            {
-               return JsonValue.Create(boolean);
-            }
-            else if (decimal.TryParse(section.Value, out decimal real))
-            {
-               return JsonValue.Create(real);
-            }
-            else if (long.TryParse(section.Value, out long integer))
-            {
-               return JsonValue.Create(integer);
-            }
+            _logger.LogError(ex, "Error Updating Settings, Because: {}", ex.Message);
 
-            return JsonValue.Create(section.Value);
+            return StatusCode(500, new { message = "An error occurred while updating the settings.", error = ex.Message });
+         }
+      }
+
+      private Codecs? Codecs()
+      {
+         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            "-encoders"
+         ];
+
+         var encoders = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+
+         arguments =
+         [
+            "-decoders"
+         ];
+
+         var decoders = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+
+         if (encoders is not null && decoders is not null)
+         {
+            return new Codecs(System.Text.Encoding.UTF8.GetString(encoders), System.Text.Encoding.UTF8.GetString(decoders));
          }
 
-         return result;
+         return null;
+      }
+
+      private IEnumerable<string> HardwareAccelerators()
+      {
+         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            "-hwaccels"
+         ];
+
+         var result = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+
+         if (result != null)
+         {
+            return HardwareAcceleratorsRegex().Matches(System.Text.Encoding.UTF8.GetString(result))
+                                              .Select(x => x.Groups[1].Value.Trim());
+         }
+
+         return [];
       }
    }
 }

@@ -1,70 +1,48 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Security.Permissions;
-using System.Linq;
-using System.IO;
-using System.Diagnostics;
+﻿using MediaCurator.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace MediaCurator.Services
 {
-   public class FileSystemService(IConfiguration configuration,
+   public class FileSystemService(ILoggerFactory loggerFactory,
                                   ILogger<FileSystemService> logger,
+                                  IOptionsMonitor<Settings> settings,
                                   IHostApplicationLifetime applicationLifetime) : IFileSystemService
    {
-      protected readonly IConfiguration _configuration = configuration;
+      protected readonly IOptionsMonitor<Settings> _settings = settings;
 
       private readonly ILogger<FileSystemService> _logger = logger;
 
+      private readonly ILoggerFactory _loggerFactory = loggerFactory;
+
       private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
 
-      private Lazy<List<FileSystemMount>> _mounts => new(() =>
+      private readonly SemaphoreSlim _semaphore = new(1, 1);
+
+      public List<FileSystemMount> Mounts
       {
-         List<FileSystemMount> mounts = [];
+         get; private set;
+      } = [];
 
-         foreach (var item in _configuration.GetSection("Mounts").Get<List<Dictionary<string, string>>>() ?? [])
-         {
-            try
-            {
-               FileSystemMount mount = new(item);
+      #region Constructors
 
-               mounts.Add(mount);
-            }
-            catch (Exception e)
-            {
-               _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
-            }
-         }
+      #endregion // Constructors
 
-         return mounts;
-      });
-
-      public List<FileSystemMount> Mounts => _mounts.Value;
-
-        #region Constructors
-
-        #endregion // Constructors
-
-        public Task StartAsync(CancellationToken cancellationToken)
+      public Task StartAsync(CancellationToken cancellationToken)
       {
          _logger.LogInformation("Starting FileSystem Service...");
 
          // Try to mount all the configured mounts.
-         foreach (var mount in Mounts)
+         foreach (var item in _settings.CurrentValue.Mounts)
          {
             try
             {
-               mount.Attach();
+               var mount = new FileSystemMount(item, _loggerFactory.CreateLogger<FileSystemMount>());
 
-               _logger.LogInformation("Mounted: {} @ {}", mount.Device, mount.Folder);
+               Mounts.Add(mount);
             }
             catch (Exception e)
             {
-               _logger.LogError("Failed To Mount: {} Because: {}", mount.Device, e.Message);
+               _logger.LogWarning("Failed To Parse Mount: {}", e.Message);
             }
          }
 
@@ -75,28 +53,83 @@ namespace MediaCurator.Services
 
       public Task StopAsync(CancellationToken cancellationToken)
       {
+         _logger.LogInformation("Stopping FileSystem Service...");
+
          // Unmount all the configured mounts.
          foreach (var mount in Mounts)
          {
-            try
-            {
-               mount.Detach();
-
-               _logger.LogInformation("Unmounted: {} @ {}", mount.Device, mount.Folder);
-            }
-            catch (Exception e)
-            {
-               _logger.LogError("Failed To Unmount: {} Because: {}", mount.Device, e.Message);
-            }
+            mount.Dispose();
          }
+
+         Mounts.Clear();
 
          _logger.LogInformation("FileSystem Service Stopped.");
 
          return Task.CompletedTask;
       }
 
-      public void Dispose()
+      public async Task RestartAsync(CancellationToken cancellationToken)
       {
+         _logger.LogInformation("Restarting FileSystem Service...");
+
+         // Ensure only one restart happens at a time.
+         await _semaphore.WaitAsync(cancellationToken);
+
+         try
+         {
+            // Stop the service
+            await StopAsync(cancellationToken);
+
+            // Start the service
+            await StartAsync(cancellationToken);
+
+            _logger.LogInformation("FileSystem Service Restarted.");
+         }
+         catch (Exception ex)
+         {
+            _logger.LogError("Failed To Restart FileSystem Service: {}", ex.Message);
+         }
+         finally
+         {
+            _semaphore.Release();
+         }
+      }
+
+      public async Task ReloadAsync(CancellationToken cancellationToken)
+      {
+         _logger.LogInformation("Reloading FileSystem Service...");
+
+         // Ensure only one restart happens at a time.
+         await _semaphore.WaitAsync(cancellationToken);
+
+         try
+         {
+            foreach (var item in _settings.CurrentValue.Mounts)
+            {
+               var mount = Mounts.Where(x => x.Folder == item.Folder).FirstOrDefault();
+               if (mount is not null)
+               {
+                  if (mount.Types != item.Types || mount.Device != item.Device || mount.Options != item.Options || mount.Attached)
+                  {
+                     // Remount it.
+                  }
+               }
+               else
+               {
+                  // We have a new mount.
+               }
+            }
+
+            _logger.LogInformation("FileSystem Service Restarted.");
+         }
+         catch (Exception ex)
+         {
+            _logger.LogError("Failed To Restart FileSystem Service: {}", ex.Message);
+         }
+         finally
+         {
+            _semaphore.Release();
+         }
       }
    }
 }

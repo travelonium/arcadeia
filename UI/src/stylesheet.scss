@@ -153,25 +153,38 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
     }
 }
 
-.navbar-nav {
-    .toolbar {
+.toolbar {
+    .flag,
+    .icon,
+    .button {
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        text-shadow: none;
+        font-style: normal;
+        font-variant: normal;
+        font-weight: normal;
+        font-size: x-large;
+        position: relative;
+        line-height: 1;
+    }
 
+    .flag,
+    .icon {
+        &:not(.set) {
+            opacity: 0.3;
+        }
+
+        &.disabled {
+            color: $btn-link-disabled-color;
+            opacity: $btn-disabled-opacity;
+        }
+    }
+
+    :disabled {
         .flag,
         .icon {
-            -moz-osx-font-smoothing: grayscale;
-            -webkit-font-smoothing: antialiased;
-            text-shadow: none;
-            // color: lightgray;
-            font-style: normal;
-            font-variant: normal;
-            font-weight: normal;
-            font-size: x-large;
-            position: relative;
-            line-height: 1;
-
-            &:not(.set) {
-                opacity: 0.3;
-            }
+            opacity: $btn-disabled-opacity;
+            color: $btn-link-disabled-color;
         }
     }
 }
@@ -220,6 +233,53 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
             &:hover {
                 transform: scale(1.015);
             }
+        }
+    }
+}
+
+.settings {
+
+    .btn.apply,
+    .btn.reset {
+        min-width: 10rem;
+    }
+
+    .card {
+        .card-text {
+            i {
+                font-size: x-large;
+            }
+        }
+    }
+
+    .periodic-scan-interval {
+
+        .badge {
+            font-size: $btn-font-size-sm;
+            font-weight: $btn-font-weight;
+            line-height: $btn-line-height;
+            padding: $btn-padding-y-sm $btn-padding-x-sm;
+            border: $btn-border-width solid transparent;
+        }
+    }
+}
+
+.upload-zone {
+    label {
+        .upload-zone-overlay.dragging {
+            width: 100%;
+            display: flex;
+            position: absolute;
+            border: 1px dashed;
+            pointer-events: none;
+            border-radius: .25rem;
+            height: calc(100% - 1rem);
+            z-index: $zindex-popover;
+            background-color: rgba($body-bg, 0.45);
+        }
+
+        .upload-zone-content.dragging {
+            opacity: .3;
         }
     }
 }

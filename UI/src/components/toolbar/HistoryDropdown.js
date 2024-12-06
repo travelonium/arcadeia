@@ -1,11 +1,11 @@
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { extract, querify } from '../utils';
+import { extract, querify } from '../../utils';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
 import React, { Component } from 'react';
-import { Thumbnail } from './Thumbnail';
+import { Thumbnail } from '../Thumbnail';
 import { toast } from 'react-toastify';
 import cx from 'classnames';
 
@@ -82,7 +82,7 @@ export class HistoryDropdown extends Component {
         event.preventDefault();
         event.stopPropagation();
         this.setState({ clearing: true }, () => {
-            fetch("/library/history/clear", {
+            fetch("/api/library/clear/history", {
                 method: "GET",
                 headers: {
                     accept: "application/json",
@@ -235,12 +235,13 @@ export class HistoryDropdown extends Component {
     }
 
     render() {
+        const disabled = this.props.disabled ?? false;
         return (
             <Dropdown className={cx("history-dropdown d-inline", this.props.className)} autoClose="outside" show={this.state.open} onSelect={this.onSelect.bind(this)} onToggle={this.onToggle.bind(this)} align={{ md: "end" }}>
                 <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                     (this.props.tooltip && !this.state.open) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
                 }>
-                    <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary">
+                    <Dropdown.Toggle id="dropdown-autoclose-outside" className={cx(this.props.className, "border-0 shadow-none")} variant="outline-secondary" disabled={disabled}>
                         <i className={cx("icon bi set bi-clock-history", this.props.name)}></i>
                     </Dropdown.Toggle>
                 </OverlayTrigger>

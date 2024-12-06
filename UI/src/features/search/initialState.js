@@ -1,8 +1,4 @@
 const initialState = {
-    path: "",
-    query: "",
-    favorite: false,
-    recursive: true,
     sort: {
         fields: [
             { id: "1",  name: "Name",           value: "name",              active: false },

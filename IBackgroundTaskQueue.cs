@@ -6,7 +6,9 @@ namespace MediaCurator
 {
    public interface IBackgroundTaskQueue
    {
+      IEnumerable<string> Tasks { get; }
       Task<Func<CancellationToken, Task>> DequeueAsync(CancellationToken cancellationToken);
-      void QueueBackgroundTask(string key, Func<CancellationToken, Task> task);
+      void Queue(string key, Func<CancellationToken, Task> task);
+      public void Clear();
    }
 }

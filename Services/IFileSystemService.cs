@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.Extensions.Hosting;
-
-namespace MediaCurator.Services
+﻿namespace MediaCurator.Services
 {
-   public interface IFileSystemService: IHostedService, IDisposable
+   public interface IFileSystemService: IHostedService
    {
       List<FileSystemMount> Mounts { get; }
+
+      public Task RestartAsync(CancellationToken cancellationToken);
+
+      Task ReloadAsync(CancellationToken cancellationToken);
    }
 }

@@ -1,23 +1,13 @@
-﻿using System;
-using System.Linq;
-using System.Globalization;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+﻿using System.Globalization;
+using Microsoft.Extensions.Options;
 using ImageMagick;
+using MediaCurator.Configuration;
 
 namespace MediaCurator
 {
    class PhotoFile : MediaFile
    {
       #region Constants
-
-      private Lazy<Dictionary<string, Dictionary<string, int>>> ThumbnailsConfiguration => new(() =>
-      {
-         var section = Configuration.GetSection("Thumbnails:Photo");
-
-         return section.Exists() ? section.Get<Dictionary<string, Dictionary<string, int>>>() ?? [] : [];
-      });
 
       #endregion // Constants
 
@@ -109,12 +99,12 @@ namespace MediaCurator
 
       public PhotoFile(ILogger<MediaContainer> logger,
                        IServiceProvider services,
-                       IConfiguration configuration,
+                       IOptionsMonitor<Settings> settings,
                        IThumbnailsDatabase thumbnailsDatabase,
                        IMediaLibrary mediaLibrary,
                        string? id = null, string? path = null,
                        IProgress<float>? progress = null
-      ) : base(logger, services, configuration, thumbnailsDatabase, mediaLibrary, id, path, progress)
+      ) : base(logger, services, settings, thumbnailsDatabase, mediaLibrary, id, path, progress)
       {
          // The base class constructor will take care of the entry, its general attributes and its
          // parents and below we'll take care of its specific attributes.
@@ -286,32 +276,20 @@ namespace MediaCurator
          ----------------------------------------------------------------------------------*/
 
          // Calculate the total number of thumbnails to be generated used for progress reporting
-         foreach (var item in ThumbnailsConfiguration.Value)
+         foreach (var item in Settings.CurrentValue.Thumbnails.Photo)
          {
-            if (item.Value.TryGetValue("Count", out var value))
-            {
-               total += value;
-            }
-            else
-            {
-               total += 1;
-            }
+            total += Math.Min(1, item.Value.Count);
          }
 
          Progress?.Report(0.0f);
 
-         foreach (var item in ThumbnailsConfiguration.Value)
+         foreach (var item in Settings.CurrentValue.Thumbnails.Photo)
          {
-            int count = 0;
-            int width = -1;
-            int height = -1;
-            bool crop = false;
             string label = item.Key;
-
-            if (item.Value.ContainsKey("Count")) count = item.Value["Count"];
-            if (item.Value.ContainsKey("Width")) width = item.Value["Width"];
-            if (item.Value.ContainsKey("Height")) height = item.Value["Height"];
-            if (item.Value.ContainsKey("Crop")) crop = (item.Value["Crop"] > 0);
+            bool crop = item.Value.Crop;
+            int count = item.Value.Count;
+            int width = item.Value.Width;
+            int height = item.Value.Height;
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
