@@ -26,7 +26,7 @@ export default function Mounts({ settings, write }) {
     }, [settings]);
 
     function add(types) {
-        setMounts([{ Types: types, Options: "", Device: "", Folder: "" }, ...clone(mounts ?? {})]);
+        setMounts([{ Types: types, Options: "", Device: "", Folder: "" }, ...clone(mounts ?? [])]);
     }
 
     const Mount = ({ mounts, index, mount, title, available, error, children }) => {
