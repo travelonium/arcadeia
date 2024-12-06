@@ -16,7 +16,7 @@ export default function Mounts({ settings, write }) {
     const [mounts, setMounts] = useState(null);
 
     const titles = {
-        nfs: "(Network File System)",
+        nfs: "NFS (Network File System)",
         cifs: "SMB/CIFS (Windows Share)",
         sshfs: "SSHFS (SSH File System)"
     };
@@ -455,7 +455,7 @@ export default function Mounts({ settings, write }) {
                         </Dropdown.Toggle>
                         <Dropdown.Menu>
                             <Dropdown.Item onClick={() => add("nfs")}>NFS</Dropdown.Item>
-                            <Dropdown.Item onClick={() => add("cifs")}>CIFS</Dropdown.Item>
+                            <Dropdown.Item onClick={() => add("cifs")}>CIFS/SMB</Dropdown.Item>
                             <Dropdown.Item onClick={() => add("sshfs")} disabled>SSHFS</Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown>
