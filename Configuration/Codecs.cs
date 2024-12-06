@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
 
-namespace MediaCurator.Configuration
+namespace Arcadeia.Configuration
 {
     public partial class Codecs
     {

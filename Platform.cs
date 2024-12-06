@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class Platform
    {

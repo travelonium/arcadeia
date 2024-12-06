@@ -1,14 +1,14 @@
-﻿using MediaCurator.Services;
+﻿using Arcadeia.Services;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace MediaCurator.Controllers
+namespace Arcadeia.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]

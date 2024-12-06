@@ -1,7 +1,7 @@
 ﻿using System;
 using SolrNet.Attributes;
 
-namespace MediaCurator.Models
+namespace Arcadeia.Models
 {
    public class MediaContainer
    {

@@ -1,8 +1,8 @@
-using MediaCurator.Hubs;
+using Arcadeia.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
-namespace MediaCurator.Services
+namespace Arcadeia.Services
 {
     public class NotificationService(IHubContext<SignalRHub> hubContext)
     {

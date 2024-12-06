@@ -1,8 +1,8 @@
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class Program
    {

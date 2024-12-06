@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace MediaCurator.Hubs
+namespace Arcadeia.Hubs
 {
    public class SignalRHub : Hub
    {

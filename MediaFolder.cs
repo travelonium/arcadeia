@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
-using MediaCurator.Services;
+using Arcadeia.Configuration;
+using Arcadeia.Services;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class MediaFolder : MediaContainer
    {

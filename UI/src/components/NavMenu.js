@@ -9,6 +9,7 @@ import { Button } from './toolbar/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { ViewDropdown } from './toolbar/ViewDropdown';
 import { SortDropdown } from './toolbar/SortDropdown';
+import { Container, Row, Col } from 'react-bootstrap';
 import { HistoryDropdown } from './toolbar/HistoryDropdown';
 import { setSort, resetSort } from '../features/search/slice';
 import { extract, getFlag, setFlag, withRouter } from '../utils';
@@ -200,12 +201,22 @@ class NavMenu extends Component {
         return (
             <Navbar className="d-flex mb-3 p-2" collapseOnSelect expand="sm" bg={(this.props.ui.theme === "dark") ? "dark" : "light"}>
                 <Navbar.Brand className="py-0" href="/" onClick={this.onBrandClick.bind(this)}>
-                    <svg width="35" height="35" className="animate__animated animate__rotateIn">
-                        <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
-                    </svg>
-                    <svg width="225" height="40" className="ms-2 animate__animated animate__fast animate__slideInLeft">
-                        <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-text"></use>
-                    </svg>
+                <Container className="d-flex px-0" fluid>
+                    <Row className="align-items-center gx-0">
+                        <Col className="d-flex" xs="auto">
+                            <svg width="30" height="30" className="animate__animated animate__rotateIn">
+                                <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-emblem"></use>
+                            </svg>
+                        </Col>
+                        <Col className="d-flex ps-2">
+                            <Row className="">
+                                <svg height="18" width="140" className="animate__animated animate__fast animate__slideInLeft">
+                                    <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#logo-text"></use>
+                                </svg>
+                            </Row>
+                        </Col>
+                    </Row>
+                </Container>
                 </Navbar.Brand>
                 <Navbar.Toggle onClick={this.toggleNavbar} className="me-2" label="responsive-navbar-nav" />
                 <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">

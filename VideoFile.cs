@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Options;
 using ImageMagick;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    class VideoFile : MediaFile
    {

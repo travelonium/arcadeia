@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
-using MediaCurator.Solr;
+using Arcadeia.Configuration;
+using Arcadeia.Solr;
 using SolrNet;
 
-namespace MediaCurator.Services
+namespace Arcadeia.Services
 {
    public class ScannerService(IServiceProvider services,
                                IMediaLibrary mediaLibrary,

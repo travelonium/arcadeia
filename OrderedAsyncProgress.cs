@@ -1,4 +1,4 @@
-namespace MediaCurator
+namespace Arcadeia
 {
    public class OrderedAsyncProgress<T>(Func<T, Task> handler) : IProgress<T>
    {

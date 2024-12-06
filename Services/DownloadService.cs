@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace MediaCurator.Services
+namespace Arcadeia.Services
 {
    public partial class DownloadService(IOptionsMonitor<Settings> settings, ILogger<DownloadService> logger) : IDownloadService
    {

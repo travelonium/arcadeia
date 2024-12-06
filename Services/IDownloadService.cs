@@ -1,4 +1,4 @@
-﻿namespace MediaCurator.Services
+﻿namespace Arcadeia.Services
 {
    public interface IDownloadService: IHostedService
    {

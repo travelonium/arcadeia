@@ -2,11 +2,11 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace MediaCurator.Controllers
+namespace Arcadeia.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]

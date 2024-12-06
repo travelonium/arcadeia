@@ -1,7 +1,7 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaCurator", "MediaCurator.csproj", "{839F8DF3-0D03-4146-A9A8-394719D8028B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arcadeia", "Arcadeia.csproj", "{839F8DF3-0D03-4146-A9A8-394719D8028B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

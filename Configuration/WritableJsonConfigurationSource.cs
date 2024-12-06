@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration.Json;
 
-namespace MediaCurator.Configuration
+namespace Arcadeia.Configuration
 {
    public class WritableJsonConfigurationSource : JsonConfigurationSource
    {

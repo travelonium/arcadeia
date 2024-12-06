@@ -4,13 +4,13 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
-using MediaCurator.Configuration;
-using MediaCurator.Services;
-using MediaCurator.Solr;
+using Arcadeia.Configuration;
+using Arcadeia.Services;
+using Arcadeia.Solr;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace MediaCurator.Controllers
+namespace Arcadeia.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]

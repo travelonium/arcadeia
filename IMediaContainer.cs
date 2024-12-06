@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public interface IMediaContainer : IDisposable
    {

@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    class MediaLibrary : MediaContainer, IMediaLibrary
    {
@@ -16,7 +16,7 @@ namespace MediaCurator
       #region Constructors
 
       /// <summary>
-      /// Initializes a new instance of the <see cref="MediaCurator.MediaLibrary"/> class.
+      /// Initializes a new instance of the <see cref="Arcadeia.MediaLibrary"/> class.
       /// </summary>
       public MediaLibrary(ILogger<MediaContainer> logger,
                           IServiceProvider services,

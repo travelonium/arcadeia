@@ -4,7 +4,6 @@ import MediaViewer from './MediaViewer';
 import update from 'immutability-helper';
 import React, { Component } from 'react';
 import Button from 'react-bootstrap/Button'
-import Spinner from 'react-bootstrap/Spinner';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -17,6 +16,7 @@ import { toast } from 'react-toastify';
 import { connect } from "react-redux";
 import { isEqual } from 'lodash';
 import pb from 'path-browserify';
+import Spinner from './Spinner';
 import cx from 'classnames';
 import axios from 'axios';
 
@@ -1317,13 +1317,13 @@ class Library extends Component {
                         <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
-                                <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-3")}>
-                                    <Spinner className="loading-spinner" animation="border" role="status"/>
+                                <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-2")}>
+                                    <Spinner className="loading-spinner" role="status"/>
                                 </Col>
                             </Row>
                             <Row className="mb-auto">
                                 <Col className={cx(status ? "d-flex" : "d-none", "text-center")}>
-                                    <p className="font-weight-light h5 text-uppercase" >{this.state.status}</p>
+                                    <p className="loading-status font-weight-light fs-6 text-body text-uppercase" >{this.state.status}</p>
                                 </Col>
                             </Row>
                         </Container>

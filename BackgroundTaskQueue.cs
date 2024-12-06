@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class BackgroundTaskQueue(ILogger<BackgroundTaskQueue> logger) : IBackgroundTaskQueue
    {

@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class MediaDrive : MediaContainer
    {
