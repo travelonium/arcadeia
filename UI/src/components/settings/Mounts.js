@@ -40,8 +40,13 @@ export default function Mounts({ settings, write }) {
                 const types = mount.Types;
                 const device = mount.Device;
                 const folder = mount.Folder;
-                if (types === "cifs" || types === "nfs") {
+                if (types === "cifs") {
                     if (!device) return false;
+                    if (!folder) return false;
+                    if (mounts.map(item => item.Folder).filter((item, i) => i !== index && item === folder).length > 0) return false;
+                } else if (types === "nfs") {
+                    if (!device) return false;
+                    if (!/^((?:(?:\d{1,3}\.){3}\d{1,3})|(?:[a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+):\/(?:[^\s]+)$/.test(device)) return false;
                     if (!folder) return false;
                     if (mounts.map(item => item.Folder).filter((item, i) => i !== index && item === folder).length > 0) return false;
                 } else {
@@ -49,8 +54,12 @@ export default function Mounts({ settings, write }) {
                 }
                 return true;
             }
-            if (!isEqual(mount, state) && validate(state)) {
-                setApplyButtonState(true);
+            if (!isEqual(mount, state)) {
+                if (validate(state)) {
+                    setApplyButtonState(true);
+                } else {
+                    setApplyButtonState(false);
+                }
                 setResetButtonState(true);
             } else {
                 setApplyButtonState(false);
@@ -313,11 +322,39 @@ export default function Mounts({ settings, write }) {
 
         const [showOptions, setShowOptions] = useState(false);
 
+        function onFolderChange(event) {
+            const value = event.target.value;
+            setState({
+                ...state,
+                Folder: value ? `/Network/${value}` : ""
+            });
+        }
+
         function onAdvancedFolderChange(event) {
             const value = event.target.value;
             setState({
                 ...state,
                 Folder: value
+            });
+        }
+
+        function onServerChange(event) {
+            const value = event.target.value;
+            const components = device.match(/^(.*):(.*)$/);
+            const path = components?.[2] ?? "";
+            setState({
+                ...state,
+                Device: (value || path) ? `${value}:${path}` : ""
+            });
+        }
+
+        function onPathChange(event) {
+            const value = event.target.value;
+            const components = device.match(/^(.*):(.*)$/);
+            const server = components?.[1] ?? "";
+            setState({
+                ...state,
+                Device: (server || value) ? `${server}:${value}` : ""
             });
         }
 
@@ -337,15 +374,40 @@ export default function Mounts({ settings, write }) {
             });
         }
 
+        const components = device.match(/^([^:\s]+)?:?(.*)?$/);
+        const server = components?.[1] ?? "";
+        const path = components?.[2] ?? "";
+
         return (
             <Tabs
-                defaultActiveKey="advanced"
+                defaultActiveKey="basic"
                 id="type"
                 className="mb-3"
                 variant="pills"
                 justify
             >
-                <Tab eventKey="basic" title="Basic" className="mb-2" disabled>
+                <Tab eventKey="basic" title="Basic" className="mb-2">
+                    <Container>
+                        <Row>
+                            <Col>
+                                <Form.Label htmlFor="folder">Folder</Form.Label>
+                                <InputGroup id="folder" className="mb-3">
+                                    <InputGroup.Text className={cx((folder.startsWith("/Network/") || !folder) ? "" : "text-decoration-line-through")} >{"/Network/"}</InputGroup.Text>
+                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} />
+                                </InputGroup>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <Form.Label htmlFor="share">Share</Form.Label>
+                                <InputGroup id="share" className="mb-3">
+                                    <Form.Control aria-label="Server" placeholder="Server" aria-describedby="server" value={server} onChange={onServerChange} />
+                                    <InputGroup.Text>{":"}</InputGroup.Text>
+                                    <Form.Control aria-label="Path" placeholder="Path" aria-describedby="server" value={path} onChange={onPathChange} />
+                                </InputGroup>
+                            </Col>
+                        </Row>
+                    </Container>
                 </Tab>
                 <Tab eventKey="advanced" title="Advanced" className="mb-2">
                     <Container>

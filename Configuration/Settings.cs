@@ -181,8 +181,7 @@ namespace MediaCurator.Configuration
       [Required(ErrorMessage = "The 'Types' is required for mount settings.")]
       public required string Types { get; set; }
 
-      [Required(ErrorMessage = "The 'Options' is required for mount settings.")]
-      public required string Options { get; set; }
+      public required string? Options { get; set; }
 
       [Required(ErrorMessage = "The 'Device' is required for mount settings.")]
       public required string Device { get; set; }

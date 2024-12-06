@@ -11,7 +11,7 @@ namespace MediaCurator.Services
 
       public string Types;
 
-      public string Options;
+      public string? Options;
 
       public string Device;
 
@@ -78,7 +78,7 @@ namespace MediaCurator.Services
 
          _logger = logger;
 
-         if (string.IsNullOrEmpty(Types) || string.IsNullOrEmpty(Options) || string.IsNullOrEmpty(Device) || string.IsNullOrEmpty(Folder))
+         if (string.IsNullOrEmpty(Types) || string.IsNullOrEmpty(Device) || string.IsNullOrEmpty(Folder))
          {
             throw new ArgumentException("One or more mount keys are missing or are empty.");
          }
@@ -110,7 +110,7 @@ namespace MediaCurator.Services
          using Process process = new();
 
          process.StartInfo.FileName = executable;
-         process.StartInfo.Arguments = $"-t {Types} -o {Options} {Device} {Folder}";
+         process.StartInfo.Arguments = string.IsNullOrEmpty(Options) ? $"-t {Types} {Device} {Folder}" : $"-t {Types} -o {Options} {Device} {Folder}";
          process.StartInfo.CreateNoWindow = true;
          process.StartInfo.UseShellExecute = false;
          process.StartInfo.RedirectStandardError = true;
