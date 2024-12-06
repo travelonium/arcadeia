@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    /// <summary>
    /// The type representing a photo or video file's resolution. It has a width and a height property

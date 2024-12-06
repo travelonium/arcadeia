@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public interface IBackgroundTaskQueue
    {

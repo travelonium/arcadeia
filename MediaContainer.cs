@@ -1,10 +1,10 @@
 ﻿using SolrNet;
-using MediaCurator.Solr;
+using Arcadeia.Solr;
 using System.Globalization;
 using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class MediaContainer : IMediaContainer
    {

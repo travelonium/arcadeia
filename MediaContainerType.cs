@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public enum MediaContainerType
    {

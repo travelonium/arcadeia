@@ -3,7 +3,7 @@ using System.Xml.Linq;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class MediaContainerFlags
    {

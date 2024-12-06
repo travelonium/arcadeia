@@ -3,9 +3,9 @@ using SolrNet.Exceptions;
 using System.Text.Json;
 using SolrNet.Commands.Parameters;
 using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator.Solr
+namespace Arcadeia.Solr
 {
    public class SolrIndexService<T, TSolrOperations>(ISolrOperations<T> solr,
                                                      IHttpClientFactory factory,

@@ -2,7 +2,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration.Json;
 
-namespace MediaCurator.Configuration
+namespace Arcadeia.Configuration
 {
    public class WritableJsonConfigurationProvider(JsonConfigurationSource source) : JsonConfigurationProvider(source)
    {

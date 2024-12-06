@@ -1,8 +1,8 @@
-﻿using MediaCurator.Configuration;
+﻿using Arcadeia.Configuration;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    class ThumbnailsDatabase : IThumbnailsDatabase
    {

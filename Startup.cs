@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.AspNetCore.HttpOverrides;
-using MediaCurator.Configuration;
-using MediaCurator.Services;
-using MediaCurator.Hubs;
-using MediaCurator.Solr;
+using Arcadeia.Configuration;
+using Arcadeia.Services;
+using Arcadeia.Hubs;
+using Arcadeia.Solr;
 using System.Net;
 using SolrNet;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class Startup(IConfiguration configuration)
    {

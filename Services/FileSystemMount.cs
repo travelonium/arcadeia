@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator.Services
+namespace Arcadeia.Services
 {
    public class FileSystemMount : IDisposable
    {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class MediaServer : MediaContainer
    {

@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace MediaCurator.Configuration
+namespace Arcadeia.Configuration
 {
    public static class ConfigurationExtensions
    {

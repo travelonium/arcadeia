@@ -2,7 +2,7 @@
 using System.Xml.Linq;
 using System.Collections.Generic;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public interface IMediaLibrary : IMediaContainer
    {

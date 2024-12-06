@@ -1,7 +1,7 @@
-﻿using MediaCurator.Configuration;
+﻿using Arcadeia.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace MediaCurator.Services
+namespace Arcadeia.Services
 {
    public class FileSystemService(ILoggerFactory loggerFactory,
                                   ILogger<FileSystemService> logger,

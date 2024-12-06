@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MediaCurator.Configuration
+namespace Arcadeia.Configuration
 {
    public class Settings
    {

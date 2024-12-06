@@ -1,11 +1,11 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using Microsoft.AspNetCore.StaticFiles;
-using MediaCurator.Services;
+using Arcadeia.Services;
 using System.Globalization;
 using Microsoft.Extensions.Options;
-using MediaCurator.Configuration;
+using Arcadeia.Configuration;
 
-namespace MediaCurator
+namespace Arcadeia
 {
    public class MediaFile : MediaContainer
    {
