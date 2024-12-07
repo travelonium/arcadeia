@@ -113,11 +113,11 @@ export default function Mounts({ settings, write }) {
                     <Card.Footer className="px-2">
                         <Container className="py-2" fluid>
                             <Row className="g-4 justify-content-center">
-                                <Col className="">
-                                    <Button className="reset" variant="danger" disabled={!resetButtonState} onClick={reset}>Reset</Button>
+                                <Col className="d-flex me-auto" xs={6} sm="auto">
+                                    <Button className="reset flex-grow-1" variant="danger" disabled={!resetButtonState} onClick={reset}>Reset</Button>
                                 </Col>
-                                <Col className="" xs="auto">
-                                    <Button className="apply" variant="primary" disabled={!applyButtonState} onClick={apply}>Apply</Button>
+                                <Col className="d-flex" xs={6} sm="auto">
+                                    <Button className="apply flex-grow-1" variant="primary" disabled={!applyButtonState} onClick={apply}>Apply</Button>
                                 </Col>
                             </Row>
                         </Container>

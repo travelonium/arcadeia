@@ -283,9 +283,11 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
 .settings {
 
-    .btn.apply,
-    .btn.reset {
-        min-width: 10rem;
+    @include media-breakpoint-up(sm) {
+        .btn.apply,
+        .btn.reset {
+            min-width: 10rem;
+        }
     }
 
     .card {
