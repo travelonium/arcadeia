@@ -10,6 +10,7 @@
     "license-header-manager.excludeExtensions": [],
     "license-header-manager.excludeFolders": [
         "node_modules",
+        "build",
         "obj",
         "bin"
     ],
