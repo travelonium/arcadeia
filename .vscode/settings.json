@@ -1,4 +1,18 @@
 {
+    "license-header-manager.additionalCommentStyles": [
+        {
+            "extension": ".ext",
+            "commentStart": " /*",
+            "commentMiddle": " * ",
+            "commentEnd": " */"
+        }
+    ],
+    "license-header-manager.excludeExtensions": [],
+    "license-header-manager.excludeFolders": [
+        "node_modules",
+        "obj",
+        "bin"
+    ],
     "cSpell.words": [
         "Exif",
         "ffprobe",
