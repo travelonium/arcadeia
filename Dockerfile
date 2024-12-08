@@ -16,8 +16,8 @@ RUN set -eux; \
     apt-get -y install nodejs; \
     node --version; \
     npm version; \
-    dotnet restore -a $TARGETARCH; \
-    dotnet publish -a $TARGETARCH --no-restore --configuration Release -o /app;
+    dotnet restore -a $TARGETARCH ./Arcadeia.csproj; \
+    dotnet publish -a $TARGETARCH ./Arcadeia.csproj --no-restore --configuration Release -o /app;
 
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}
 ARG VERSION
