@@ -10,6 +10,9 @@ stages:
   - deploy
 
 sync:
+  stage: sync
+  tags:
+    - linux
   script:
     - git config user.name "$GITHUB_NAME"
     - git config user.email "$GITHUB_EMAIL"
