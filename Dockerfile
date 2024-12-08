@@ -19,7 +19,8 @@ RUN set -eux; \
     dotnet restore -a $TARGETARCH; \
     dotnet publish -a $TARGETARCH --no-restore --configuration Release -o /app;
 
-FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:${VERSION}
+LABEL org.opencontainers.image.architecture=$TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION
 RUN dpkg --print-architecture;
