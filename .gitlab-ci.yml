@@ -4,9 +4,21 @@ include:
     ref: master
 
 stages:
+  - sync
   - build
   - test
   - deploy
+
+sync:
+  script:
+    - git config user.name "$GITHUB_NAME"
+    - git config user.email "$GITHUB_EMAIL"
+    - git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
+    - git fetch github master
+    - rebase github/master
+    - git push github master
+  only:
+    - master
 
 build:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
