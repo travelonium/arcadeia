@@ -3,6 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <PackageIcon>icon.png</PackageIcon>
+    <Authors>Travelonium AB</Authors>
+    <PackageLicenseExpression>AGPL-3.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/travelonium/arcadeia</PackageProjectUrl>
+    <Copyright>Copyright © 2024 Travelonium AB</Copyright>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
     <IsPackable>false</IsPackable>
