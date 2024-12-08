@@ -19,7 +19,7 @@ RUN set -eux; \
     dotnet restore -a $TARGETARCH ./Arcadeia.csproj; \
     dotnet publish -a $TARGETARCH ./Arcadeia.csproj --no-restore --configuration Release -o /app;
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:${VERSION}
+FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}
 ARG VERSION
 ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
