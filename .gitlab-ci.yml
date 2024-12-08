@@ -1,0 +1,61 @@
+include:
+  - project: "templates/gitlab-ci"
+    file: "docker.yml"
+    ref: master
+
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
+  before_script:
+    - dotnet restore
+  tags:
+    - linux
+  stage: build
+  script:
+    - dotnet build
+
+test:
+  image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
+  before_script:
+    - dotnet restore
+  tags:
+    - linux
+  stage: test
+  script:
+    - dotnet test
+
+.deploy-artifacts:
+  artifacts:
+    paths:
+      - start
+      - stop
+      - restart
+      - test
+      - logs
+      - exec
+      - docker-compose.yml
+      - docker-compose-test.yml
+      - docker-compose-build.yml
+      - docker-compose-debug.yml
+      - docker-compose-production.yml
+      - Server/usr/local/apache2/conf/httpd.conf
+      - Server/usr/local/apache2/conf/extra/httpd-vhosts.conf
+
+deploy:test:
+  extends:
+    - .deploy-test
+    - .deploy-artifacts
+
+deploy:latest:
+  extends:
+    - .deploy-latest
+    - .deploy-artifacts
+
+deploy:tagged:
+  extends:
+    - .deploy-tagged
+    - .deploy-artifacts

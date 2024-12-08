@@ -1,0 +1,23 @@
+services:
+  kestrel:
+    image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test
+    volumes:
+      - type: bind
+        source: ./data
+        target: /var/lib/app/data
+        consistency: cached
+        read_only: false
+      - type: bind
+        source: ./appsettings.Debug.json
+        target: /var/lib/app/appsettings.Production.json
+        consistency: cached
+        read_only: false
+  solr:
+    volumes:
+      - type: bind
+        source: ./data
+        target: /var/solr
+        consistency: cached
+        read_only: false
+    ports:
+      - "8983:8983"

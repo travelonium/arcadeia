@@ -2,4 +2,8 @@
 #
 # Start the docker compose application in production mode.
 
+if [ -f ".env" ]; then
+  source ".env"
+fi
+
 docker compose logs -f $1

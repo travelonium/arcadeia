@@ -266,3 +266,5 @@ Temporary Items
 
 # Custom development and production settings
 appsettings.*.json
+.env.*
+.env

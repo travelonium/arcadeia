@@ -1,0 +1,6 @@
+services:
+  kestrel:
+    image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test
+  solr:
+    ports:
+      - "8983:8983"

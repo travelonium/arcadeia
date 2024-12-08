@@ -2,5 +2,9 @@
 #
 # Start the docker compose application in production mode.
 
+if [ -f ".env" ]; then
+  source ".env"
+fi
+
 docker compose -f docker-compose.yml -f docker-compose-production.yml pull
 docker compose -f docker-compose.yml -f docker-compose-production.yml up -d

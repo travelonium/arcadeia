@@ -2,6 +2,10 @@
 #
 # Execute a command in a container.
 
+if [ -f ".env" ]; then
+  source ".env"
+fi
+
 if [ $# -eq 1 ]; then
     docker compose -f docker-compose.yml exec $@ bash
 else

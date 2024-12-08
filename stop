@@ -2,4 +2,8 @@
 #
 # Stop the docker compose application.
 
+if [ -f ".env" ]; then
+  source ".env"
+fi
+
 docker compose down

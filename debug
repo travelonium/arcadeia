@@ -4,6 +4,10 @@
 
 set -e
 
+if [ -f ".env" ]; then
+  source ".env"
+fi
+
 mkdir -p data
 docker compose -f docker-compose.yml -f docker-compose-debug.yml -f docker-compose-build.yml build
 
