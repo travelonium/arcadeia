@@ -14,6 +14,7 @@ sync:
   tags:
     - linux
   script:
+    - apt-get install -y git
     - git config user.name "$GITHUB_NAME"
     - git config user.email "$GITHUB_EMAIL"
     - git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
