@@ -2,7 +2,7 @@ ARG VERSION=8.0
 ARG NODEJS_VERSION=20
 ARG DISTRO=bullseye-slim
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${VERSION} AS builder
+FROM mcr.microsoft.com/dotnet/sdk:${VERSION} AS builder
 ARG NODEJS_VERSION
 ARG TARGETARCH
 WORKDIR /root/
@@ -19,10 +19,11 @@ RUN set -eux; \
     dotnet restore -a $TARGETARCH; \
     dotnet publish -a $TARGETARCH --no-restore --configuration Release -o /app;
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:${VERSION}
-LABEL org.opencontainers.image.architecture=$TARGETARCH
-ENV DEBIAN_FRONTEND=noninteractive
+FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}
 ARG VERSION
+ARG TARGETARCH
+ENV DEBIAN_FRONTEND=noninteractive
+LABEL org.opencontainers.image.architecture=$TARGETARCH
 RUN dpkg --print-architecture;
 RUN set -eux; \
     apt-get update; \
