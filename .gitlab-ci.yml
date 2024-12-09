@@ -18,7 +18,7 @@ sync:
     - git config user.name "$GITHUB_NAME"
     - git config user.email "$GITHUB_EMAIL"
     - |
-      if git remote | grep -q "^$github$"; then
+      if git remote | grep -q "^github$"; then
         git remote set-url github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
       else
         git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
