@@ -15,17 +15,12 @@ sync:
     - linux
   script:
     - apt-get install -y git
+    - git clone --mirror $CI_REPOSITORY_URL
+    - cd $CI_PROJECT_NAME.git
     - git config user.name "$GITHUB_NAME"
     - git config user.email "$GITHUB_EMAIL"
-    - |
-      if git remote | grep -q "^github$"; then
-        git remote set-url github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
-      else
-        git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
-      fi
-    - git fetch github master
-    - git rebase github/master
-    - git push github master
+    - git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
+    - git push --mirror github
   only:
     - master
 
