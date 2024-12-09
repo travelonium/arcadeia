@@ -17,7 +17,6 @@ sync:
     - apt-get install -y git
     - git config user.name "$GITHUB_NAME"
     - git config user.email "$GITHUB_EMAIL"
-    - git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
     - |
       if git remote | grep -q "^$github$"; then
         git remote set-url github https://$GITHUB_USERNAME:$GITHUB_TOKEN@$GITHUB_REPO
