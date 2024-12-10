@@ -6,4 +6,8 @@ if [ -f ".env" ]; then
   source ".env"
 fi
 
+if [ ! -f "appsettings.Production.json" ]; then
+  echo "{}" > "appsettings.Production.json"
+fi
+
 docker compose -f docker-compose.yml -f docker-compose-build.yml build --progress=plain --pull $@
