@@ -18,7 +18,7 @@ services:
       - solr:/var/solr
       - data:/var/lib/app/data
   arcadeia:
-    image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:latest
+    image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:${CONTAINER_TAG:-latest}
     entrypoint: ["/usr/bin/dotnet", "/var/lib/app/Arcadeia.dll"]
     working_dir: /var/lib/app
     stop_signal: SIGINT

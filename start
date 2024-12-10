@@ -10,5 +10,10 @@ if [ ! -f "appsettings.Production.json" ]; then
   echo "{}" > "appsettings.Production.json"
 fi
 
+# Check if an argument is supplied
+if [ $# -eq 1 ]; then
+  export CONTAINER_TAG=$1
+fi
+
 docker compose -f docker-compose.yml -f docker-compose-production.yml pull
 docker compose -f docker-compose.yml -f docker-compose-production.yml up -d
