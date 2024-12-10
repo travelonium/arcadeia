@@ -1,5 +1,5 @@
 services:
-  kestrel:
+  arcadeia:
     image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test
     volumes:
       - type: bind
