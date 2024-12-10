@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Net;
@@ -137,6 +137,11 @@ namespace Arcadeia.Controllers
       [Produces("application/json")]
       public IActionResult Patch([FromBody] Models.MediaContainer modified, string path = "")
       {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return Problem(title: "Permission Denied", detail: "The library is read-only.", statusCode: 403);
+         }
+
          path = Platform.Separator.Path + path;
 
          if (!IsPathAllowed(path)) {
@@ -201,6 +206,11 @@ namespace Arcadeia.Controllers
       [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
       public async Task<IActionResult> Post(List<IFormFile> files, string path = "", [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
       {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return Problem(title: "Permission Denied", detail: "The library is read-only.", statusCode: 403);
+         }
+
          path = Platform.Separator.Path + path;
 
          if (!IsPathAllowed(path)) {
@@ -335,6 +345,11 @@ namespace Arcadeia.Controllers
       [RequestFormLimits(MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024)]
       public async Task<IActionResult> Put(List<IFormFile> files, string path = "")
       {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return Problem(title: "Permission Denied", detail: "The library is read-only.", statusCode: 403);
+         }
+
          return await Post(files, path, overwrite: true, duplicate: false);
       }
 
@@ -343,6 +358,13 @@ namespace Arcadeia.Controllers
       [Route("upload")]
       public async Task Upload([FromQuery] String url, [FromQuery] string path, [FromQuery] bool overwrite = false, [FromQuery] bool duplicate = false)
       {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            Response.StatusCode = 403;
+            await WriteAsync(Response, "Error: The library is read-only.\n");
+            return;
+         }
+
          if (string.IsNullOrWhiteSpace(url))
          {
             await WriteAsync(Response, "Error: URL is required.\n");
@@ -432,6 +454,11 @@ namespace Arcadeia.Controllers
       [Produces("application/json")]
       public IActionResult ClearHistory()
       {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return Problem(title: "Permission Denied", detail: "The library is read-only.", statusCode: 403);
+         }
+
          using IServiceScope scope = _services.CreateScope();
          ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
          if (solrIndexService.ClearHistory())

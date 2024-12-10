@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import Form from 'react-bootstrap/Form';
@@ -27,7 +27,7 @@ import { Container, Row, Col } from 'react-bootstrap';
 import ToggleButton from 'react-bootstrap/ToggleButton';
 import ToggleButtonGroup from 'react-bootstrap/ToggleButtonGroup';
 
-export default function Scanner({ settings, write }) {
+export default function Scanner({ settings, write, readOnly }) {
 
     const [startupScan, setStartupScan] = useState(null);
     const [startupUpdate, setStartupUpdate] = useState(null);
@@ -86,8 +86,8 @@ export default function Scanner({ settings, write }) {
                                         <Col xs="auto">
                                             <Button className="shadow-none me-2" variant="outline-info" size="sm" disabled>Start Now</Button>
                                             <ToggleButtonGroup name="startup-scan" value={startupScan ? 1 : 0} onChange={(value) => onChange('StartupScan', value > 0)}>
-                                                <ToggleButton type="radio" size="sm" id="startup-scan-off" variant="outline-secondary" name="radio" disabled={startupScan == null} value={0}>OFF</ToggleButton>
-                                                <ToggleButton type="radio" size="sm" id="startup-scan-on" variant="outline-info" name="radio" disabled={startupScan == null} value={1}>ON</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="startup-scan-off" variant="outline-secondary" name="radio" disabled={startupScan == null || readOnly} value={0}>OFF</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="startup-scan-on" variant="outline-info" name="radio" disabled={startupScan == null || readOnly} value={1}>ON</ToggleButton>
                                             </ToggleButtonGroup>
                                         </Col>
                                     </Row>
@@ -109,8 +109,8 @@ export default function Scanner({ settings, write }) {
                                         <Col xs="auto">
                                             <Button className="shadow-none me-2" variant="outline-info" size="sm" disabled>Start Now</Button>
                                             <ToggleButtonGroup name="startup-update" value={startupUpdate ? 1 : 0} onChange={(value) => onChange('StartupUpdate', value > 0)}>
-                                                <ToggleButton type="radio" size="sm" id="startup-update-off" variant="outline-secondary" name="radio" value={0} disabled={startupScan == null}>OFF</ToggleButton>
-                                                <ToggleButton type="radio" size="sm" id="startup-update-on" variant="outline-info" name="radio" value={1} disabled={startupScan == null}>ON</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="startup-update-off" variant="outline-secondary" name="radio" value={0} disabled={startupScan == null || readOnly}>OFF</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="startup-update-on" variant="outline-info" name="radio" value={1} disabled={startupScan == null || readOnly}>ON</ToggleButton>
                                             </ToggleButtonGroup>
                                         </Col>
                                     </Row>
@@ -131,8 +131,8 @@ export default function Scanner({ settings, write }) {
                                         <Col><b>Force Generate Missing Thumbnails</b></Col>
                                         <Col xs="auto">
                                             <ToggleButtonGroup name="force-generate-missing-thumbnails" value={forceGenerateMissingThumbnails ? 1 : 0} onChange={(value) => onChange('ForceGenerateMissingThumbnails', value > 0)}>
-                                                <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-off" variant="outline-secondary" name="radio" disabled={forceGenerateMissingThumbnails == null} value={0}>OFF</ToggleButton>
-                                                <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-on" variant="outline-info" name="radio" disabled={forceGenerateMissingThumbnails == null} value={1}>ON</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-off" variant="outline-secondary" name="radio" disabled={forceGenerateMissingThumbnails == null  || readOnly} value={0}>OFF</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="force-generate-missing-thumbnails-on" variant="outline-info" name="radio" disabled={forceGenerateMissingThumbnails == null || readOnly} value={1}>ON</ToggleButton>
                                             </ToggleButtonGroup>
                                         </Col>
                                     </Row>
@@ -166,7 +166,7 @@ export default function Scanner({ settings, write }) {
                                         <Col className="d-flex mt-3 mt-sm-0" xs={12} sm="auto">
                                             <Form.Range min={0} max={168} step={1}
                                                 name="periodic-scan-interval"
-                                                disabled={periodicScanIntervalMilliseconds == null}
+                                                disabled={periodicScanIntervalMilliseconds == null || readOnly}
                                                 value={periodicScanIntervalMilliseconds != null ? Math.floor(periodicScanIntervalMilliseconds / (1000 * 60 * 60)) : 0}
                                                 onChange={(event) => setPeriodicScanIntervalMilliseconds(event.target.value * 60 * 60 * 1000)}
                                                 onMouseUp={(event) => onChange('PeriodicScanIntervalMilliseconds', event.target.value)}

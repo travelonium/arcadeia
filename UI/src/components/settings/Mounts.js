@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import cx from 'classnames';
@@ -31,7 +31,7 @@ import React, { useState, useEffect } from 'react';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { Container, Row, Col } from 'react-bootstrap';
 
-export default function Mounts({ settings, write }) {
+export default function Mounts({ settings, write, readOnly }) {
 
     const [mounts, setMounts] = useState(null);
 
@@ -117,7 +117,7 @@ export default function Mounts({ settings, write }) {
                             </Col>
                             <Col><b>{title}</b></Col>
                             <Col xs="auto">
-                                <Button variant="danger" size="sm" onClick={remove}>
+                                <Button variant="danger" size="sm" onClick={remove} disabled={readOnly}>
                                     <i className="bi bi-dash-lg"></i>
                                 </Button>
                             </Col>
@@ -134,10 +134,10 @@ export default function Mounts({ settings, write }) {
                         <Container className="py-2" fluid>
                             <Row className="g-4 justify-content-center">
                                 <Col className="d-flex me-auto" xs={6} sm="auto">
-                                    <Button className="reset flex-grow-1" variant="danger" disabled={!resetButtonState} onClick={reset}>Reset</Button>
+                                    <Button className="reset flex-grow-1" variant="danger" disabled={!resetButtonState || readOnly} onClick={reset}>Reset</Button>
                                 </Col>
                                 <Col className="d-flex" xs={6} sm="auto">
-                                    <Button className="apply flex-grow-1" variant="primary" disabled={!applyButtonState} onClick={apply}>Apply</Button>
+                                    <Button className="apply flex-grow-1" variant="primary" disabled={!applyButtonState || readOnly} onClick={apply}>Apply</Button>
                                 </Col>
                             </Row>
                         </Container>
@@ -247,14 +247,14 @@ export default function Mounts({ settings, write }) {
                 variant="pills"
                 justify
             >
-                <Tab eventKey="basic" title="Basic" className="mb-2">
+                <Tab eventKey="basic" title="Basic" className="mb-2" disabled={readOnly}>
                     <Container>
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="folder">Folder</Form.Label>
                                 <InputGroup id="folder" className="mb-3">
                                     <InputGroup.Text className={cx((folder.startsWith("/Network/") || !folder) ? "" : "text-decoration-line-through")} >{"/Network/"}</InputGroup.Text>
-                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} />
+                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -263,12 +263,12 @@ export default function Mounts({ settings, write }) {
                                 <Form.Label htmlFor="server">Server</Form.Label>
                                 <InputGroup id="server" className="mb-3">
                                     <InputGroup.Text className={cx((device.startsWith("//") || !device) ? "" : "text-decoration-line-through")}>{"//"}</InputGroup.Text>
-                                    <Form.Control aria-label="Server" aria-describedby="server" value={device.replace(/\/\//, "")} onChange={onServerChange} />
+                                    <Form.Control aria-label="Server" aria-describedby="server" value={device.replace(/\/\//, "")} onChange={onServerChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                             <Col>
                                 <Form.Label id="protocolVersionLabel" htmlFor="protocolVersion">Protocol Version</Form.Label>
-                                <Form.Select id="protocolVersion" aria-label="Protocol Version" aria-describedby="protocolVersionLabel" value={fields.vers} onChange={onVersionChange} >
+                                <Form.Select id="protocolVersion" aria-label="Protocol Version" aria-describedby="protocolVersionLabel" value={fields.vers} onChange={onVersionChange} disabled={readOnly} >
                                     <option value="default" title="Tries to negotiate the highest SMB2+ version supported by both the client and server.">default</option>
                                     <option value="1.0" title="The classic CIFS/SMBv1 protocol.">1.0</option>
                                     <option value="2.0" title="The SMBv2.002 protocol. This was initially introduced in Windows Vista Service Pack 1, and Windows Server 2008. Note that the initial release version of Windows Vista spoke a slightly different dialect (2.000) that is not supported.">2.0</option>
@@ -283,23 +283,23 @@ export default function Mounts({ settings, write }) {
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="username">User Name</Form.Label>
-                                <Form.Control id="username" value={fields.username} onChange={onUserNameChange} />
+                                <Form.Control id="username" value={fields.username} onChange={onUserNameChange} disabled={readOnly} />
 
                             </Col>
                             <Col>
                                 <Form.Label id="passwordLabel" htmlFor="password">Password</Form.Label>
-                                <Form.Control type="password" id="password" aria-describedby="passwordLabel" value={fields.password} onChange={onPasswordChange} />
+                                <Form.Control type="password" id="password" aria-describedby="passwordLabel" value={fields.password} onChange={onPasswordChange} disabled={readOnly} />
                             </Col>
                         </Row>
                     </Container>
                 </Tab>
-                <Tab eventKey="advanced" title="Advanced" className="mb-2">
+                <Tab eventKey="advanced" title="Advanced" className="mb-2" disabled={readOnly}>
                     <Container>
                         <Row>
                             <Col>
                                 <Form.Label id="folderLabel" htmlFor="folder">Folder</Form.Label>
                                 <InputGroup className="mb-3">
-                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} />
+                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -307,7 +307,7 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label id="deviceLabel" htmlFor="folder">Device</Form.Label>
                                 <InputGroup className="mb-3">
-                                    <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} />
+                                    <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -315,7 +315,7 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label id="optionsLabel" htmlFor="folder">Options</Form.Label>
                                 <InputGroup className="">
-                                    <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} />
+                                    <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} disabled={readOnly} />
                                     <Button variant="outline-secondary" onClick={() => setShowOptions(!showOptions)}><i className={cx("bi", showOptions ? "bi-eye-slash" : "bi-eye")}></i></Button>
                                 </InputGroup>
                             </Col>
@@ -406,14 +406,14 @@ export default function Mounts({ settings, write }) {
                 variant="pills"
                 justify
             >
-                <Tab eventKey="basic" title="Basic" className="mb-2">
+                <Tab eventKey="basic" title="Basic" className="mb-2" disabled={readOnly}>
                     <Container>
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="folder">Folder</Form.Label>
                                 <InputGroup id="folder" className="mb-3">
                                     <InputGroup.Text className={cx((folder.startsWith("/Network/") || !folder) ? "" : "text-decoration-line-through")} >{"/Network/"}</InputGroup.Text>
-                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} />
+                                    <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -421,21 +421,21 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label htmlFor="share">Share</Form.Label>
                                 <InputGroup id="share" className="mb-3">
-                                    <Form.Control aria-label="Server" placeholder="Server" aria-describedby="server" value={server} onChange={onServerChange} />
+                                    <Form.Control aria-label="Server" placeholder="Server" aria-describedby="server" value={server} onChange={onServerChange} disabled={readOnly} />
                                     <InputGroup.Text>{":"}</InputGroup.Text>
-                                    <Form.Control aria-label="Path" placeholder="Path" aria-describedby="server" value={path} onChange={onPathChange} />
+                                    <Form.Control aria-label="Path" placeholder="Path" aria-describedby="server" value={path} onChange={onPathChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
                     </Container>
                 </Tab>
-                <Tab eventKey="advanced" title="Advanced" className="mb-2">
+                <Tab eventKey="advanced" title="Advanced" className="mb-2" disabled={readOnly}>
                     <Container>
                         <Row>
                             <Col>
                                 <Form.Label id="folderLabel" htmlFor="folder">Folder</Form.Label>
                                 <InputGroup className="mb-3">
-                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} />
+                                    <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -443,7 +443,7 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label id="deviceLabel" htmlFor="folder">Device</Form.Label>
                                 <InputGroup className="mb-3">
-                                    <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} />
+                                    <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} disabled={readOnly} />
                                 </InputGroup>
                             </Col>
                         </Row>
@@ -451,7 +451,7 @@ export default function Mounts({ settings, write }) {
                             <Col>
                                 <Form.Label id="optionsLabel" htmlFor="folder">Options</Form.Label>
                                 <InputGroup className="">
-                                    <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} />
+                                    <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} disabled={readOnly} />
                                     <Button variant="outline-secondary" onClick={() => setShowOptions(!showOptions)}><i className={cx("bi", showOptions ? "bi-eye-slash" : "bi-eye")}></i></Button>
                                 </InputGroup>
                             </Col>
@@ -470,7 +470,7 @@ export default function Mounts({ settings, write }) {
                 </Col>
                 <Col xs="auto">
                     <Dropdown className="me-2" align="end">
-                        <Dropdown.Toggle size="sm" variant="info">
+                        <Dropdown.Toggle size="sm" variant="info" disabled={readOnly}>
                             <i className="bi bi-plus-lg" />
                         </Dropdown.Toggle>
                         <Dropdown.Menu>

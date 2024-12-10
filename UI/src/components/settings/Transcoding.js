@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import Form from 'react-bootstrap/Form';
@@ -23,7 +23,7 @@ import Card from 'react-bootstrap/Card';
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 
-export default function Transcoding({ settings, write }) {
+export default function Transcoding({ settings, write, readOnly }) {
 
     const [hardwareAcceleration, setHardwareAcceleration] = useState(null);
     const [videoEncoder, setVideoEncoder] = useState(null);
@@ -90,7 +90,7 @@ export default function Transcoding({ settings, write }) {
                                     <Row className="align-items-center">
                                         <Col><b>Hardware Acceleration</b></Col>
                                         <Col xs="auto">
-                                            <Form.Select size="sm" value={hardwareAcceleration ?? ""} onChange={(event) => onChange('HardwareAcceleration', event.currentTarget.value)}>
+                                            <Form.Select size="sm" value={hardwareAcceleration ?? ""} onChange={(event) => onChange('HardwareAcceleration', event.currentTarget.value)} disabled={readOnly}>
                                                 <option value="">Disabled</option>
                                             {
                                                 settings?.System?.FFmpeg?.HardwareAcceleration?.map((method) => <option key={method} value={method}>{method}</option>)
@@ -114,7 +114,7 @@ export default function Transcoding({ settings, write }) {
                                     <Row className="align-items-center">
                                         <Col><b>Video Encoder</b></Col>
                                         <Col xs="auto">
-                                            <Form.Select size="sm" value={videoEncoder ?? ""} onChange={(event) => onChange('VideoEncoder', event.currentTarget.value)}>
+                                            <Form.Select size="sm" value={videoEncoder ?? ""} onChange={(event) => onChange('VideoEncoder', event.currentTarget.value)} disabled={readOnly}>
                                                 <option value="">Default</option>
                                             {
                                                 settings?.System?.FFmpeg?.Codecs?.Encoders?.Video?.map((encoder) => <option key={encoder.Name} value={encoder.Name} title={encoder.Description}>{encoder.Name}</option>)
@@ -138,7 +138,7 @@ export default function Transcoding({ settings, write }) {
                                     <Row className="align-items-center">
                                         <Col><b>Audio Encoder</b></Col>
                                         <Col xs="auto">
-                                            <Form.Select size="sm" value={audioEncoder ?? ""} onChange={(event) => onChange('AudioEncoder', event.currentTarget.value)}>
+                                            <Form.Select size="sm" value={audioEncoder ?? ""} onChange={(event) => onChange('AudioEncoder', event.currentTarget.value)} disabled={readOnly}>
                                                 <option value="">Default</option>
                                             {
                                                 settings?.System?.FFmpeg?.Codecs?.Encoders?.Audio?.map((encoder) => <option key={encoder.Name} value={encoder.Name} title={encoder.Description}>{encoder.Name}</option>)

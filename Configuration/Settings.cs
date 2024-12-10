@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.ComponentModel.DataAnnotations;
@@ -50,6 +50,9 @@ namespace Arcadeia.Configuration
 
       [Required(ErrorMessage = "The 'Mounts' configuration is required.")]
       public required List<MountSettings> Mounts { get; set; } = [];
+
+      [Required(ErrorMessage = "The 'Security' configuration is required.")]
+      public required SecuritySettings Security { get; set; }
 
       [Required(ErrorMessage = "The 'Logging' configuration is required.")]
       public required LoggingSettings Logging { get; set; }
@@ -208,6 +211,27 @@ namespace Arcadeia.Configuration
 
       [Required(ErrorMessage = "The 'Folder' is required for mount settings.")]
       public required string Folder { get; set; }
+   }
+
+   public class SecuritySettings
+   {
+      [Required(ErrorMessage = "The 'Library' is required for security settings.")]
+      public required SecurityLibrarySettings Library { get; set; }
+
+      [Required(ErrorMessage = "The 'Settings' is required for security settings.")]
+      public required SecuritySettingsSettings Settings { get; set; }
+   }
+
+   public class SecurityLibrarySettings
+   {
+      [Required(ErrorMessage = "The 'ReadOnly' is required for library security settings.")]
+      public required bool ReadOnly { get; set; }
+   }
+
+   public class SecuritySettingsSettings
+   {
+      [Required(ErrorMessage = "The 'ReadOnly' is required for security settings settings.")]
+      public required bool ReadOnly { get; set; }
    }
 
    public class LoggingSettings
