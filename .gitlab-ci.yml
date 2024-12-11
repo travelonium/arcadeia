@@ -64,14 +64,14 @@ test:
 publish:test:
   extends:
     - .deploy-test
-    - .deploy-artifacts
+    - .publish-artifacts
 
 publish:latest:
   extends:
     - .deploy-latest
-    - .deploy-artifacts
+    - .publish-artifacts
 
 publish:tagged:
   extends:
     - .deploy-tagged
-    - .deploy-artifacts
+    - .publish-artifacts
