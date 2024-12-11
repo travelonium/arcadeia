@@ -7,7 +7,7 @@ stages:
   - sync
   - build
   - test
-  - deploy
+  - publish
 
 sync:
   stage: sync
@@ -44,7 +44,7 @@ test:
   script:
     - dotnet test
 
-.deploy-artifacts:
+.publish-artifacts:
   artifacts:
     paths:
       - start
@@ -61,17 +61,17 @@ test:
       - Server/usr/local/apache2/conf/httpd.conf
       - Server/usr/local/apache2/conf/extra/httpd-vhosts.conf
 
-deploy:test:
+publish:test:
   extends:
     - .deploy-test
     - .deploy-artifacts
 
-deploy:latest:
+publish:latest:
   extends:
     - .deploy-latest
     - .deploy-artifacts
 
-deploy:tagged:
+publish:tagged:
   extends:
     - .deploy-tagged
     - .deploy-artifacts
