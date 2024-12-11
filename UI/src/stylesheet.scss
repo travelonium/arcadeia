@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 @import "~videojs-vtt-thumbnails/dist/videojs-vtt-thumbnails.css";
@@ -332,6 +332,11 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
 .upload-zone {
     label {
+        .badge {
+            animation-duration: 150ms;
+            border: 1px solid $gray-400;
+        }
+
         .upload-zone-overlay.dragging {
             width: 100%;
             display: flex;
@@ -346,6 +351,13 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 
         .upload-zone-content.dragging {
             opacity: .3;
+        }
+
+        .upload-zone-box {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            border: 2px dashed $dark;
         }
     }
 }

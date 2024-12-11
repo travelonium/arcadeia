@@ -1,28 +1,29 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
-import Badge from 'react-bootstrap/Badge';
-import React, { Component } from 'react';
-import { toast } from 'react-toastify';
-import * as pb from 'path-browserify';
 import cx from 'classnames';
+import * as pb from 'path-browserify';
+import { toast } from 'react-toastify';
+import React, { Component } from 'react';
+import Badge from 'react-bootstrap/Badge';
+import { Container, Row, Col } from 'react-bootstrap';
 
 export class UploadZone extends Component {
 
@@ -175,13 +176,24 @@ export class UploadZone extends Component {
             >
                 <input type="file" id="upload-zone-input" className="d-none" name="files" webkitdirectory="true" multiple={true} onChange={this.onChange.bind(this)} />
                 <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex" onClick={(event) => event.preventDefault()}>
-                    <div className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")}>
-                        <Badge className="d-flex align-items-center px-4" bg="light" pill>
-                        <p className="d-flex fw-lighter text-dark text-uppercase h5 m-1">
-                            Drop To Upload
-                        </p>
+                    <Container className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")} fluid>
+                        <Badge className="d-flex align-items-center animate__animated animate__fadeIn animate__zoomIn" bg="light">
+                            <Row className="align-items-center gx-0 pt-5">
+                                <Col className="d-flex align-items-center justify-content-center" xs={12}>
+                                    <span className="upload-zone-box d-flex align-items-center justify-content-center">
+                                        <svg className="animate__animated animate__fadeOutUp animate__infinite" width="35" height="35">
+                                            <use xmlnsXlink="http://www.w3.org/1999/xlink" xlinkHref="#upload-icon-fill"></use>
+                                        </svg>
+                                    </span>
+                                </Col>
+                                <Col className="d-flex align-items-center justify-content-center pt-4 pb-4" xs={12}>
+                                    <p className="d-flex fw-bold text-dark text-uppercase h5">
+                                        UPLOAD ZONE
+                                    </p>
+                                </Col>
+                            </Row>
                         </Badge>
-                    </div>
+                    </Container>
                     <div className={cx("upload-zone-content", this.state.dragging ? "dragging" : "")}>
                         {this.props.children}
                     </div>
