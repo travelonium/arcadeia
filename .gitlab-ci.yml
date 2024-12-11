@@ -44,7 +44,7 @@ test:
   script:
     - dotnet test
 
-.publish-artifacts:
+.deploy-artifacts:
   artifacts:
     paths:
       - start
@@ -61,17 +61,17 @@ test:
       - Server/usr/local/apache2/conf/httpd.conf
       - Server/usr/local/apache2/conf/extra/httpd-vhosts.conf
 
-publish:test:
+deploy:test:
   extends:
     - .deploy-test
-    - .publish-artifacts
+    - .deploy-artifacts
 
-publish:latest:
+deploy:latest:
   extends:
     - .deploy-latest
-    - .publish-artifacts
+    - .deploy-artifacts
 
-publish:tagged:
+deploy:tagged:
   extends:
     - .deploy-tagged
-    - .publish-artifacts
+    - .deploy-artifacts
