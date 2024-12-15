@@ -10,8 +10,6 @@ on:
     branches: [ "master" ]
     # Publish semver tags as releases.
     tags: [ '*.*.*' ]
-  pull_request:
-    branches: [ "master" ]
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -59,3 +57,40 @@ jobs:
             docker-compose-production.yml
             Apache/usr/local/apache2/conf/httpd.conf
             Apache/usr/local/apache2/conf/extra/vhosts/default.conf
+
+      # Check if the release already exists
+      - name: Check for existing release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          if gh release view ${{ github.ref_name }} --repo ${{ github.repository }} > /dev/null 2>&1; then
+            echo "RELEASE_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "RELEASE_EXISTS=false" >> $GITHUB_ENV
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Create a release if it doesn't exist
+      - name: Create a new release
+        if: ${{ env.RELEASE_EXISTS == 'false' && startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload artifacts to the release
+      - name: Upload the artifacts to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          gh release upload ${{ github.ref_name }} \
+            start stop restart logs exec \
+            docker-compose.yml docker-compose-production.yml \
+            Apache/usr/local/apache2/conf/httpd.conf \
+            Apache/usr/local/apache2/conf/extra/vhosts/default.conf \
+            --repo ${{ github.repository }} --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
