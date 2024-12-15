@@ -6,8 +6,6 @@ name: Docker
 # documentation.
 
 on:
-  schedule:
-    - cron: '37 4 * * *'
   push:
     branches: [ "master" ]
     # Publish semver tags as releases.
@@ -21,10 +19,8 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
-
 jobs:
   Publish:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read

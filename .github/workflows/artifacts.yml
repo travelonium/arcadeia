@@ -1,0 +1,61 @@
+name: Artifacts
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches: [ "master" ]
+    # Publish semver tags as releases.
+    tags: [ '*.*.*' ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  Publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Determine the container tag
+      - name: Determine the container tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/heads/master ]]; then
+            echo "TAG=master" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG=${{ github.ref_name }}
+            echo "TAG=$TAG" >> $GITHUB_ENV
+          fi
+        shell: bash
+
+      # Update the container tag in the docker-compose.yml file
+      - name: Update docker-compose.yml
+        run: |
+          sed -i "s|arcadeia:\${CONTAINER_TAG:-latest}|arcadeia:${{ env.TAG }}|g" docker-compose.yml
+
+      # Archive the artifacts
+      # https://github.com/actions/upload-artifact
+      - name: Archive the artifacts
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcadeia
+          path: |
+            start
+            stop
+            restart
+            logs
+            exec
+            docker-compose.yml
+            docker-compose-production.yml
+            Apache/usr/local/apache2/conf/httpd.conf
+            Apache/usr/local/apache2/conf/extra/vhosts/default.conf
