@@ -4,7 +4,7 @@ include:
     ref: master
 
 stages:
-  - sync
+  - github
   - build
   - test
   - deploy
@@ -17,7 +17,7 @@ before_script:
   - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
 
-sync:master:
+sync:
   image: $CI_REGISTRY/dockerhub/ubuntu:latest
   stage: sync
   tags:
