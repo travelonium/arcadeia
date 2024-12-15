@@ -1,4 +1,12 @@
 services:
+  arcadeia:
+    volumes:
+      - data:/var/lib/app/data
+      - type: bind
+        source: ./appsettings.Production.json
+        target: /var/lib/app/appsettings.Production.json
+        consistency: cached
+        read_only: false
   apache:
     volumes:
       - type: bind
