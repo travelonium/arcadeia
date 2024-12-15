@@ -27,7 +27,7 @@ if [ $# -ge 1 ]; then
   shift
 fi
 
-SECOND_COMPOSE_FILE="docker-compose-${COMMAND}.yml"
+SECOND_COMPOSE_FILE="docker-compose-${COMMAND:-production}.yml"
 if [ ! -f "$SECOND_COMPOSE_FILE" ]; then
   echo "Error: $SECOND_COMPOSE_FILE does not exist."
   exit 1
