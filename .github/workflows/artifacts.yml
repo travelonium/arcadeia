@@ -43,7 +43,7 @@ jobs:
       # Create an archive of artifacts
       - name: Create artifact archive
         run: |
-          tar -czvf arcadeia-artifacts.tar.gz \
+          tar -czvf arcadeia.tar.gz \
             start \
             stop \
             restart \
@@ -59,8 +59,8 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
-          name: arcadeia
-          path: arcadeia-artifacts.tar.gz
+          name: "Arcadeia (${{ github.ref_name }})"
+          path: arcadeia.tar.gz
 
       # Check if the release already exists
       - name: Check for existing release
@@ -89,8 +89,7 @@ jobs:
       - name: Upload the artifacts to the release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          gh release upload ${{ github.ref_name }} arcadeia-artifacts.tar.gz \
-            --name "Arcadeia" \
+          gh release upload ${{ github.ref_name }} arcadeia.tar.gz \
             --repo ${{ github.repository }} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
