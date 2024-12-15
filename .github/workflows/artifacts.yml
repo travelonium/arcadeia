@@ -40,23 +40,27 @@ jobs:
         run: |
           sed -i "s|arcadeia:\${CONTAINER_TAG:-latest}|arcadeia:${{ env.TAG }}|g" docker-compose.yml
 
-      # Archive the artifacts
-      # https://github.com/actions/upload-artifact
-      - name: Archive the artifacts
+      # Create an archive of artifacts
+      - name: Create artifact archive
+        run: |
+          tar -czvf arcadeia-artifacts.tar.gz \
+            start \
+            stop \
+            restart \
+            logs \
+            exec \
+            docker-compose.yml \
+            docker-compose-production.yml \
+            Apache/usr/local/apache2/conf/httpd.conf \
+            Apache/usr/local/apache2/conf/extra/vhosts/default.conf
+
+      # Archive the artifacts locally (for workflow use)
+      - name: Upload artifacts for workflow
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: arcadeia
-          path: |
-            start
-            stop
-            restart
-            logs
-            exec
-            docker-compose.yml
-            docker-compose-production.yml
-            Apache/usr/local/apache2/conf/httpd.conf
-            Apache/usr/local/apache2/conf/extra/vhosts/default.conf
+          path: arcadeia-artifacts.tar.gz
 
       # Check if the release already exists
       - name: Check for existing release
@@ -73,12 +77,11 @@ jobs:
       # Create a release if it doesn't exist
       - name: Create a new release
         if: ${{ env.RELEASE_EXISTS == 'false' && startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "${{ github.ref_name }}" \
+            --notes "Automatically generated release for version ${{ github.ref_name }}" \
+            --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -86,11 +89,8 @@ jobs:
       - name: Upload the artifacts to the release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          gh release upload ${{ github.ref_name }} \
-            start stop restart logs exec \
-            docker-compose.yml docker-compose-production.yml \
-            Apache/usr/local/apache2/conf/httpd.conf \
-            Apache/usr/local/apache2/conf/extra/vhosts/default.conf \
+          gh release upload ${{ github.ref_name }} arcadeia-artifacts.tar.gz \
+            --name "Arcadeia" \
             --repo ${{ github.repository }} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
