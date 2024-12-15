@@ -33,6 +33,7 @@ sync:master:
     - git push github master --tags
   only:
     - master
+    - tags
 
 build:arcadeia:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
