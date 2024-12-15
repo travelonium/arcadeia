@@ -23,6 +23,7 @@ sync:master:
   tags:
     - linux
   script:
+    - apt-get update
     - apt-get install -y git
     - git clone --mirror $CI_REPOSITORY_URL
     - cd $CI_PROJECT_NAME.git
