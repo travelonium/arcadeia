@@ -10,4 +10,4 @@ if [ ! -f "appsettings.Production.json" ]; then
   echo "{}" > "appsettings.Production.json"
 fi
 
-docker compose -f docker-compose.yml -f docker-compose-build.yml build --progress=plain --pull $@
+docker compose -f docker-compose.yml -f docker-compose-build.yml build --pull $@

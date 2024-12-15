@@ -1,0 +1,18 @@
+services:
+  apache:
+    volumes:
+      - type: bind
+        source: ./Apache/usr/local/apache2/conf/httpd.conf
+        target: /usr/local/apache2/conf/httpd.conf
+        consistency: cached
+        read_only: true
+      - type: bind
+        source: ./Apache/usr/local/apache2/conf/extra/vhosts
+        target: /usr/local/apache2/conf/extra/vhosts
+        consistency: cached
+        read_only: true
+      - type: bind
+        source: ./Apache/var/www
+        target: /var/www
+        consistency: cached
+        read_only: true

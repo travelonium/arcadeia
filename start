@@ -2,6 +2,18 @@
 #
 # Start the docker compose application in production mode.
 
+set -e
+
+function show_help {
+  echo "Usage: $0 [COMMAND] [SERVICE] [OPTIONS]"
+  echo
+  exit 0
+}
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+  show_help
+fi
+
 if [ -f ".env" ]; then
   source ".env"
 fi
@@ -10,10 +22,21 @@ if [ ! -f "appsettings.Production.json" ]; then
   echo "{}" > "appsettings.Production.json"
 fi
 
-# Check if an argument is supplied
-if [ $# -eq 1 ]; then
-  export CONTAINER_TAG=$1
+if [ $# -ge 1 ]; then
+  export COMMAND=$1
+  shift
 fi
 
-docker compose -f docker-compose.yml -f docker-compose-production.yml pull
-docker compose -f docker-compose.yml -f docker-compose-production.yml up -d
+SECOND_COMPOSE_FILE="docker-compose-${COMMAND}.yml"
+if [ ! -f "$SECOND_COMPOSE_FILE" ]; then
+  echo "Error: $SECOND_COMPOSE_FILE does not exist."
+  exit 1
+fi
+
+docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" pull
+
+if [ $# -eq 0 ]; then
+  set -- -d
+fi
+
+docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" up "$@"

@@ -2,8 +2,20 @@
 #
 # Stop the docker compose application.
 
+set -e
+
+function show_help {
+  echo "Usage: $0 [SERVICE] [OPTIONS]"
+  echo
+  exit 0
+}
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+  show_help
+fi
+
 if [ -f ".env" ]; then
   source ".env"
 fi
 
-docker compose down
+docker compose down $@

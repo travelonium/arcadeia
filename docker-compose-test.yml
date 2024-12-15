@@ -1,6 +1,13 @@
 services:
   arcadeia:
     image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test
+    volumes:
+      - data:/var/lib/app/data
+      - type: bind
+        source: ./appsettings.Production.json
+        target: /var/lib/app/appsettings.Production.json
+        consistency: cached
+        read_only: false
   solr:
     ports:
       - "8983:8983"

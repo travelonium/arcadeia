@@ -37,7 +37,6 @@
     <None Remove=".dockerignore" />
     <None Remove="docker-compose.yml" />
     <None Remove="entrypoint.sh" />
-    <None Remove="Server\etc\apache2\sites-available\example.com.conf" />
     <None Remove="docker-compose-debug.yml" />
     <None Remove="SolrNet" />
     <None Remove="SolrNet.Microsoft.DependencyInjection" />

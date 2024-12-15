@@ -9,7 +9,15 @@ stages:
   - test
   - deploy
 
-sync:
+before_script:
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+
+sync:master:
   stage: sync
   tags:
     - linux
@@ -24,7 +32,7 @@ sync:
   only:
     - master
 
-build:
+build:arcadeia:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
   before_script:
     - dotnet restore
@@ -33,6 +41,52 @@ build:
   stage: build
   script:
     - dotnet build
+
+build:demo:
+  image: node:20
+  before_script:
+    - cd Site
+    - npm install
+  tags:
+    - linux
+  stage: build
+  script:
+    - npm run site:build
+    - cd ..
+    - mkdir -p var/www
+    - mv Site/.vitepress/dist/* var/www
+  artifacts:
+    paths:
+      - var/www
+
+deploy:demo:
+  image: $CI_REGISTRY/dockerhub/ubuntu:latest
+  needs:
+    - job: build:demo
+      artifacts: true
+    - job: deploy:test
+      artifacts: false
+  stage: deploy
+  script:
+    - |
+      ssh -T $SSH_USER@$DEMO_SERVER "
+        mkdir -p \"$DEMO_SERVER_DEPLOY_PATH\"; \
+        cd \"$DEMO_SERVER_DEPLOY_PATH\"; \
+        ./stop || true; \
+        find . -maxdepth 1 ! -name 'appsettings.*' ! -name '.*' ! -name '.' ! -name '..' -exec rm -rf {} +; \
+        echo \"$DEMO_SERVER_REGISTRY_PASSWORD\" | docker login \"$CI_REGISTRY\" -u \"$DEMO_SERVER_REGISTRY_USER\" --password-stdin;
+      "
+    - mv var Apache/var
+    - scp -r Apache docker-compose*.* start stop restart logs exec $SSH_USER@$DEMO_SERVER:$DEMO_SERVER_DEPLOY_PATH/
+    - |
+      ssh -T $SSH_USER@$DEMO_SERVER "
+        cd \"$DEMO_SERVER_DEPLOY_PATH\";
+        ./start demo;
+      "
+  tags:
+    - linux
+# only:
+#   - master
 
 test:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
@@ -50,16 +104,14 @@ test:
       - start
       - stop
       - restart
-      - test
       - logs
       - exec
       - docker-compose.yml
       - docker-compose-test.yml
-      - docker-compose-build.yml
       - docker-compose-debug.yml
       - docker-compose-production.yml
-      - Server/usr/local/apache2/conf/httpd.conf
-      - Server/usr/local/apache2/conf/extra/httpd-vhosts.conf
+      - Apache/usr/local/apache2/conf/httpd.conf
+      - Apache/usr/local/apache2/conf/extra/vhosts/default.conf
 
 deploy:test:
   extends:
