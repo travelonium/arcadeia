@@ -27,4 +27,4 @@ jobs:
           git remote add gitlab https://$GITLAB_USERNAME:$GITLAB_TOKEN@$GITLAB_REPO
           git fetch gitlab master
           git rebase gitlab/master
-          git push gitlab master
+          git push gitlab master --tags
