@@ -18,6 +18,7 @@ before_script:
   - chmod 644 ~/.ssh/known_hosts
 
 sync:master:
+  image: $CI_REGISTRY/dockerhub/ubuntu:latest
   stage: sync
   tags:
     - linux
