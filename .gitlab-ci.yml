@@ -64,7 +64,7 @@ deploy:demo:
   needs:
     - job: build:demo
       artifacts: true
-    - job: deploy:test
+    - job: deploy:latest
       artifacts: false
   stage: deploy
   script:
@@ -85,8 +85,8 @@ deploy:demo:
       "
   tags:
     - linux
-# only:
-#   - master
+  only:
+    - master
 
 test:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
