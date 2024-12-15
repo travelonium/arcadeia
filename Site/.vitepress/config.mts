@@ -1,4 +1,16 @@
+import simpleGit from 'simple-git';
 import { defineConfig } from 'vitepress'
+
+async function getLatestTag() {
+    const git = simpleGit();
+    try {
+        const tags = await git.tags();
+        return tags.latest || 'latest';
+    } catch (err) {
+        console.error('Error fetching git tags:', err);
+        return 'unknown';
+    }
+}
 
 // https://vitepress.dev/reference/site-config
 
@@ -7,7 +19,14 @@ export default defineConfig({
     description: "A self-hosted and web-based media archiving, browsing, searching and management solution",
     cleanUrls: false,
     lang: 'en-US',
-
+    vite: {
+        define: {
+            __LATEST_TAG__: JSON.stringify(await getLatestTag()),
+        },
+        ssr: {
+            noExternal: ['simple-git'],
+        },
+    },
     themeConfig: {
         siteTitle: false,
         logo: "/logo-full.svg",
@@ -34,10 +53,10 @@ export default defineConfig({
                         text: 'Getting Started',
                         link: '/docs/getting-started'
                     },
-                    {
+                    /*{
                         text: 'Configuration',
                         link: '/docs/configuration'
-                    },
+                    },*/
                     {
                         text: 'License & Legal',
                         link: '/docs/legal'
