@@ -19,7 +19,7 @@ before_script:
 
 sync:
   image: $CI_REGISTRY/dockerhub/ubuntu:latest
-  stage: sync
+  stage: github
   tags:
     - linux
   script:
