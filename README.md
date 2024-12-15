@@ -5,7 +5,7 @@ to your personal media storage. It allows you to collect all your media files in
 
 It also features **Dynamic Thumbnails** that brings your library to life by showing a quick preview of the video files without requiring any interaction whatsoever.
 
-<video src="Site/docs/assets/introduction-video-preview.mp4" title="Arcadeia Preview" style="border-radius: 10px;" autoplay loop></video>
+![](https://github.com/user-attachments/assets/36b287d7-5c17-4f9c-a5b3-29dedd02edd9)
 
 > [!WARNING]
 > **Arcadeia** is not yet fully tested or optimized for deployment on publicly accessible networks. Users are advised to take the following precautions if considering internet-facing deployments:
