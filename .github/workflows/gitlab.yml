@@ -24,6 +24,7 @@ jobs:
           GITLAB_EMAIL: ${{ secrets.GITLAB_EMAIL }}
           GITLAB_NAME: ${{ secrets.GITLAB_NAME }}
         run: |
+          echo "::add-mask::$GITLAB_REPO"
           git config user.name "$GITLAB_NAME"
           git config user.email "$GITLAB_EMAIL"
           git remote add gitlab https://$GITLAB_USERNAME:$GITLAB_TOKEN@$GITLAB_REPO
