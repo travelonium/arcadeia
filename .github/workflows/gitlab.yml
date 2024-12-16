@@ -24,11 +24,10 @@ jobs:
           GITLAB_EMAIL: ${{ secrets.GITLAB_EMAIL }}
           GITLAB_NAME: ${{ secrets.GITLAB_NAME }}
         run: |
-          echo "::add-mask::$GITLAB_REPO"
           git config user.name "$GITLAB_NAME"
           git config user.email "$GITLAB_EMAIL"
           git remote add gitlab https://$GITLAB_USERNAME:$GITLAB_TOKEN@$GITLAB_REPO
           git checkout master
-          git fetch gitlab master
+          git fetch -q gitlab master 2>&1 | sed "s|https://$GITLAB_REPO|https://***|g"
           git rebase gitlab/master
-          git push gitlab master --tags
+          git push gitlab master --tags 2>&1 | sed "s|https://$GITLAB_REPO|https://***|g"
