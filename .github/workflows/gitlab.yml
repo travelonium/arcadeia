@@ -27,6 +27,7 @@ jobs:
           git config user.name "$GITLAB_NAME"
           git config user.email "$GITLAB_EMAIL"
           git remote add gitlab https://$GITLAB_USERNAME:$GITLAB_TOKEN@$GITLAB_REPO
+          git checkout master
           git fetch gitlab master
           git rebase gitlab/master
           git push gitlab master --tags
