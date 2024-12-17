@@ -29,7 +29,7 @@
       "react-window": "^1.8.10",
       "redux-persist": "^6.0.0",
       "sortablejs": "^1.15.1",
-      "video.js": "^8.6.1",
+      "video.js": "^8.21.0",
       "videojs-vtt-thumbnails": "^0.0.13",
       "viewerjs": "^1.11.6",
       "web-vitals": "^3.5.0",
