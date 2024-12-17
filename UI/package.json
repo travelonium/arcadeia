@@ -32,7 +32,7 @@
       "video.js": "^8.6.1",
       "videojs-vtt-thumbnails": "^0.0.13",
       "viewerjs": "^1.11.6",
-      "web-vitals": "^3.5.0",
+      "web-vitals": "^4.2.4",
       "workbox-core": "^7.3.0",
       "workbox-expiration": "^7.0.0",
       "workbox-precaching": "^7.0.0",
