@@ -4,7 +4,7 @@ outline: deep
 
 # Introduction
 
-**Arcadeia** is a self-hosted, web-based media archiving, browsing, searching and management solution designed to bring order and access
+**Arcadeia** is an open-source, self-hosted and web-based media archiving, browsing, searching and management solution designed to bring order and access
 to your personal media storage. It allows you to collect all your media files in one place and find, view and manage your media files on any device.
 
 It also features **Dynamic Thumbnails** that brings your library to life by showing a quick preview of the video files without requiring any interaction whatsoever.

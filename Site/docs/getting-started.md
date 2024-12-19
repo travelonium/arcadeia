@@ -53,3 +53,5 @@ chmod +x start stop restart logs exec
 ```bash
 ./start
 ```
+
+3. Open **Arcadeia** in your browser by navigating to: http://localhost/

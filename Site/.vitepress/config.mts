@@ -16,7 +16,10 @@ async function getLatestTag() {
 
 export default defineConfig({
     title: "ARCADEIA",
-    description: "A self-hosted and web-based media archiving, browsing, searching and management solution",
+    description: "An open-source, self-hosted and web-based media archiving, browsing, searching and management solution",
+    sitemap: {
+        hostname: "https://www.arcadeia.org"
+    },
     cleanUrls: false,
     lang: 'en-US',
     vite: {

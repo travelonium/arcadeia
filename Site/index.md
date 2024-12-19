@@ -6,7 +6,7 @@ hero:
   name: false
   text: false
   image: /icon.svg
-  tagline: "A self-hosted and web-based media archiving, browsing, searching and management solution"
+  tagline: "An open-source, self-hosted and web-based media archiving, browsing, searching and management solution"
 
   actions:
     - theme: brand
