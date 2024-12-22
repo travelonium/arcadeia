@@ -658,6 +658,7 @@ class Library extends Component {
                                     toast: toast.info(this.renderUploadToast(prefix + "Uploading...", file.name),
                                     {
                                         progress: 0,
+                                        autoClose: false,
                                         theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
                                         icon: <div className="Toastify__spinner"></div>
                                     }),
@@ -668,6 +669,8 @@ class Library extends Component {
                 })
             }
         }, () => {
+            let subtitle = file.name;
+            const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
             let config = {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -675,22 +678,21 @@ class Library extends Component {
                 validateStatus: (status) => {
                     return (status === 200);
                 },
-                onUploadProgress: this.onUploadFileProgress.bind(this, key, file, index),
+                onUploadProgress: this.onUploadFileProgress.bind(this, key, index, "Uploading...", subtitle, undefined, theme, undefined),
             };
+            const onShowUploadProgress = (item, progress) => {
+                if (item === key) {
+                    this.onUploadFileProgress(key, index, "Processing...", subtitle, undefined, theme, undefined, progress)
+                };
+            };
+            this.props.signalRConnection?.on("ShowUploadProgress", onShowUploadProgress.bind(this));
             const target = new URL("/api/library" + path, window.location.origin);
             target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
             target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
             axios.post(target.toString(), data, config)
             .then((response) => {
-                let name = extract(file.name, response, 'data', 0, 'name');
-                toast.update(extract(null, this.state.uploads.active, key, 'toast'), {
-                    icon: null,
-                    theme: null,
-                    progress: null,
-                    autoClose: null,
-                    type: 'success',
-                    render: this.renderUploadToast.bind(this, prefix + "Complete", name),
-                });
+                subtitle = extract(file.name, response, 'data', 0, 'name');
+                this.onUploadFileProgress(key, index, "Upload Complete", subtitle, 'success', null, null, 1.0);
                 // remove the successfully uploaded item from the list of active uploads
                 this.setState(prevState => {
                     return {
@@ -730,13 +732,7 @@ class Library extends Component {
                 } else {
                     // well, something else must've happened
                 }
-                toast.update(toastId, {
-                    icon: null,
-                    progress: 0,
-                    theme: null,
-                    type: 'error',
-                    render: this.renderUploadToast.bind(this, message, file.name),
-                });
+                this.onUploadFileProgress(key, null, message, subtitle, 'error', null, null, null);
                 let failed = extract(null, this.state.uploads.active, key, 'file');
                 // remove the failed upload from the list of active uploads
                 this.setState(prevState => {
@@ -771,6 +767,9 @@ class Library extends Component {
                         this.upload(null, true);
                     });
                 });
+            })
+            .finally(() => {
+                this.props.signalRConnection?.off("ShowUploadProgress", onShowUploadProgress);
             });
             // process any remaining queued items
             this.upload(null, true);
@@ -826,8 +825,8 @@ class Library extends Component {
                 const process = ({ done, value: chunk }) => {
                     if (done) {
                         progress = 1.0;
-                        title = "Complete";
-                        this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon);
+                        title = "Upload Complete";
+                        this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
                         // remove the successfully uploaded item from the list of active uploads
                         this.setState(prevState => {
                             return {
@@ -897,7 +896,7 @@ class Library extends Component {
                                 return Promise.reject(new Error(v));
                             }
                             // Update the toast
-                            if (show) this.onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon);
+                            if (show) this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
                         }
                     };
                     return reader.read().then(process);
@@ -907,7 +906,7 @@ class Library extends Component {
             .catch(error => {
                 console.error(error);
                 title = error.message;
-                this.onUploadUrlProgress(key, null, title, subtitle, null, 'error', null);
+                this.onUploadProgress(key, null, title, subtitle, null, 'error', null);
                 let failed = extract(null, this.state.uploads.active, key, 'url');
                 // remove the failed upload from the list of active uploads
                 this.setState(prevState => {
@@ -1137,19 +1136,22 @@ class Library extends Component {
         event.stopPropagation();
     }
 
-    onUploadFileProgress(key, file, index, progressEvent) {
-        const progress = progressEvent.loaded / progressEvent.total;
-        const toastId = extract(null, this.state.uploads.active, key, 'toast');
-        const prefix = `[${index} / ${this.state.uploads.total}] `;
-        const status = progress < 1 ? "Uploading" : "Processing";
-        toast.update(toastId, {
-            progress: progress === 1.0 ? 0 : progress,
-            autoClose: progress === 1.0 ? false : null,
-            render: this.renderUploadToast.bind(this, `${prefix}${status}...`, file.name),
-        });
+    onUploadFileProgress(key, index, title, subtitle, type, theme, icon, progressEvent) {
+        let progress = 0.0;
+        if (typeof progressEvent === 'object' && progressEvent !== null) {
+            if (progressEvent.progress === 1.0) {
+                progress = 0.0;
+                title = "Processing...";
+            } else {
+                progress = progressEvent.progress;
+            }
+        } else {
+            progress = progressEvent;
+        }
+        this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
     }
 
-    onUploadUrlProgress(key, index, title, subtitle, progress, type, theme, icon) {
+    onUploadProgress(key, index, title, subtitle, progress, type, theme, icon) {
         const prefix = index != null ? `[${index} / ${this.state.uploads.total}] ` : "";
         const options = {
             autoClose: progress === 0.0 ? false : null,

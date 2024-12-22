@@ -35,15 +35,17 @@ namespace Arcadeia.Controllers
    [ApiController]
    [Route("api/[controller]")]
    public class LibraryController(IServiceProvider services,
-                                  IOptionsMonitor<Settings> settings,
                                   IMediaLibrary mediaLibrary,
+                                  IOptionsMonitor<Settings> settings,
                                   IThumbnailsDatabase thumbnailsDatabase,
+                                  NotificationService notificationService,
                                   ILogger<MediaContainer> logger) : Controller
    {
       private readonly IServiceProvider _services = services;
       private readonly IMediaLibrary _mediaLibrary = mediaLibrary;
       private readonly IOptionsMonitor<Settings> _settings = settings;
       private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
+      private readonly NotificationService _notificationService = notificationService;
       private readonly ILogger<MediaContainer> _logger = logger;
 
       private static async Task WriteAsync(HttpResponse response, string text)
@@ -312,10 +314,12 @@ namespace Arcadeia.Controllers
             // Process uploaded file...
             // FIXME: Don't rely on or trust the FileName property without validation.
 
+            Progress<float> processingProgress = new(async value => await _notificationService.ShowUploadProgressAsync(Path.Combine(path, file.FileName), value));
+
             try
             {
                // Add the file to the MediaLibrary.
-               using MediaFile? newMediaFile = _mediaLibrary.InsertMediaFile(fullPath);
+               using MediaFile? newMediaFile = _mediaLibrary.InsertMediaFile(fullPath, processingProgress);
 
                if (newMediaFile != null) result.Add(newMediaFile.Model);
                else {

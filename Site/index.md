@@ -15,7 +15,7 @@ hero:
 
     - theme: alt
       text: Documentation
-      link: /docs
+      link: /docs/index.html
 
     - theme: alt
       text: GitHub

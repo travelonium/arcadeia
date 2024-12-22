@@ -43,7 +43,7 @@ export default defineConfig({
             },
             {
                 text: 'Documentation',
-                link: '/docs',
+                link: '/docs/index.html',
                 activeMatch: '/docs'
             }
         ],
@@ -54,15 +54,15 @@ export default defineConfig({
                 items: [
                     {
                         text: 'Getting Started',
-                        link: '/docs/getting-started'
+                        link: '/docs/getting-started.html'
                     },
                     /*{
                         text: 'Configuration',
-                        link: '/docs/configuration'
+                        link: '/docs/configuration.html'
                     },*/
                     {
                         text: 'License & Legal',
-                        link: '/docs/legal'
+                        link: '/docs/legal.html'
                     }
                 ]
             }

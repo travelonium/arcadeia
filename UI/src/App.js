@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import { connect } from "react-redux";
@@ -36,6 +36,7 @@ class App extends Component {
 
     constructor(props) {
         super(props);
+        this.signalrConnection = null;
         this.library = React.createRef();
         this.scannerProgressToast = null;
         this.lastScannerProgressToastShowed = 0;
@@ -79,6 +80,7 @@ class App extends Component {
     }
 
     setupNotifications(connection) {
+        this.signalrConnection = connection;
         connection.on("Refresh", (path) => {
             this.library?.current?.refresh();
         });
@@ -258,7 +260,7 @@ class App extends Component {
                 <NavMenu library={this.props.library} />
                 <Routes>
                     <Route path="/settings/*" element={<Settings />} />
-                    <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} />} />
+                    <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} signalRConnection={this.signalrConnection} />} />
                 </Routes>
             </>
         );
