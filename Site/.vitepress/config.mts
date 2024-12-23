@@ -1,5 +1,7 @@
+import fs from 'fs';
+import path from 'path';
 import simpleGit from 'simple-git';
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
 
 async function getLatestTag() {
     const git = simpleGit();
@@ -56,14 +58,14 @@ export default defineConfig({
                         text: 'Getting Started',
                         link: '/docs/getting-started.html'
                     },
-                    /*{
-                        text: 'Configuration',
-                        link: '/docs/configuration.html'
-                    },*/
                     {
                         text: 'License & Legal',
                         link: '/docs/legal.html'
-                    }
+                    },
+                    {
+                        text: 'Settings',
+                        link: '/docs/settings.html'
+                    },
                 ]
             }
         ],
