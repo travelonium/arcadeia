@@ -23,12 +23,13 @@ import Col from 'react-bootstrap/Col';
 import MediaViewer from './MediaViewer';
 import update from 'immutability-helper';
 import React, { Component } from 'react';
-import Button from 'react-bootstrap/Button'
+import Button from 'react-bootstrap/Button';
+import ProgressToast from './ProgressToast';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { clone, extract, size, querify, shorten, withRouter, isEqualExcluding, getFlag } from './../utils';
+import { clone, extract, size, querify, shorten, withRouter, isEqualExcluding, getFlag } from '../utils';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { UploadZone } from './UploadZone';
@@ -646,6 +647,14 @@ class Library extends Component {
         let data = new FormData();
         data.append('files', file, pb.join(path, file.name));
         const prefix = "[" + index + " / " + total + "] ";
+        const toastId = toast.info(<ProgressToast title={prefix + "Uploading..."} subtitle={file.name} />,
+            {
+                progress: 0,
+                autoClose: false,
+                theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
+                icon: <div className="Toastify__spinner"></div>
+            }
+        );
         this.setState(prevState => {
             return {
                 ...prevState,
@@ -655,13 +664,7 @@ class Library extends Component {
                             $merge: {
                                 [key]: {
                                     file: file,
-                                    toast: toast.info(this.renderUploadToast(prefix + "Uploading...", file.name),
-                                    {
-                                        progress: 0,
-                                        autoClose: false,
-                                        theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
-                                        icon: <div className="Toastify__spinner"></div>
-                                    }),
+                                    toast: toastId,
                                 }
                             }
                         })
@@ -781,6 +784,14 @@ class Library extends Component {
         const total = this.state.uploads.total;
         const index = this.state.uploads.total - this.state.uploads.queued.length;
         const prefix = "[" + index + " / " + total + "] ";
+        const toastId = toast.info(<ProgressToast title={prefix + "Resolving..."} subtitle={url} />,
+            {
+                progress: 0,
+                autoClose: false,
+                theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
+                icon: <div className="Toastify__spinner"></div>
+            }
+        );
         this.setState(prevState => {
             return {
                 ...prevState,
@@ -790,13 +801,7 @@ class Library extends Component {
                             $merge: {
                                 [key]: {
                                     url: url,
-                                    toast: toast.info(this.renderUploadToast(prefix + "Resolving...", url),
-                                    {
-                                        progress: 0,
-                                        autoClose: false,
-                                        theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
-                                        icon: <div className="Toastify__spinner"></div>
-                                    }),
+                                    toast: toastId,
                                 }
                             }
                         })
@@ -1155,7 +1160,7 @@ class Library extends Component {
         const prefix = index != null ? `[${index} / ${this.state.uploads.total}] ` : "";
         const options = {
             autoClose: progress === 0.0 ? false : null,
-            render: this.renderUploadToast.bind(this, `${prefix}${title}`, subtitle),
+            render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />,
             progress: progress !== 1.0 ? progress : null,
             ...(icon !== undefined && { icon }),
             ...(type !== undefined && { type }),
@@ -1228,17 +1233,6 @@ class Library extends Component {
 
     onScrollToTop() {
         this.scrollToItem(0, true);
-    }
-
-    renderUploadToast(title, subtitle) {
-        return (
-            <>
-                <div>
-                    <strong>{title}</strong>
-                </div>
-                <small>{shorten(subtitle, 100)}</small>
-            </>
-        );
     }
 
     gridView() {

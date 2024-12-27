@@ -1,24 +1,25 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import './NavMenu.css';
+import cx from 'classnames';
 import { Flag } from './toolbar/Flag';
 import { connect } from "react-redux";
 import Nav from 'react-bootstrap/Nav';
@@ -240,9 +241,9 @@ class NavMenu extends Component {
                 </Navbar.Brand>
                 <Navbar.Toggle onClick={this.toggleNavbar} className="me-2" label="responsive-navbar-nav" />
                 <Navbar.Collapse id="responsive-navbar-nav" className="d-sm-inline-flex flex-sm-row-reverse">
-                    <Nav className={"toolbar flex-md-row flex-sm-column" + (this.state.collapsed ? "" : " mt-2")}>
-                        <Nav.Item>
-                            <div className="d-flex align-items-center px-2">
+                    <Nav className={cx("toolbar flex-md-row flex-sm-column")}>
+                        <Nav.Item className="px-sm-1 pb-2 pb-md-0 pt-2 pt-sm-0">
+                            <div className="align-items-center">
                                 <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
                                 <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />

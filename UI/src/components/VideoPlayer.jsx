@@ -1,60 +1,73 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import React from 'react';
-import videojs from 'video.js';
-import vttThumbnails from 'videojs-vtt-thumbnails';
-import "jb-videojs-hls-quality-selector";
-import { extract } from '../utils';
-import { isEqual } from 'lodash';
 import cx from 'classnames';
+import videojs from 'video.js';
+import { isEqual } from 'lodash';
+import { extract } from '../utils';
+import "jb-videojs-hls-quality-selector";
+import '../plugins/video.js/videojs-vtt-thumbnails';
 
 export class VideoPlayer extends React.Component {
 
+    constructor(props) {
+        super(props);
+        this.player = null;
+        this.videoJsContainer = React.createRef();
+    }
+
     componentDidMount() {
         this.attempt = 0;
-        const options = this.props.options;
-        const sources = this.sources(this.props.sources);
-        options.sources = sources;
-        videojs.registerPlugin("vttThumbnails", vttThumbnails);
-        this.player = videojs(this.videoElement, options, this.onPlayerReady.bind(this));
-        this.player.on('loadstart', this.onPlayerLoadStart.bind(this));
-        this.player.on('loadeddata', this.onPlayerLoadedData.bind(this));
-        this.player.on('error', this.onPlayerError.bind(this));
-        if (this.props.sources.length === 1) {
-            let source = this.props.sources[0];
-            this.player.vttThumbnails({
-                src: window.location.origin + "/api/thumbnails/" + source.id + "/sprite.vtt",
-                showTimestamp: false,
-            });
-            this.player.hlsQualitySelector({
-                vjsIconClass: "vjs-icon-cog",
-                displayCurrentQuality: false,
-            });
+        if (!this.player) {
+            const options = this.props.options;
+            const sources = this.sources(this.props.sources);
+            options.sources = sources;
+            const videoElement = document.createElement('video-js');
+            videoElement.classList.add('vjs-big-play-centered');
+            if (this.videoJsContainer.current) {
+                this.videoJsContainer.current.appendChild(videoElement);
+                this.player = videojs(videoElement, options, this.onPlayerReady.bind(this));
+                this.player.on('loadstart', this.onPlayerLoadStart.bind(this));
+                this.player.on('loadeddata', this.onPlayerLoadedData.bind(this));
+                this.player.on('error', this.onPlayerError.bind(this));
+                if (this.props.sources.length === 1) {
+                    let source = this.props.sources[0];
+                    this.player.vttThumbnails({
+                        src: window.location.origin + "/api/thumbnails/" + source.id + "/sprite.vtt",
+                        showTimestamp: false,
+                    });
+                    this.player.hlsQualitySelector({
+                        vjsIconClass: "vjs-icon-cog",
+                        displayCurrentQuality: false,
+                    });
+                }
+            }
         }
     }
 
     // destroy player on unmount
     componentWillUnmount() {
-        if (this.player) {
+        if (this.player && !this.player.isDisposed()) {
             this.player.dispose();
+            this.player = null;
         }
     }
 
@@ -69,11 +82,11 @@ export class VideoPlayer extends React.Component {
         }
     }
 
-    onPlayerReady() {}
+    onPlayerReady() { }
 
-    onPlayerLoadStart() {}
+    onPlayerLoadStart() { }
 
-    onPlayerLoadedData() {}
+    onPlayerLoadedData() { }
 
     onPlayerError() {
         let error = this.player.error();
@@ -107,18 +120,15 @@ export class VideoPlayer extends React.Component {
 
     reload(force = false) {
         let sources = this.sources(this.props.sources, force);
-        if (sources ) this.player.src(sources);
+        this.player.autoplay(this.props.options.autoplay);
+        if (sources) this.player.src(sources);
     }
 
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't create additional wrapper in the DOM
     // see https://github.com/videojs/video.js/pull/3856
     render() {
         return (
-            <div className={cx(this.props.className, "video-player")}>
-                <div data-vjs-player>
-                    <video ref={element => this.videoElement = element} className="video-js vjs-big-play-centered"></video>
-                </div>
-            </div>
+            <div ref={this.videoJsContainer} className={cx(this.props.className, "video-player")} data-vjs-player />
         )
     }
 }

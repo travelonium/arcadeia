@@ -1,33 +1,34 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
+import cx from 'classnames';
+import { Flag } from './toolbar/Flag';
 import Card from 'react-bootstrap/Card';
+import { Thumbnail } from './Thumbnail';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
 import Popover from 'react-bootstrap/Popover';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { duration, size, extract, clone } from './../utils';
 import { EditableText } from './EditableText';
-import { Thumbnail } from './Thumbnail';
-import { Flag } from './toolbar/Flag';
-import cx from 'classnames';
+import { Col, Container, Row } from 'react-bootstrap';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import { duration, size, extract, clone } from '../utils';
 
 export class MediaContainer extends Component {
 
@@ -148,11 +149,30 @@ export class MediaContainer extends Component {
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                     <div className="thumbnail-container">
                         <Thumbnail source={source} library={this.props.library} />
-                        <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
-                    {
-                        (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
-                        <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
-                    }
+                        <Container className="properties" fluid>
+                            <Row className="gx-2">
+                                <Col className="d-flex">
+                                {
+                                    (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
+                                    (source.extension) ? <Badge bg="primary" className="extension" title="Extension">{source.extension}</Badge> : <></>
+                                }
+                                </Col>
+                            {
+                                (source.width && source.height) ?
+                                <Col className="d-flex" xs="auto">
+                                    <Badge bg={(source.duration > 0) ? "dark" : "primary"} className="resolution" title="Resolution">{`${source.width} × ${source.height}`}</Badge>
+                                </Col> :
+                                <></>
+                            }
+                            {
+                                (source.duration > 0) ?
+                                <Col className="d-flex" xs="auto">
+                                    <Badge bg="primary" className="duration" title="Duration">{duration(source.duration)}</Badge>
+                                </Col> :
+                                <></>
+                            }
+                            </Row>
+                        </Container>
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>

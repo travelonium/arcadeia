@@ -18,6 +18,7 @@
  *
  */
 
+import { withRouter } from './utils';
 import { connect } from "react-redux";
 import { toast } from 'react-toastify';
 import React, { Component } from 'react';
@@ -26,8 +27,8 @@ import NavMenu from './components/NavMenu';
 import Library from './components/Library';
 import Settings from './components/Settings';
 import { Route, Routes } from 'react-router';
-import { shorten, withRouter } from './utils';
 import { setTheme } from './features/ui/slice';
+import ProgressToast from './components/ProgressToast';
 import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 
@@ -204,7 +205,7 @@ class App extends Component {
         const now = Date.now();
         if ((now - this.lastScannerProgressToastShowed < interval) && (index > 0) && ((index + 1) < total)) return;
         const progress = (index + 1) / total;
-        const render = this.renderScannerProgressToast(`${title}...`, item);
+        const render = <ProgressToast title={title} subtitle={item} />;
         if (!this.scannerProgressToast) {
             this.scannerProgressToast = toast.info(render,
             {
@@ -230,7 +231,7 @@ class App extends Component {
     showScannerCancelledToast(state) {
         const { title } = state || {};
         if ([title].some(value => value == null)) return;
-        const render = this.renderScannerProgressToast(`${title}`);
+        const render = <ProgressToast title={title} />;
         if (this.scannerProgressToast) {
             toast.update(this.scannerProgressToast, {
                 progress: null,
@@ -239,19 +240,6 @@ class App extends Component {
             });
         }
         this.scannerProgressToast = null;
-    }
-
-    renderScannerProgressToast(title, subtitle) {
-        return (
-            <>
-                <div className="mb-1">
-                    <strong>{title}</strong>
-                </div>
-            {
-                subtitle ? <small className="scanner-progress-subtitle">{shorten(subtitle, 100)}</small> : <></>
-            }
-            </>
-        );
     }
 
     render() {

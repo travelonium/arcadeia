@@ -18,20 +18,18 @@
  *
  */
 
-@import "~videojs-vtt-thumbnails/dist/videojs-vtt-thumbnails.css";
-@import "~react-toastify/dist/ReactToastify.css";
-@import "~bootstrap-icons/font/bootstrap-icons";
-@import "~video.js/dist/video-js.css";
-@import "~animate.css/animate.css";
+ @use "bootstrap-icons/font/bootstrap-icons.css";
+ @use "video.js/dist/video-js.css";
+ @use "animate.css/animate.css";
 
 // Your variable overrides can go here, e.g.:
 // $h1-font-size: 3rem;
 $dropdown-link-active-bg: transparent;
 $dropdown-link-active-color: var(--bs-dropdown-color);
 
-@import "~bootswatch/dist/spacelab/variables";
-@import "~bootstrap/scss/bootstrap";
-@import "~bootswatch/dist/spacelab/bootswatch";
+@import "bootswatch/dist/spacelab/variables.scss";
+@import "bootstrap/scss/bootstrap.scss";
+@import "bootswatch/dist/spacelab/bootswatch.scss";
 
 .logo-text {
 
@@ -434,20 +432,16 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
                 }
             }
 
-            .duration {
-                &.badge {
-                    position: absolute;
-                    bottom: 7px;
-                    right: 5px;
-                }
-            }
+            .properties {
+                bottom: 0.5rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+                position: absolute;
 
-            .extension {
-                &.badge {
-                    text-transform: uppercase;
-                    position: absolute;
-                    bottom: 7px;
-                    left: 5px;
+                .extension {
+                    &.badge {
+                        text-transform: uppercase;
+                    }
                 }
             }
 

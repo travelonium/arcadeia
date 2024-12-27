@@ -33,10 +33,12 @@ if [ ! -f "$SECOND_COMPOSE_FILE" ]; then
   exit 1
 fi
 
-docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" pull
+if [ $COMMAND != "debug" ]; then
+  docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" pull
 
-if [ $# -eq 0 ]; then
-  set -- -d
+  if [ $# -eq 0 ]; then
+    set -- -d
+  fi
 fi
 
 docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" up "$@"
