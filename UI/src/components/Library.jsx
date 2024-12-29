@@ -29,13 +29,13 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { clone, extract, size, querify, shorten, withRouter, isEqualExcluding, getFlag } from '../utils';
+import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag } from '../utils';
 import { setScrollPosition } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { UploadZone } from './UploadZone';
 import { toast } from 'react-toastify';
 import { connect } from "react-redux";
-import { isEqual } from 'lodash';
+import { isEqual, isEmpty } from 'lodash';
 import pb from 'path-browserify';
 import Spinner from './Spinner';
 import cx from 'classnames';
@@ -61,7 +61,6 @@ class Library extends Component {
         this.ignoreScrollUpdateWasRequested = false;
         this.storeScrollPositionTimeout = null;
         this.uploadTimeout = null;
-        this.signalRConnection = null;
         this.state = {
             loading: false,
             status: "",
@@ -125,6 +124,7 @@ class Library extends Component {
     }
 
     componentDidMount() {
+        console.debug("componentDidMount()");
         // install the event handler for keydown keyboard events
         document.addEventListener('keydown', this.onKeyDown.bind(this));
         // perform a refresh on load
@@ -140,6 +140,7 @@ class Library extends Component {
     }
 
     componentWillUnmount() {
+        console.debug("componentWillUnmount()");
         // remove the installed event handler
         document.removeEventListener('keydown', this.onKeyDown.bind(this));
     }
@@ -154,7 +155,7 @@ class Library extends Component {
         const currentName = this.getName(currentProps?.location?.pathname);
 
         // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
-        const didMediaViewerShowOrHide = (currentPath === nextPath) && ((currentName && !nextName) || (!currentName && nextName));
+        const didMediaViewerShowOrHide = (currentPath && nextPath) && ((currentName && !nextName) || (!currentName && nextName));
 
         // was this triggered by a browser back / forward?
         const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
@@ -163,24 +164,32 @@ class Library extends Component {
         const didScrollPositionChange = !isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition);
 
         // check if significant differences exist in props or state, excluding specific keys
-        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef');
+        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
         const hasStateChanged = !isEqualExcluding(currentState, nextState, 'uploads');
 
         const shouldUpdate = (!didMediaViewerShowOrHide || wasBrowserBackOrForward) && !didScrollPositionChange && (havePropsChanged || hasStateChanged);
+
+        if (shouldUpdate) {
+            const updatedProps = differenceWith(this.props, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
+            const updatedState = differenceWith(this.state, nextState, 'uploads');
+            console.group(`shouldComponentUpdate(${shouldUpdate})`);
+            if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
+            if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
+            console.groupEnd();
+        }
 
         return shouldUpdate;
     }
 
     componentDidUpdate(prevProps) {
-        const currentPath = this.path;
-        const prevPath = this.getPath(prevProps?.location?.pathname);
+        console.debug("componentDidUpdate()");
+        const currentName = this.name;
         if (this.state.items == null ||
             !isEqualExcluding(prevProps.location, this.props.location, 'key') ||
             !isEqual(prevProps.search, this.props.search)) {
-            const name = this.name;
-            if (name && (prevPath === currentPath)) {
+            if (currentName && this.state.items != null) {
                 // the path has not changed since last update, no refresh necessary
-                const index = this.state.items.findIndex(x => x.name === name);
+                const index = this.state.items.findIndex(x => x.name === currentName);
                 if (index !== -1) {
                     this.view(this.state.items[index], index);
                 }
@@ -190,8 +199,8 @@ class Library extends Component {
 
                 // the path has changed since last update refresh and view
                 this.refresh((succeeded) => {
-                    if (succeeded && name) {
-                        const index = this.state.items.findIndex(x => x.name === name);
+                    if (succeeded && currentName) {
+                        const index = this.state.items.findIndex(x => x.name === currentName);
                         if (index !== -1) {
                             this.view(this.state.items[index], index);
                         }
@@ -247,7 +256,7 @@ class Library extends Component {
         } else {
             // eslint-disable-next-line
             this.state.items = items;
-            this.mediaContainers[index]?.current.set(source, (_) => {
+            this.mediaContainers[index]?.current?.set(source, (_) => {
                 if (callback !== undefined) {
                     callback(this.state.items[index], true);
                 }
@@ -270,6 +279,7 @@ class Library extends Component {
     }
 
     refresh(callback = undefined) {
+        console.debug("refresh()");
         this.search(this.path, 0, (succeeded) => {
             if (callback !== undefined) {
                 callback(succeeded);
@@ -330,10 +340,9 @@ class Library extends Component {
         const query = searching ? this.query : "*";
         const recursive = this.recursive;
         const favorite = this.favorite;
-        let solr = "/solr/Library/select";
-        if (process.env.NODE_ENV !== "production") {
-            solr = "http://localhost:8983/solr/Library/select";
-        }
+        const solrUrl = this.props.settings?.Solr?.URL;
+        if (!solrUrl) return;
+        const target = `${solrUrl}/select`;
         const sort = (searching ? this.props.search.sort['search'] : this.props.search.sort[path]) ?? this.props.search.sort;
         const input = {
             q: query,
@@ -379,7 +388,7 @@ class Library extends Component {
             loading: true,
             status: "Requesting",
         }, () => {
-            fetch(solr + "?" + querify(input).toString(), {
+            fetch(target + "?" + querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
                 headers: {
@@ -458,10 +467,9 @@ class Library extends Component {
             return;
         }
         let query = "*";
-        let solr = "/solr/Library/select";
-        if (process.env.NODE_ENV !== "production") {
-            solr = "http://localhost:8983/solr/Library/select";
-        }
+        const solrUrl = this.props.settings?.Solr?.URL;
+        if (!solrUrl) return;
+        const target = `${solrUrl}/select`;
         const input = {
             q: query,
             fq: [
@@ -471,7 +479,7 @@ class Library extends Component {
         };
         this.controller.abort();
         this.controller = new AbortController();
-        fetch(solr + "?" + querify(input).toString(), {
+        fetch(target + "?" + querify(input).toString(), {
             signal: this.controller.signal,
             credentials: 'include',
             headers: {
@@ -958,6 +966,7 @@ class Library extends Component {
     }
 
     view(source, index = 0, player = true) {
+        console.debug("view()");
         this.current = index;
         if (player) {
             const path = source.fullPath;
@@ -1022,11 +1031,12 @@ class Library extends Component {
 
     onMediaViewerHide() {
         this.viewing = false;
+        const id = extract(null, this.state.items, this.current, 'id');
         const path = encodeURI(this.props.location?.state?.path || this.path);
         const search = this.props.location?.state?.search || this.props.location.search;
         const url = path + search;
         this.props.navigate(url);
-        this.reload(extract(null, this.state.items, this.current, 'id'));
+        this.reload(id);
     }
 
     onKeyDown(event) {
@@ -1171,6 +1181,7 @@ class Library extends Component {
     }
 
     async scrollToItem(index, store=false, align="start", rowIndex=undefined, columnIndex=undefined) {
+        console.debug("scrollToItem()");
         if (!this.grid.current) return;
         let grid = this.grid.current;
         let columnCount = grid.props.columnCount;
@@ -1365,7 +1376,8 @@ const mapStateToProps = (state) => ({
     },
     search: {
         sort: state.search.sort
-    }
+    },
+    settings: state.settings.current
 });
 
 export default connect(mapStateToProps, null, null, { forwardRef: true })(

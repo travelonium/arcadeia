@@ -24,10 +24,16 @@ import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
+import { useDispatch, useSelector } from 'react-redux';
 import ToggleButton from 'react-bootstrap/ToggleButton';
+import { writeSettings } from '../../features/settings/slice';
 import ToggleButtonGroup from 'react-bootstrap/ToggleButtonGroup';
 
-export default function Scanner({ settings, write, readOnly }) {
+export default function Scanner() {
+    const dispatch = useDispatch();
+
+    const settings = useSelector((state) => state.settings.current);
+    const readOnly = useSelector((state) => state.settings.current?.Security?.Settings?.ReadOnly);
 
     const [startupScan, setStartupScan] = useState(null);
     const [startupUpdate, setStartupUpdate] = useState(null);
@@ -45,22 +51,22 @@ export default function Scanner({ settings, write, readOnly }) {
         switch (setting) {
             case 'StartupScan':
                 setStartupScan(value);
-                write({ Scanner: { StartupScan: value } });
+                dispatch(writeSettings({ Scanner: { StartupScan: value } }));
                 break;
 
             case 'StartupUpdate':
                 setStartupUpdate(value);
-                write({ Scanner: { StartupUpdate: value } });
+                dispatch(writeSettings({ Scanner: { StartupUpdate: value } }));
                 break;
 
             case 'ForceGenerateMissingThumbnails':
                 setForceGenerateMissingThumbnails(value);
-                write({ Scanner: { ForceGenerateMissingThumbnails: value } });
+                dispatch(writeSettings({ Scanner: { ForceGenerateMissingThumbnails: value } }));
                 break;
 
             case 'PeriodicScanIntervalMilliseconds':
                 setPeriodicScanIntervalMilliseconds(value * 60 * 60 * 1000);
-                write({ Scanner: { PeriodicScanIntervalMilliseconds: value * 60 * 60 * 1000 } });
+                dispatch(writeSettings({ Scanner: { PeriodicScanIntervalMilliseconds: value * 60 * 60 * 1000 } }));
                 break;
 
             default:

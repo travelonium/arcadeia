@@ -19,6 +19,7 @@
  */
 
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 using Arcadeia.Configuration;
 using Arcadeia.Services;
 using Arcadeia.Hubs;
@@ -123,7 +124,31 @@ namespace Arcadeia
          services.AddHttpClient();
 
          // Configure the Solr Index Service
-         services.AddSolrNet<Models.MediaContainer>(Configuration.GetSection("Solr:URL").Get<string>());
+         services.AddSolrNet<Models.MediaContainer>(provider =>
+         {
+            var solrUrl = provider.GetRequiredService<IOptions<SolrSettings>>().Value.URL;
+
+            if (!string.IsNullOrEmpty(solrUrl))
+            {
+               // Check if it starts with "http://" or "https://"
+               if (solrUrl.StartsWith("http://") || solrUrl.StartsWith("https://")) return solrUrl;
+
+               // Check if it starts with "/solr/"
+               if (solrUrl.StartsWith("/solr/")) return "http://solr:8983" + solrUrl;
+
+               // Check if it starts with "solr/"
+               if (solrUrl.StartsWith("solr/")) return "http://solr:8983/" + solrUrl;
+
+               // Check if it starts with "/"
+               if (solrUrl.StartsWith('/')) return "http://solr:8983/solr" + solrUrl;
+
+               // Must be the core name
+               return "http://solr:8983/solr/" + solrUrl;
+            }
+
+            throw new ArgumentException("The Solr URL is either null or empty.");
+         });
+
          services.AddScoped<ISolrIndexService<Models.MediaContainer>, SolrIndexService<Models.MediaContainer, ISolrOperations<Models.MediaContainer>>>();
 
          // Instantiate the ThumbnailsDatabase

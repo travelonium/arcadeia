@@ -29,6 +29,7 @@ import Settings from './components/Settings';
 import { Route, Routes } from 'react-router';
 import { setTheme } from './features/ui/slice';
 import ProgressToast from './components/ProgressToast';
+import { readSettings } from './features/settings/slice';
 import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 
@@ -65,6 +66,8 @@ class App extends Component {
     }
 
     componentDidMount() {
+        // read the settings
+        this.props.dispatch(readSettings());
         // update the mode dynamically based on the user’s system color scheme preference (light or dark)
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => this.onSelectMode(e.matches ? 'dark' : 'light'));
         // create the signalR connection and setup notifications

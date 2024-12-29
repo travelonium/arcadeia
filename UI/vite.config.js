@@ -35,7 +35,7 @@ export default defineConfig({
   plugins: [
     react(),
     removeConsole({
-      exclude: ['error', 'warn'],
+      includes: ['trace', 'debug', 'log', 'group', 'groupEnd']
     }),
     VitePWA({
       registerType: 'autoUpdate',

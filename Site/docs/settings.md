@@ -177,9 +177,6 @@ The URL of the Solr core. The default core that is used and initialized at start
 
 **Default:** `http://solr:8983/solr/Library`
 
-> [!WARNING]
-> This URL is currently not configurable and modifying it might break things.
-
 ### Scanner
 The Scanner service is responsible for scanning specified folders for new or modified media files, indexing media file information, generating thumbnails and updating the media library.
 

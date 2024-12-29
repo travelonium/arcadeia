@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
@@ -130,10 +130,8 @@ export class HistoryDropdown extends Component {
     search(limit = 0, start = 0, callback = undefined) {
         const rows = limit ? Math.min(limit, 1000) : 1000;
         let query = "dateAccessed:*";
-        let solr = "/solr/Library/select";
-        if (process.env.NODE_ENV !== "production") {
-            solr = "http://localhost:8983/solr/Library/select";
-        }
+        if (!this.props.solr) return;
+        const target = `${this.props.solr}/select`;
         const input = {
             q: query,
             fq: [
@@ -155,7 +153,7 @@ export class HistoryDropdown extends Component {
             loading: true,
             status: "Requesting",
         }, () => {
-            fetch(solr + "?" + querify(input).toString(), {
+            fetch(target + "?" + querify(input).toString(), {
                 signal: this.controller.signal,
                 credentials: 'include',
                 headers: {

@@ -22,8 +22,14 @@ import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
+import { useDispatch, useSelector } from 'react-redux';
+import { writeSettings } from '../../features/settings/slice';
 
-export default function Transcoding({ settings, write, readOnly }) {
+export default function Transcoding() {
+    const dispatch = useDispatch();
+
+    const settings = useSelector((state) => state.settings.current);
+    const readOnly = useSelector((state) => state.settings.current?.Security?.Settings?.ReadOnly);
 
     const [hardwareAcceleration, setHardwareAcceleration] = useState(null);
     const [videoEncoder, setVideoEncoder] = useState(null);
@@ -45,27 +51,27 @@ export default function Transcoding({ settings, write, readOnly }) {
         switch (setting) {
             case 'HardwareAcceleration':
                 setHardwareAcceleration(value);
-                write({ FFmpeg: { HardwareAcceleration: value ? value : null } });
+                dispatch(writeSettings({ FFmpeg: { HardwareAcceleration: value ? value : null } }));
                 break;
 
             case 'VideoEncoder':
                 setVideoEncoder(value);
-                write({ FFmpeg: { Encoder: { Video: value ? value : null }} });
+                dispatch(writeSettings({ FFmpeg: { Encoder: { Video: value ? value : null }} }));
                 break;
 
             case 'VideoDecoder':
                 setVideoDecoder(value);
-                write({ FFmpeg: { Decoder: { Video: value ? value : null }} });
+                dispatch(writeSettings({ FFmpeg: { Decoder: { Video: value ? value : null }} }));
                 break;
 
             case 'AudioEncoder':
                 setAudioEncoder(value);
-                write({ FFmpeg: { Encoder: { Audio: value ? value : null }} });
+                dispatch(writeSettings({ FFmpeg: { Encoder: { Audio: value ? value : null }} }));
                 break;
 
             case 'AudioDecoder':
                 setAudioDecoder(value);
-                write({ FFmpeg: { Decoder: { Audio: value ? value : null }} });
+                dispatch(writeSettings({ FFmpeg: { Decoder: { Audio: value ? value : null }} }));
                 break;
 
             default:

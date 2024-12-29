@@ -30,8 +30,14 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import React, { useState, useEffect } from 'react';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { Container, Row, Col } from 'react-bootstrap';
+import { useDispatch, useSelector } from 'react-redux';
+import { writeSettings } from '../../features/settings/slice';
 
-export default function Mounts({ settings, write, readOnly }) {
+export default function Mounts() {
+    const dispatch = useDispatch();
+
+    const settings = useSelector((state) => state.settings.current);
+    const readOnly = useSelector((state) => state.settings.current?.Security?.Settings?.ReadOnly);
 
     const [mounts, setMounts] = useState(null);
 
@@ -98,13 +104,13 @@ export default function Mounts({ settings, write, readOnly }) {
                 return { Types, Options, Device, Folder };
             });
             setMounts(updates);
-            write({ Mounts: updates });
+            dispatch(writeSettings({ Mounts: updates }));
         }
 
         function remove() {
             let updates = clone(mounts).filter((_, i) => i !== index);
             setMounts(updates);
-            write({ Mounts: updates });
+            dispatch(writeSettings({ Mounts: updates }));
         }
 
         return (

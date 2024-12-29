@@ -246,7 +246,7 @@ class NavMenu extends Component {
                             <div className="align-items-center">
                                 <SortDropdown className="me-1" name="sort" tooltip="Sort" library={this.props.library} value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
                                 <ViewDropdown className="me-1" name="view" tooltip="View" library={this.props.library} value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
-                                <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
+                                <HistoryDropdown className="me-1" name="history" tooltip="History" library={this.props.library} limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
                                 <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} disabled={disabled} />
                                 <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} disabled={disabled} />
                                 <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />
@@ -278,7 +278,8 @@ const mapStateToProps = (state) => ({
     },
     search: {
         sort: state.search.sort
-    }
+    },
+    settings: state.settings.current
 });
 
 export default connect(mapStateToProps, null, null)(withRouter(NavMenu));

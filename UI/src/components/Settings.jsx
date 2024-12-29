@@ -24,16 +24,21 @@ import Scanner from './settings/Scanner';
 import { Nav, Tab } from 'react-bootstrap';
 import Transcoding from './settings/Transcoding';
 import { Container, Row, Col } from 'react-bootstrap';
+import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router';
+import { readSettings } from '../features/settings/slice';
 import React, { useState, useEffect, useCallback } from 'react';
 
 export default function Settings() {
     const location = useLocation();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const getActiveKey = useCallback(() => location.pathname.match(/^\/settings\/(\w+)$/)?.[1], [location.pathname]);
 
-    const [settings, setSettings] = useState(null);
+    const { error } = useSelector((state) => state.settings);
+    const settings = useSelector((state) => state.settings.current);
+
     const [activeKey, setActiveKey] = useState(getActiveKey);
 
     // handle redirection on mount
@@ -54,52 +59,14 @@ export default function Settings() {
 
     // read the settings once on mount
     useEffect(() => {
-        read();
-    }, []);
+        dispatch(readSettings());
+    }, [dispatch]);
 
-    async function read() {
-        try {
-            const response = await fetch("/api/settings", {
-                method: "GET",
-                headers: {
-                    accept: "application/json",
-                }
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message ?? error.detail);
-            }
-            const data = await response.json();
-            setSettings(data);
-            return data;
-        } catch (error) {
-            console.error(error);
-            toast.error(error.message);
-            throw error;
-        }
-    }
-
-    async function write(updates) {
-        try {
-            const response = await fetch("/api/settings", {
-                method: "POST",
-                headers: {
-                    accept: "application/json",
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(updates)
-            })
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message ?? error.detail);
-            }
-            return await read();
-        } catch (error) {
-            console.error(error);
-            toast.error(error.message);
-            throw error;
-        }
-    }
+    useEffect(() => {
+        if (!error) return;
+        console.error(error);
+        toast.error(error);
+    }, [error]);
 
     // handle tab selection
     function onSelect(key) {
@@ -109,6 +76,7 @@ export default function Settings() {
     };
 
     return (
+
         <Container className="settings d-flex flex-grow-1 overflow-auto" fluid>
             <Container className="wrapper d-flex flex-grow-1">
                 <Tab.Container activeKey={activeKey} onSelect={onSelect}>
@@ -132,13 +100,13 @@ export default function Settings() {
                         <Col className="content" sm={9}>
                             <Tab.Content>
                                 <Tab.Pane eventKey="scanner">
-                                    {activeKey === 'scanner' && <Scanner settings={settings} write={write} readOnly={settings?.Security?.Settings?.ReadOnly}/>}
+                                    {activeKey === 'scanner' && <Scanner />}
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="mounts">
-                                    {activeKey === 'mounts' && <Mounts settings={settings} write={write} readOnly={settings?.Security?.Settings?.ReadOnly}/>}
+                                    {activeKey === 'mounts' && <Mounts />}
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="transcoding">
-                                    {activeKey === 'transcoding' && <Transcoding settings={settings} write={write} readOnly={settings?.Security?.Settings?.ReadOnly}/>}
+                                    {activeKey === 'transcoding' && <Transcoding />}
                                 </Tab.Pane>
                             </Tab.Content>
                         </Col>

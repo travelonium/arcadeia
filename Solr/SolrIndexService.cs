@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using SolrNet;
@@ -377,7 +377,27 @@ namespace Arcadeia.Solr
       {
          get
          {
-            return Settings.CurrentValue.Solr.URL;
+            var solrUrl = Settings.CurrentValue.Solr.URL;
+
+            if (!string.IsNullOrEmpty(solrUrl))
+            {
+               // Check if it starts with "http://" or "https://"
+               if (solrUrl.StartsWith("http://") || solrUrl.StartsWith("https://")) return solrUrl;
+
+               // Check if it starts with "/solr/"
+               if (solrUrl.StartsWith("/solr/")) return "http://solr:8983" + solrUrl;
+
+               // Check if it starts with "solr/"
+               if (solrUrl.StartsWith("solr/")) return "http://solr:8983/" + solrUrl;
+
+               // Check if it starts with "/"
+               if (solrUrl.StartsWith('/')) return "http://solr:8983/solr" + solrUrl;
+
+               // Must be the core name
+               return "http://solr:8983/solr/" + solrUrl;
+            }
+
+            throw new ArgumentException("The Solr URL is either null or empty.");
          }
       }
 
