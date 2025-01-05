@@ -248,7 +248,7 @@ class App extends Component {
     render() {
         return (
             <>
-                <NavMenu library={this.props.library} />
+                <NavMenu library={this.library} />
                 <Routes>
                     <Route path="/settings/*" element={<Settings />} />
                     <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} signalRConnection={this.signalrConnection} />} />

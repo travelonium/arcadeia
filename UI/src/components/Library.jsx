@@ -155,7 +155,8 @@ class Library extends Component {
         const currentName = this.getName(currentProps?.location?.pathname);
 
         // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
-        const didMediaViewerShowOrHide = (currentPath && nextPath) && ((currentName && !nextName) || (!currentName && nextName));
+        const wasMediaViewerShow = (currentPath != null && nextPath != null) && (currentName == null && nextName != null);
+        const wasMediaViewerHide = (currentPath != null && nextPath != null) && (currentName != null && nextName == null);
 
         // was this triggered by a browser back / forward?
         const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
@@ -167,16 +168,14 @@ class Library extends Component {
         const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
         const hasStateChanged = !isEqualExcluding(currentState, nextState, 'uploads');
 
-        const shouldUpdate = (!didMediaViewerShowOrHide || wasBrowserBackOrForward) && !didScrollPositionChange && (havePropsChanged || hasStateChanged);
+        const shouldUpdate = ((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && !didScrollPositionChange && (havePropsChanged || hasStateChanged);
 
-        if (shouldUpdate) {
-            const updatedProps = differenceWith(this.props, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
-            const updatedState = differenceWith(this.state, nextState, 'uploads');
-            console.group(`shouldComponentUpdate(${shouldUpdate})`);
-            if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
-            if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
-            console.groupEnd();
-        }
+        const updatedProps = differenceWith(this.props, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
+        const updatedState = differenceWith(this.state, nextState, 'uploads');
+        if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
+        if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
+        if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
+        console.groupEnd();
 
         return shouldUpdate;
     }
