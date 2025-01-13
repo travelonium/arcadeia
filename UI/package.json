@@ -43,7 +43,7 @@
     "workbox-strategies": "^7.3.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
+    "@eslint/js": "^9.18.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/video.js": "^7.3.58",
