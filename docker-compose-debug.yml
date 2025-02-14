@@ -1,7 +1,7 @@
 services:
-  arcadeia:
+  app:
     image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test
-    volumes:
+    volumes: !override
       - type: bind
         source: ./data
         target: /var/lib/app/data
@@ -13,7 +13,7 @@ services:
         consistency: cached
         read_only: false
   solr:
-    volumes:
+    volumes: !override
       - type: bind
         source: ./data
         target: /var/solr

@@ -1,6 +1,6 @@
 services:
-  arcadeia:
-    volumes:
+  app:
+    volumes: !override
       - data:/var/lib/app/data
       - type: bind
         source: ./appsettings.Production.json
@@ -8,7 +8,7 @@ services:
         consistency: cached
         read_only: false
   apache:
-    volumes:
+    volumes: !override
       - type: bind
         source: ./Apache/usr/local/apache2/conf/httpd.conf
         target: /usr/local/apache2/conf/httpd.conf

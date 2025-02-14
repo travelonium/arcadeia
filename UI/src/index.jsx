@@ -42,7 +42,7 @@ root.render(
                 </React.StrictMode>
             </PersistGate>
         </Provider>
-        <ToastContainer position="bottom-right" theme="colored" />
+        <ToastContainer stacked position="bottom-right" theme="colored" />
     </BrowserRouter>
 );
 

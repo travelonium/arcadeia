@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Text;
@@ -137,12 +137,7 @@ namespace Arcadeia
       public override void GetFileInfo(string path)
       {
          string? output = null;
-         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, "ffprobe" + Platform.Extension.Executable);
-
-         if (!File.Exists(executable))
-         {
-            throw new DirectoryNotFoundException("ffprobe not found at the specified path: " + executable);
-         }
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", "ffprobe" + Platform.Extension.Executable);
 
          string[] arguments =
          [
@@ -230,11 +225,6 @@ namespace Arcadeia
 
       public static byte[]? FFmpeg(string executable, string[] arguments, int timeout, bool output = false, ILogger? logger = null)
       {
-         if (!File.Exists(executable))
-         {
-            throw new DirectoryNotFoundException("ffmpeg not found at the specified path: " + executable);
-         }
-
          using Process process = new()
          {
             StartInfo = new ProcessStartInfo
@@ -295,7 +285,7 @@ namespace Arcadeia
 
       private byte[]? GenerateThumbnail(string path, int position, int width, int height, bool crop)
       {
-         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
 
          string[] arguments =
          [
@@ -527,7 +517,7 @@ namespace Arcadeia
          string? dcv = Settings.CurrentValue.FFmpeg.Decoder?.Video;
          string? dca = Settings.CurrentValue.FFmpeg.Decoder?.Audio;
          string? hwaccel = Settings.CurrentValue.FFmpeg.HardwareAcceleration;
-         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
          DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
          string format = System.IO.Path.Combine(temp.FullName, "output-%05d.ts");
 

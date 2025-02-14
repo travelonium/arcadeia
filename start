@@ -1,17 +1,25 @@
 #!/bin/bash
 #
-# Start the docker compose application in production mode.
+# Start the docker compose application in different supported modes or build it.
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+pushd $SCRIPT_DIR > /dev/null 2>&1
+
+AVAILABLE_COMMANDS=$(find . -maxdepth 1 -type f -name "docker-compose-*.yml" | sed -E 's|./docker-compose-(.*)\.yml|\1|' | sort | uniq)
 
 function show_help {
   echo "Usage: $0 [COMMAND] [SERVICE] [OPTIONS]"
   echo
-  exit 0
+  echo "COMMAND:"
+  echo
+  echo "$AVAILABLE_COMMANDS" | awk '{print "  - "$1}'
 }
 
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
   show_help
+  exit 0
 fi
 
 if [ -f ".env" ]; then
@@ -25,15 +33,28 @@ fi
 if [ $# -ge 1 ]; then
   export COMMAND=$1
   shift
+else
+  export COMMAND=production
 fi
 
-SECOND_COMPOSE_FILE="docker-compose-${COMMAND:-production}.yml"
+if ! echo "$AVAILABLE_COMMANDS" | grep -qw "$COMMAND"; then
+  echo "Error: Invalid command '$COMMAND'"
+  echo
+  show_help
+  exit 1
+fi
+
+SECOND_COMPOSE_FILE="docker-compose-${COMMAND}.yml"
 if [ ! -f "$SECOND_COMPOSE_FILE" ]; then
   echo "Error: $SECOND_COMPOSE_FILE does not exist."
   exit 1
 fi
 
-if [ $COMMAND != "debug" ]; then
+if [ "$COMMAND" == "build" ]; then
+  exec docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" build --pull $@
+fi
+
+if [ "$COMMAND" != "debug" ]; then
   docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" pull
 
   if [ $# -eq 0 ]; then
@@ -42,3 +63,14 @@ if [ $COMMAND != "debug" ]; then
 fi
 
 docker compose -f docker-compose.yml -f "$SECOND_COMPOSE_FILE" up "$@"
+
+if [ "$COMMAND" == "local" ]; then
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+  if [[ -f "$SCRIPT_DIR/Arcadeia.dll" ]]; then
+    if [[ "$OS" == "darwin" ]]; then
+      xattr -r -d com.apple.quarantine "$SCRIPT_DIR"
+    fi
+    exec dotnet Arcadeia.dll
+  fi
+fi

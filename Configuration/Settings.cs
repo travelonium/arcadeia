@@ -133,8 +133,7 @@ namespace Arcadeia.Configuration
 
    public class FFmpegSettings
    {
-      [Required(ErrorMessage = "The 'Path' property is required for FFmpeg settings.")]
-      public required string Path { get; set; }
+      public string? Path { get; set; }
 
       [Required(ErrorMessage = "The 'TimeoutMilliseconds' property is required for FFmpeg settings.")]
       [Range(1, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be a positive integer.")]
@@ -161,8 +160,7 @@ namespace Arcadeia.Configuration
 
    public class YtDlpSettings
    {
-      [Required(ErrorMessage = "The 'Path' property is required for yt-dlp settings.")]
-      public required string Path { get; set; }
+      public string? Path { get; set; }
 
       [Required(ErrorMessage = "The 'Options' list is required for yt-dlp settings.")]
       public required List<string> Options { get; set; } = [];

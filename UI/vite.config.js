@@ -25,6 +25,7 @@ import removeConsole from 'vite-plugin-remove-console';
 
 const { env } = process;
 
+const solr = 'http://localhost';
 const target = env.ASPNETCORE_HTTPS_PORT
   ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`
   : env.ASPNETCORE_URLS
@@ -62,7 +63,7 @@ export default defineConfig({
         }
       },
       '/solr': {
-        target: target,
+        target: solr,
         changeOrigin: true,
         secure: false,
         headers: {

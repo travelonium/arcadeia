@@ -1,7 +1,7 @@
 services:
-  arcadeia:
+  app:
     image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test
-    volumes:
+    volumes: !override
       - data:/var/lib/app/data
       - type: bind
         source: ./appsettings.Production.json

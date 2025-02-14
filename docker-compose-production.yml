@@ -1,6 +1,6 @@
 services:
-  arcadeia:
-    volumes:
+  app:
+    volumes: !override
       - data:/var/lib/app/data
       - type: bind
         source: ./appsettings.Production.json

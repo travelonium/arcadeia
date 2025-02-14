@@ -217,7 +217,7 @@ namespace Arcadeia.Controllers
 
       private Codecs? Codecs()
       {
-         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
 
          string[] arguments =
          [
@@ -243,7 +243,7 @@ namespace Arcadeia.Controllers
 
       private IEnumerable<string> HardwareAccelerators()
       {
-         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path, $"ffmpeg{Platform.Extension.Executable}");
+         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
 
          string[] arguments =
          [

@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Diagnostics;
@@ -58,9 +58,7 @@ namespace Arcadeia.Services
       {
          if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-         string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path, $"yt-dlp{Platform.Extension.Executable}");
-
-         if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
+         string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path ?? "", $"yt-dlp{Platform.Extension.Executable}");
 
          ProcessStartInfo processStartInfo = new()
          {
@@ -100,9 +98,7 @@ namespace Arcadeia.Services
 
          if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be null or empty.", nameof(path));
 
-         string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path, $"yt-dlp{Platform.Extension.Executable}");
-
-         if (!File.Exists(executable)) throw new FileNotFoundException($"yt-dlp executable not found at the specified path: {executable}");
+         string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path ?? "", $"yt-dlp{Platform.Extension.Executable}");
 
          string options = string.Join(" ", _settings.CurrentValue.YtDlp.Options.Where(x => !string.IsNullOrEmpty(x)).ToArray());
 

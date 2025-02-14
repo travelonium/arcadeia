@@ -1,29 +1,30 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
-using Microsoft.VisualBasic.FileIO;
-using Microsoft.AspNetCore.StaticFiles;
-using Arcadeia.Services;
+using System.IO.Hashing;
 using System.Globalization;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualBasic.FileIO;
+using Microsoft.AspNetCore.StaticFiles;
 using Arcadeia.Configuration;
+using Arcadeia.Services;
 
 namespace Arcadeia
 {
@@ -120,6 +121,29 @@ namespace Arcadeia
          }
       }
 
+      private string? _checksum = null;
+
+      /// <summary>
+      /// Gets or sets the checksum of the file.
+      /// </summary>
+      /// <value>
+      /// The checksum in String.
+      /// </value>
+      public string? Checksum
+      {
+         get => _checksum;
+
+         set
+         {
+            if (_checksum != value)
+            {
+               Modified = true;
+
+               _checksum = value;
+            }
+         }
+      }
+
       private string? _dateAccessed = null;
 
       /// <summary>
@@ -158,6 +182,7 @@ namespace Arcadeia
             model.ContentType = ContentType;
             model.Extension = Extension;
             model.Views = Views;
+            model.Checksum = Checksum;
             model.DateAccessed = DateAccessed;
 
             return model;
@@ -170,6 +195,7 @@ namespace Arcadeia
             base.Model = value;
 
             Size = value.Size;
+            Checksum = value.Checksum;
             Views = value.Views;
 
             if (value.DateAccessed.HasValue)
@@ -285,6 +311,18 @@ namespace Arcadeia
          {
             Logger.LogWarning("Failed To Generate Thumbnails For: {}, Because: {}", FullPath, e.Message);
          }
+
+         if ((Created || Modified || Checksum is null) && (Size > 0))
+         {
+            try
+            {
+               Checksum = GetFileChecksum(FullPath);
+            }
+            catch (Exception e)
+            {
+               Logger.LogWarning("Failed To Calculate File Checksum For: {}, Because: {}", FullPath, e.Message);
+            }
+         }
       }
 
       #endregion // Constructors
@@ -299,6 +337,30 @@ namespace Arcadeia
       public virtual void GetFileInfo(string path)
       {
          throw new NotImplementedException("This MediaFile does not offer a GetFileInfo() method!");
+      }
+
+
+      /// <summary>
+      /// Calculate the media file checksum. This method can be overridden for each individual type of
+      // media file with an implementation specific to that type.
+      /// </summary>
+      /// <param name="path">The full path to the physical file.</param>
+      public virtual string GetFileChecksum(string path)
+      {
+         Logger.LogDebug("Calculating Checksum For: {}", path);
+
+         int bytesRead;
+         var hasher = new XxHash3();
+         const int bufferSize = 1024 * 1024;
+         byte[] buffer = new byte[bufferSize];
+         using var stream = new BufferedStream(File.OpenRead(path), bufferSize);
+
+         while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+         {
+            hasher.Append(buffer.AsSpan(0, bytesRead));
+         }
+
+         return BitConverter.ToString(hasher.GetCurrentHash()).Replace("-", "").ToLower();
       }
 
       /// <summary>

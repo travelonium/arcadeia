@@ -229,6 +229,16 @@ namespace Arcadeia.Solr
             }
          },
          {
+            "checksum", new Dictionary<string, object>
+            {
+               { "name", "checksum" },
+               { "type", "string" },
+               { "multiValued", false },
+               { "indexed", true },
+               { "stored", true },
+            }
+         },
+         {
             "dateAdded", new Dictionary<string, object>
             {
                { "name", "dateAdded" },
@@ -377,24 +387,33 @@ namespace Arcadeia.Solr
       {
          get
          {
-            var solrUrl = Settings.CurrentValue.Solr.URL;
+            var server = "http://solr:8983";
+            var url = Settings.CurrentValue.Solr.URL;
 
-            if (!string.IsNullOrEmpty(solrUrl))
+            if (!string.IsNullOrEmpty(url))
             {
+               string? runningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER");
+
                // Check if it starts with "http://" or "https://"
-               if (solrUrl.StartsWith("http://") || solrUrl.StartsWith("https://")) return solrUrl;
+               if (url.StartsWith("http://") || url.StartsWith("https://")) return url;
+
+               // Check if the DOTNET_RUNNING_IN_CONTAINER environment variable is set and is true
+               if (string.IsNullOrEmpty(runningInContainer) || !runningInContainer.Equals("true", StringComparison.OrdinalIgnoreCase))
+               {
+                  server = "http://localhost";
+               }
 
                // Check if it starts with "/solr/"
-               if (solrUrl.StartsWith("/solr/")) return "http://solr:8983" + solrUrl;
+               if (url.StartsWith("/solr/")) return $"{server}" + url;
 
                // Check if it starts with "solr/"
-               if (solrUrl.StartsWith("solr/")) return "http://solr:8983/" + solrUrl;
+               if (url.StartsWith("solr/")) return $"{server}/" + url;
 
                // Check if it starts with "/"
-               if (solrUrl.StartsWith('/')) return "http://solr:8983/solr" + solrUrl;
+               if (url.StartsWith('/')) return $"{server}/solr" + url;
 
                // Must be the core name
-               return "http://solr:8983/solr/" + solrUrl;
+               return $"{server}/solr/" + url;
             }
 
             throw new ArgumentException("The Solr URL is either null or empty.");

@@ -1,4 +1,4 @@
 services:
-  arcadeia:
+  app:
     build: ./
     image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:test

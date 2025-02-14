@@ -38,7 +38,7 @@ jobs:
       # Update the container tag in the docker-compose.yml file
       - name: Update docker-compose.yml
         run: |
-          sed -i "s|arcadeia:\${CONTAINER_TAG:-latest}|arcadeia:${{ env.TAG }}|g" docker-compose.yml
+          sed -i "s|app:\${CONTAINER_TAG:-latest}|app:${{ env.TAG }}|g" docker-compose.yml
 
       # Create an archive of artifacts
       - name: Create artifact archive
