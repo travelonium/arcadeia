@@ -348,7 +348,7 @@ class Library extends Component {
             fq: [],
             rows: rows,
             start: start,
-            fl: "*,children:[subquery]",
+            fl: "*,children:[subquery],duplicates:[subquery]",
             "q.op": "AND",
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
@@ -359,6 +359,11 @@ class Library extends Component {
                 fq: ["-type:Folder", "-type:Drive", "-type:Server"],
                 sort: "views desc, dateAdded asc, name asc",
                 rows: 3,
+            },
+            duplicates: {
+                q: "{!term f=checksum v=$row.checksum}",
+                start: 0,
+                rows: 0,
             }
         };
         if (favorite) {
@@ -416,6 +421,7 @@ class Library extends Component {
                 const numFound = extract(0, result, "response", "numFound");
                 const docs = extract([], result, "response", "docs").map((doc) => {
                     doc.children = extract([], doc, "children", "docs");
+                    doc.duplicates = Math.max(0, extract(0, doc, "duplicates", "numFound") - 1);
                     return doc;
                 });
                 const more = numFound > (rows + start);

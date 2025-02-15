@@ -158,6 +158,13 @@ export class MediaContainer extends Component {
                                 }
                                 </Col>
                             {
+                                (source.duplicates > 0) ?
+                                <Col className="d-flex" xs="auto">
+                                    <Badge bg="warning" className="duplicates" title="Duplicates">{source.duplicates}</Badge>
+                                </Col> :
+                                <></>
+                            }
+                            {
                                 (source.width && source.height) ?
                                 <Col className="d-flex" xs="auto">
                                     <Badge bg={(source.duration > 0) ? "dark" : "primary"} className="resolution" title="Resolution">{`${source.width} × ${source.height}`}</Badge>
@@ -184,17 +191,21 @@ export class MediaContainer extends Component {
                         <EditableText name="Description" className="card-text h6 description" row={2} value={source.description} onEditing={this.onEditing.bind(this)} onChange={this.redescribe.bind(this)} />
                     </Card.Body>
                     <Card.Footer className="d-flex flex-row p-1" style={{flexShrink: 0}}>
-                        <div className="d-flex align-items-center ps-1" style={{flexGrow: 1}}>
-                        {
-                            ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
-                            <i className="bi bi-eye-fill me-1"></i>
-                            <small>{source.views}</small>
-                            </> : <></>
-                        }
-                        </div>
-                        <div className="d-flex align-items-center pe-1">
-                            <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
-                        </div>
+                        <Container className="gx-2" fluid>
+                            <Row>
+                                <Col className="d-flex align-items-center justify-content-start" title="Views">
+                                {
+                                    ((source.type === "Video") || (source.type === "Audio") || (source.type === "Photo")) ? <>
+                                    <i className="d-flex bi bi-eye-fill me-1" />
+                                    <small>{source.views}</small>
+                                    </> : <></>
+                                }
+                                </Col>
+                                <Col className="d-flex align-items-center justify-content-end" title="Size">
+                                    <small>{(source.size) ? size(source.size) : <span>&nbsp;</span>}</small>
+                                </Col>
+                            </Row>
+                        </Container>
                     </Card.Footer>
                 </div>
             </Card>
