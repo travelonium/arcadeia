@@ -40,7 +40,7 @@ import createMigrate from 'redux-persist/es/createMigrate';
 const persistConfig = {
     key: 'root',
     blacklist: ['search', 'settings'],
-    version: 4,
+    version: 5,
     storage,
     migrate: createMigrate({
         2: (state) => {
@@ -59,6 +59,22 @@ const persistConfig = {
                     ...state.ui,
                     view: {
                         default: state?.view ?? uiInitialState.view.default,
+                    }
+                }
+            };
+        },
+        5: (state) => {
+            return {
+                ...state,
+                ui: {
+                    ...state.ui,
+                    uploads: {
+                        ...state.ui.uploads,
+                        total: state?.ui?.uploads?.total ?? uiInitialState.uploads.total,
+                        queued: state?.ui?.uploads?.queued ?? uiInitialState.uploads.queued,
+                        active: state?.ui?.uploads?.active ?? uiInitialState.uploads.active,
+                        failed: state?.ui?.uploads?.failed ?? uiInitialState.uploads.failed,
+                        succeeded: state?.ui?.uploads?.succeeded ?? uiInitialState.uploads.succeeded,
                     }
                 }
             };
@@ -92,7 +108,8 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
         serializableCheck: {
-            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER, 'ui/queueUploads'],
+            ignoredPaths: ['ui.uploads.queued'],
         },
     }),
 });

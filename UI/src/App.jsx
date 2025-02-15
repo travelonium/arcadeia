@@ -38,7 +38,7 @@ class App extends Component {
 
     constructor(props) {
         super(props);
-        this.signalrConnection = null;
+        this.signalRConnection = null;
         this.library = React.createRef();
         this.scannerProgressToast = null;
         this.lastScannerProgressToastShowed = 0;
@@ -84,7 +84,6 @@ class App extends Component {
     }
 
     setupNotifications(connection) {
-        this.signalrConnection = connection;
         connection.on("Refresh", (path) => {
             this.library?.current?.refresh();
         });
@@ -185,15 +184,16 @@ class App extends Component {
     }
 
     setupSignalRConnection(callback = undefined) {
+        if (this.signalRConnection) return;
         const connection = new HubConnectionBuilder()
                                .withUrl("/signalr", { transport: HttpTransportType.WebSockets })
                                .withAutomaticReconnect()
                                .withHubProtocol(new MessagePackHubProtocol())
                                .configureLogging(LogLevel.Information)
                                .build();
+        this.signalRConnection = connection;
         connection.start()
         .then(() => {
-            this.signalRConnection = connection;
             if (callback !== undefined) {
                 callback(connection);
             }
@@ -251,7 +251,7 @@ class App extends Component {
                 <NavMenu library={this.library} />
                 <Routes>
                     <Route path="/settings/*" element={<Settings />} />
-                    <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} signalRConnection={this.signalrConnection} />} />
+                    <Route exact path='/*' element={<Library ref={this.library} forwardedRef={this.library} signalRConnection={this.signalRConnection} />} />
                 </Routes>
             </>
         );

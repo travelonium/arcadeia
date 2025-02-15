@@ -1,25 +1,26 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
-import { createSlice } from '@reduxjs/toolkit';
+import { pick } from 'lodash';
 import initialState from './initialState';
+import { createSlice } from '@reduxjs/toolkit';
 
 export const uiSlice = createSlice({
     name: 'ui',
@@ -28,115 +29,93 @@ export const uiSlice = createSlice({
         setView: (state, action) => {
             const path = action.payload?.path;
             const search = path === "search";
-            let newState = {
-                ...state,
-                view: {
-                    ...state.view,
-                    // don't store the view settings as default when searching
-                    default: (search ? state.view.default : action.payload?.value) ?? initialState.view.default,
-                }
-            }
-            if (path) {
-                newState.view[path] = {};
-                newState.view[path] = action.payload?.value ?? initialState.view.default;
-            }
-            return newState;
+            state.view.default = search ? state.view.default : action.payload?.value ?? initialState.view.default;
+            if (path) state.view[path] = action.payload?.value ?? initialState.view.default;
         },
         resetView: (state, action) => {
             const path = action.payload?.path;
-            let newState = {
-                ...state,
-                view: {
-                    ...state.view
-                }
-            }
-            if (path && newState.view.hasOwnProperty(path)) {
-                delete newState.view[path];
+            if (path) {
+                delete state.view[path];
             } else {
-                newState.view.default = action.payload?.value ?? initialState.view.default;
+                state.view.default = action.payload?.value ?? initialState.view.default;
             }
-            return newState;
         },
         setTheme: (state, action) => {
             const theme = action.payload ?? initialState.theme;
             document.documentElement.setAttribute('data-bs-theme', theme);
-            return {
-                ...state,
-                theme: theme,
-            };
+            state.theme = theme;
         },
         setScrollPosition: (state, action) => {
-            let newState = {
-                ...state,
-                scrollPosition: {
-                    ...state.scrollPosition,
-                },
-            };
-            const path = action.payload.path;
-            const index = action.payload.index;
-            if (index) newState.scrollPosition[path] = index;
-            else if (newState.scrollPosition.hasOwnProperty(path)) delete newState.scrollPosition[path];
-            return newState;
-        },
-        setUploads: (state, action) => {
-            return {
-                ...state,
-                uploads: {
-                    ...state.uploads,
-                    simultaneous: action.payload?.simultaneous ? action.payload.simultaneous : initialState.uploads.simultaneous,
-                    duplicate: action.payload?.duplicate ? action.payload.duplicate : initialState.uploads.duplicate,
-                    overwrite: action.payload?.overwrite ? action.payload.overwrite : initialState.uploads.overwrite,
-                }
+            const { path, index } = action.payload;
+            if (index) {
+                state.scrollPosition[path] = index;
+            } else {
+                delete state.scrollPosition[path];
             }
+        },
+        setTotalUploads: (state, action) => {
+            state.uploads.total = action.payload ?? initialState.uploads.total;
+        },
+        queueUploads: (state, action) => {
+            state.uploads.total += action.payload.length;
+            state.uploads.queued.push(...action.payload);
+        },
+        dequeueUpload: (state) => {
+            if (state.uploads.queued.length > 0) {
+                state.uploads.queued.shift();
+            }
+        },
+        addActiveUpload: (state, action) => {
+            state.uploads.active = { ...state.uploads.active, ...action.payload };
+        },
+        removeActiveUpload: (state, action) => {
+            const { key, succeeded } = action.payload;
+            if (!state.uploads.active[key]) return;
+            const upload = {
+                key: key,
+                ...pick(state.uploads.active[key], ['url', 'path', 'name'])
+            };
+            if (succeeded) state.uploads.succeeded = [...state.uploads.succeeded, upload];
+            else state.uploads.failed = [...state.uploads.failed, upload];
+            delete state.uploads.active[key];
         },
         setSimultaneousUploads: (state, action) => {
-            return {
-                ...state,
-                uploads: {
-                    ...state.uploads,
-                    simultaneous: action.payload ? action.payload : initialState.uploads.simultaneous,
-                }
-            }
+            state.uploads.simultaneous = action.payload ?? initialState.uploads.simultaneous;
         },
         setDuplicateUploads: (state, action) => {
-            return {
-                ...state,
-                uploads: {
-                    ...state.uploads,
-                    duplicate: action.payload ? action.payload : initialState.uploads.duplicate,
-                }
-            }
+            state.uploads.duplicate = action.payload ?? initialState.uploads.duplicate;
         },
         setOverwriteUploads: (state, action) => {
-            return {
-                ...state,
-                uploads: {
-                    ...state.uploads,
-                    overwrite: action.payload ? action.payload : initialState.uploads.overwrite,
-                }
-            }
+            state.uploads.overwrite = action.payload ?? initialState.uploads.overwrite;
+        },
+        setReupload: (state, action) => {
+            state.uploads.reupload = action.payload ?? initialState.uploads.reupload;
         },
         setHistory: (state, action) => {
-            return {
-                ...state,
-                history: {
-                    ...state.history,
-                    items: action.payload?.items ? action.payload.items : initialState.history.items,
-                }
-            }
+            state.history.items = action.payload?.items ?? initialState.history.items;
         },
         setHistoryItems: (state, action) => {
-            return {
-                ...state,
-                history: {
-                    ...state.history,
-                    items: action.payload ? action.payload : initialState.history.items,
-                }
-            }
+            state.history.items = action.payload ?? initialState.history.items;
         },
     },
 });
 
 const { actions, reducer } = uiSlice;
-export const { setView, resetView, setTheme, setScrollPosition, setSimultaneousUploads } = actions;
+export const {
+    setView,
+    resetView,
+    setTheme,
+    setScrollPosition,
+    setTotalUploads,
+    queueUploads,
+    dequeueUpload,
+    addActiveUpload,
+    removeActiveUpload,
+    setSimultaneousUploads,
+    setDuplicateUploads,
+    setOverwriteUploads,
+    setReupload,
+    setHistory,
+    setHistoryItems
+} = actions;
 export default reducer;

@@ -19,7 +19,7 @@
  */
 
 import React from 'react';
-import { clone as cloneShallow, cloneDeep, isEqual, omit } from 'lodash';
+import { clone as cloneShallow, cloneDeep, isEqual, unset, omit, castArray } from 'lodash';
 import { useNavigate, useNavigationType, useLocation, useParams, useSearchParams } from 'react-router';
 
 export function extract(fallback, obj, level, ...rest) {
@@ -96,22 +96,22 @@ export function clone(object, shallow = false) {
 export function querify(dictionary, parentKey = '', query = new URLSearchParams()) {
     for (const key in dictionary) {
         const value = dictionary[key];
-        // Skip null or undefined values
+        // skip null or undefined values
         if (value === null || value === undefined) continue;
 
-        // Construct a new key for nested dictionaries
+        // construct a new key for nested dictionaries
         const newKey = parentKey ? `${parentKey}.${key}` : key;
 
         if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-            // Recursively handle nested objects
+            // recursively handle nested objects
             querify(value, newKey, query);
         } else if (Array.isArray(value)) {
-            // Handle arrays
+            // handle arrays
             for (const item of value) {
                 query.append(newKey, item);
             }
         } else {
-            // Handle single values
+            // handle single values
             query.set(newKey, value);
         }
     }
@@ -185,47 +185,62 @@ export function shorten(input, length) {
 }
 
 /**
- * Compares two objects excluding the supplied root keys from comparison.
- * @param {*} value The left hand side object.
- * @param {*} other The right hand side object.
- * @param {*} exclusions The root keys to exclude from comparison either as arguments or an array.
- * @returns true if objects are equal and false otherwise.
+ * Compares two objects excluding the supplied keys (including nested keys) from comparison.
+ * @param {*} value The left-hand side object.
+ * @param {*} other The right-hand side object.
+ * @param {*} exclusions The keys to exclude from comparison, either as an array or arguments.
+ * @returns {boolean} true if objects are equal (excluding specified keys), false otherwise.
  */
-export function isEqualExcluding(value, other) {
-    const exclusions = Array.isArray(arguments[2]) ? arguments[2] : Array.prototype.slice.call(arguments, 2);
-    return isEqual(omit(value, exclusions), omit(other, exclusions));
+export function isEqualExcluding(value, other, ...exclusions) {
+    // ensure exclusions is an array
+    const exclusionList = castArray(exclusions).flat();
+
+    // deep clone objects to avoid mutation
+    const valueCopy = cloneDeep(value);
+    const otherCopy = cloneDeep(other);
+
+    // remove excluded keys from both objects
+    exclusionList.forEach((key) => {
+        unset(valueCopy, key);
+        unset(otherCopy, key);
+    });
+
+    return isEqual(valueCopy, otherCopy);
 }
 
 /**
- * Returns the differences between two objects excluding the supplied root keys from comparison.
- * @param {*} lhs The left hand side object.
- * @param {*} rhs The right hand side object.
- * @param {*} exclusions The root keys to exclude from comparison either as arguments or an array.
- * @returns A dictionary with all the different keys and values.
+ * Returns the differences between two objects, excluding specified keys (including nested keys).
+ * @param {*} lhs The left-hand side object.
+ * @param {*} rhs The right-hand side object.
+ * @param {*} exclusions The keys to exclude from comparison, either as an array or arguments.
+ * @returns {object} A dictionary with all the different keys and values.
  */
-export function differenceWith(lhs, rhs) {
+export function differenceWith(lhs, rhs, ...exclusions) {
+    const exclusionList = castArray(exclusions).flat(); // Ensure array format
+
+    // remove exclusions deeply (dot notation supported)
+    const lhsClean = omit(lhs, exclusionList);
+    const rhsClean = omit(rhs, exclusionList);
+
     const differences = {};
-    const exclusions = Array.isArray(arguments[2]) ? arguments[2] : Array.prototype.slice.call(arguments, 2);
-    if (exclusions.length) {
-        lhs = omit(lhs, exclusions);
-        rhs = omit(rhs, exclusions);
-    }
-    for (const key in lhs) {
-        if (!(key in rhs)) {
-            differences[key] = { from: lhs[key], to: undefined };
-        } else if (typeof lhs[key] === "object" && lhs[key] !== null && typeof rhs[key] === "object" && rhs[key] !== null) {
-            const nestedDiff = differenceWith(lhs[key], rhs[key]);
+
+    for (const key in lhsClean) {
+        if (!(key in rhsClean)) {
+            differences[key] = { from: lhsClean[key], to: undefined };
+        } else if (typeof lhsClean[key] === "object" && lhsClean[key] !== null &&
+                   typeof rhsClean[key] === "object" && rhsClean[key] !== null) {
+            const nestedDiff = differenceWith(lhsClean[key], rhsClean[key]);
             if (Object.keys(nestedDiff).length > 0) {
                 differences[key] = nestedDiff;
             }
-        } else if (lhs[key] !== rhs[key]) {
-            differences[key] = { from: lhs[key], to: rhs[key] };
+        } else if (!isEqual(lhsClean[key], rhsClean[key])) {
+            differences[key] = { from: lhsClean[key], to: rhsClean[key] };
         }
     }
 
-    for (const key in rhs) {
-        if (!(key in lhs)) {
-            differences[key] = { from: undefined, to: rhs[key] };
+    for (const key in rhsClean) {
+        if (!(key in lhsClean)) {
+            differences[key] = { from: undefined, to: rhsClean[key] };
         }
     }
 

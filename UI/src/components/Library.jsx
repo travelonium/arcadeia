@@ -30,7 +30,7 @@ import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag } from '../utils';
-import { setScrollPosition } from '../features/ui/slice';
+import { setScrollPosition, setTotalUploads, queueUploads, dequeueUpload, addActiveUpload, removeActiveUpload } from '../features/ui/slice';
 import { MediaContainer } from './MediaContainer';
 import { UploadZone } from './UploadZone';
 import { toast } from 'react-toastify';
@@ -65,12 +65,6 @@ class Library extends Component {
             loading: false,
             status: "",
             items: null,    // a null value indicates that no search has yet been performed
-            uploads: {
-                total: 0,
-                queued: [],
-                active: {},
-                failed: [],
-            },
             options: {
                 videoPlayer: {
                     seekStep: {
@@ -161,17 +155,14 @@ class Library extends Component {
         // was this triggered by a browser back / forward?
         const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
 
-        // determine if the scroll position remains unchanged
-        const didScrollPositionChange = !isEqual(this.props.ui.scrollPosition, nextProps.ui.scrollPosition);
-
         // check if significant differences exist in props or state, excluding specific keys
-        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
-        const hasStateChanged = !isEqualExcluding(currentState, nextState, 'uploads');
+        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
+        const updatedProps = differenceWith(this.props, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
+        const hasStateChanged = !isEqualExcluding(currentState, nextState);
+        const updatedState = differenceWith(this.state, nextState);
 
-        const shouldUpdate = ((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && !didScrollPositionChange && (havePropsChanged || hasStateChanged);
+        const shouldUpdate = ((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && (havePropsChanged || hasStateChanged);
 
-        const updatedProps = differenceWith(this.props, nextProps, 'dispatch', 'ref', 'forwardedRef', 'signalRConnection');
-        const updatedState = differenceWith(this.state, nextState, 'uploads');
         if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
         if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
         if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
@@ -541,41 +532,34 @@ class Library extends Component {
                 if (typeof item === 'string') {
                     queued.push({
                         url: item,
-                        path: path
+                        path: path,
+                        key: path + item,
                     });
                 } else {
                     queued.push({
                         file: item,
-                        path: path
+                        path: path,
+                        key: pb.join(path, item.name),
                     });
                 }
-                this.setState(prevState => {
-                    return {
-                        ...prevState,
-                        uploads: update(prevState.uploads, {
-                            $merge: {
-                                total: prevState.uploads.total + queued.length,
-                                queued: update(prevState.uploads.queued, {
-                                    $push: queued
-                                })
-                            }
-                        })
-                    }
-                }, () => {
-                    this.upload(null, true);
-                });
+                this.props.dispatch(queueUploads(queued));
+                this.upload(null, true);
             }
             let process = (item, path) => {
                 if (typeof item === 'string') {
-                    // the item is a url, queue it and its destination path if not already queued or active
-                    let key = path + item;
-                    if (!this.state.uploads.active.hasOwnProperty(key) && this.state.uploads.queued.findIndex(x => (x.path + x.url) === key) === -1) {
-                        queue(item, path);
-                    }
+                    // the item is a url, queue it and its destination path if not already queued or active or optionally already uploaded
+                    const key = path + item;
+                    const active = this.props.ui.uploads.active.hasOwnProperty(key);
+                    const queued = this.props.ui.uploads.queued.findIndex(x => x.key === key) !== -1;
+                    const succeeded = this.props.ui.uploads.succeeded.findIndex(x => x.key === key) !== -1;
+                    if (!active && !queued && (this.props.ui.uploads.reupload || !succeeded)) queue(item, path);
                 } else {
-                    // the item is a file object, queue it and its destination path if not already queued or active
-                    let key = item.webkitRelativePath ? path + item.webkitRelativePath : item.name;
-                    if (!this.state.uploads.active.hasOwnProperty(key) && this.state.uploads.queued.findIndex(x => pb.join(x.path, x.file.name) === key) === -1) {
+                    // the item is a file object, queue it and its destination path if not already queued or active or optionally already uploaded
+                    const key = pb.join(path, item.webkitRelativePath, item.name);
+                    const active = this.props.ui.uploads.active.hasOwnProperty(key);
+                    const queued = this.props.ui.uploads.queued.findIndex(x => x.key === key) !== -1;
+                    const succeeded = this.props.ui.uploads.succeeded.findIndex(x => x.key === key) !== -1;
+                    if (!active && !queued && (this.props.ui.uploads.reupload || !succeeded)) {
                         if (item.webkitRelativePath) path = pb.normalize(pb.dirname(pb.join(path, item.webkitRelativePath)) + "/");
                         queue(item, path);
                     }
@@ -608,55 +592,33 @@ class Library extends Component {
             return;
         }
         // do we already have the maximum simultaneous number of active uploads?
-        if (Object.keys(this.state.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
+        if (Object.keys(this.props.ui.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
         // nope, do we have any items in the queue? if not, log the list of failed uploads if any
-        if (!this.state.uploads.queued.length) {
+        if (!this.props.ui.uploads.queued.length) {
             // if no uploads are currently active either, reset the total
-            if (!Object.keys(this.state.uploads.active).length) {
-                this.setState(prevState => {
-                    return {
-                        ...prevState,
-                        uploads: update(prevState.uploads, {
-                            $merge: {
-                                total: 0,
-                            }
-                        })
-                    }
-                }, () => {
-                    if (this.state.uploads.failed.length > 0) {
-                        console.warn("Failed Uploads:", this.state.uploads.failed);
-                    }
-                });
+            if (!Object.keys(this.props.ui.uploads.active).length) {
+                this.props.dispatch(setTotalUploads());
+                if (this.props.ui.uploads.failed.length > 0) {
+                    console.warn("Failed Uploads:", this.props.ui.uploads.failed);
+                }
             }
             return;
         }
         // yes, we can start one more
-        const url = this.state.uploads.queued[0].url;
-        const file = this.state.uploads.queued[0].file;
-        const path = this.state.uploads.queued[0].path;
+        const key = this.props.ui.uploads.queued[0].key;
+        const url = this.props.ui.uploads.queued[0].url;
+        const file = this.props.ui.uploads.queued[0].file;
+        const path = this.props.ui.uploads.queued[0].path;
         // dequeue the first item and start uploading it
-        this.setState(prevState => {
-            return {
-                ...prevState,
-                uploads: update(prevState.uploads, {
-                    $merge: {
-                        queued: update(prevState.uploads.queued, {
-                            $splice: [[0, 1]]
-                        })
-                    }
-                })
-            }
-        }, () => {
-            if (file) this.uploadFile(file, path);
-            else if (url) this.uploadUrl(url, path);
-            else console.error("Neither the file nor the URL were valid!");
-        });
+        this.props.dispatch(dequeueUpload());
+        if (file) this.uploadFile(file, key, path);
+        else if (url) this.uploadUrl(url, key, path);
+        else console.error("Neither the file nor the URL were valid!");
     }
 
-    uploadFile(file, path) {
-        const key = pb.join(path, file.name);
-        const total = this.state.uploads.total;
-        const index = this.state.uploads.total - this.state.uploads.queued.length;
+    uploadFile(file, key, path) {
+        const total = this.props.ui.uploads.total;
+        const index = this.props.ui.uploads.total - this.props.ui.uploads.queued.length;
         let data = new FormData();
         data.append('files', file, pb.join(path, file.name));
         const prefix = "[" + index + " / " + total + "] ";
@@ -668,134 +630,79 @@ class Library extends Component {
                 icon: <div className="Toastify__spinner"></div>
             }
         );
-        this.setState(prevState => {
-            return {
-                ...prevState,
-                uploads: update(prevState.uploads, {
-                    $merge: {
-                        active: update(prevState.uploads.active, {
-                            $merge: {
-                                [key]: {
-                                    file: file,
-                                    toast: toastId,
-                                }
-                            }
-                        })
-                    }
-                })
+        this.props.dispatch(addActiveUpload({
+            [key]: {
+                path: path,
+                name: file.name,
+                toast: toastId,
             }
-        }, () => {
-            let subtitle = file.name;
-            const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
-            let config = {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                validateStatus: (status) => {
-                    return (status === 200);
-                },
-                onUploadProgress: this.onUploadFileProgress.bind(this, key, index, "Uploading...", subtitle, undefined, theme, undefined),
+        }));
+        let subtitle = file.name;
+        const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
+        let config = {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            validateStatus: (status) => {
+                return (status === 200);
+            },
+            onUploadProgress: this.onUploadFileProgress.bind(this, key, index, "Uploading...", subtitle, undefined, theme, undefined),
+        };
+        const onShowUploadProgress = (item, progress) => {
+            if (item === key) {
+                this.onUploadFileProgress(key, index, "Processing...", subtitle, undefined, theme, undefined, progress)
             };
-            const onShowUploadProgress = (item, progress) => {
-                if (item === key) {
-                    this.onUploadFileProgress(key, index, "Processing...", subtitle, undefined, theme, undefined, progress)
-                };
-            };
-            this.props.signalRConnection?.on("ShowUploadProgress", onShowUploadProgress.bind(this));
-            const target = new URL("/api/library" + path, window.location.origin);
-            target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
-            target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
-            axios.post(target.toString(), data, config)
-            .then((response) => {
-                subtitle = extract(file.name, response, 'data', 0, 'name');
-                this.onUploadFileProgress(key, index, "Upload Complete", subtitle, 'success', null, null, 1.0);
-                // remove the successfully uploaded item from the list of active uploads
-                this.setState(prevState => {
-                    return {
-                        ...prevState,
-                        uploads: update(prevState.uploads, {
-                            $merge: {
-                                active: update(prevState.uploads.active, {
-                                    $unset: [key]
-                                })
-                            }
-                        })
+        };
+        this.props.signalRConnection?.on("ShowUploadProgress", onShowUploadProgress.bind(this));
+        const target = new URL("/api/library" + path, window.location.origin);
+        target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
+        target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
+        axios.post(target.toString(), data, config)
+        .then((response) => {
+            subtitle = extract(file.name, response, 'data', 0, 'name');
+            this.onUploadFileProgress(key, index, "Upload Complete", subtitle, 'success', null, null, 1.0);
+            // remove the successfully uploaded item from the list of active uploads and add it to the list of succeeded uploads
+            this.props.dispatch(removeActiveUpload({ key: key, succeeded: true }));
+            // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
+            if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
+                this.refresh((succeeded) => {
+                    if (succeeded) {
+                        const index = this.state.items.findIndex(x => x.name === file.name);
+                        if (index !== -1) this.scrollToItem(index, true);
                     }
-                }, () => {
-                    // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
-                    if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
-                        this.refresh((succeeded) => {
-                            if (succeeded) {
-                                const index = this.state.items.findIndex(x => x.name === file.name);
-                                if (index !== -1) this.scrollToItem(index, true);
-                            }
-                        });
-                    }
-                    // next!
-                    this.upload(null, true);
-                })
-            })
-            .catch(error => {
-                console.error(error);
-                let message = "Upload Failed";
-                let toastId = extract(null, this.state.uploads.active, key, 'toast');
-                if (error.response) {
-                    // the client was given an error response (5xx, 4xx)
-                    let title = extract(null, error.response, 'data', 'title');
-                    if (title) message += " (" + title + ")";
-                } else if (error.request) {
-                    // the client never received a response, and the request was never left
-                } else {
-                    // well, something else must've happened
-                }
-                this.onUploadFileProgress(key, null, message, subtitle, 'error', null, null, null);
-                let failed = extract(null, this.state.uploads.active, key, 'file');
-                // remove the failed upload from the list of active uploads
-                this.setState(prevState => {
-                    return {
-                        ...prevState,
-                        uploads: update(prevState.uploads, {
-                            $merge: {
-                                active: update(prevState.uploads.active, {
-                                    $unset: [key]
-                                })
-                            }
-                        })
-                    }
-                }, () => {
-                    // add the failed upload to the list of failed uploads
-                    this.setState(prevState => {
-                        return {
-                            ...prevState,
-                            uploads: update(prevState.uploads, {
-                                $merge: {
-                                    failed: update(prevState.uploads.failed, {
-                                        $push: [{
-                                            file: failed,
-                                            path: path
-                                        }]
-                                    }),
-                                }
-                            })
-                        }
-                    }, () => {
-                        // process any remaining queued items
-                        this.upload(null, true);
-                    });
                 });
-            })
-            .finally(() => {
-                this.props.signalRConnection?.off("ShowUploadProgress", onShowUploadProgress);
-            });
+            }
+            // next!
+            this.upload(null, true);
+        })
+        .catch(error => {
+            console.error(error);
+            let message = "Upload Failed";
+            if (error.response) {
+                // the client was given an error response (5xx, 4xx)
+                let title = extract(null, error.response, 'data', 'title');
+                if (title) message += " (" + title + ")";
+            } else if (error.request) {
+                // the client never received a response, and the request was never left
+            } else {
+                // well, something else must've happened
+            }
+            this.onUploadFileProgress(key, null, message, subtitle, 'error', null, null, null);
+            // remove the failed upload from the list of active uploads and add it to the list of failed uploads
+            this.props.dispatch(removeActiveUpload({ key: key, succeeded: false }));
             // process any remaining queued items
             this.upload(null, true);
+        })
+        .finally(() => {
+            this.props.signalRConnection?.off("ShowUploadProgress", onShowUploadProgress);
         });
+        // process any remaining queued items
+        this.upload(null, true);
     }
 
-    uploadUrl(url, path) {
-        const key = path + url;
-        const total = this.state.uploads.total;
-        const index = this.state.uploads.total - this.state.uploads.queued.length;
+    uploadUrl(url, key, path) {
+        const total = this.props.ui.uploads.total;
+        const index = this.props.ui.uploads.total - this.props.ui.uploads.queued.length;
         const prefix = "[" + index + " / " + total + "] ";
         const toastId = toast.info(<ProgressToast title={prefix + "Resolving..."} subtitle={url} />,
             {
@@ -805,164 +712,111 @@ class Library extends Component {
                 icon: <div className="Toastify__spinner"></div>
             }
         );
-        this.setState(prevState => {
-            return {
-                ...prevState,
-                uploads: update(prevState.uploads, {
-                    $merge: {
-                        active: update(prevState.uploads.active, {
-                            $merge: {
-                                [key]: {
-                                    url: url,
-                                    toast: toastId,
-                                }
-                            }
-                        })
-                    }
-                })
+        this.props.dispatch(addActiveUpload({
+            [key]: {
+                url: url,
+                path: path,
+                toast: toastId,
             }
-        }, async () => {
-            let title;
-            // eslint-disable-next-line
-            let result;
-            let fileName;
-            let subtitle = url;
-            let progress = null;
-            let type = undefined;
-            let icon = undefined;
-            let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
-            const target = new URL("/api/library/upload", window.location.origin);
-            target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
-            target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
-            target.searchParams.set('path', path);
-            target.searchParams.set('url', url);
-            fetch(target.toString())
-            .then((response) => {
-                let show = true;
-                const reader = response.body.getReader();
-                const process = ({ done, value: chunk }) => {
-                    if (done) {
-                        progress = 1.0;
-                        title = "Upload Complete";
-                        this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
-                        // remove the successfully uploaded item from the list of active uploads
-                        this.setState(prevState => {
-                            return {
-                                ...prevState,
-                                uploads: update(prevState.uploads, {
-                                    $merge: {
-                                        active: update(prevState.uploads.active, {
-                                            $unset: [key]
-                                        })
-                                    }
-                                })
+        }));
+        let title;
+        // eslint-disable-next-line
+        let result;
+        let fileName;
+        let subtitle = url;
+        let progress = null;
+        let type = undefined;
+        let icon = undefined;
+        let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
+        const target = new URL("/api/library/upload", window.location.origin);
+        target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
+        target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
+        target.searchParams.set('path', path);
+        target.searchParams.set('url', url);
+        fetch(target.toString())
+        .then((response) => {
+            let show = true;
+            const reader = response.body.getReader();
+            const process = ({ done, value: chunk }) => {
+                if (done) {
+                    progress = 1.0;
+                    title = "Upload Complete";
+                    this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
+                    // remove the successfully uploaded item from the list of active uploads and add it to the list of succeeded uploads
+                    this.props.dispatch(removeActiveUpload({ key: key, succeeded: true }));
+                    // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
+                    if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
+                        this.refresh((succeeded) => {
+                            if (succeeded) {
+                                const index = this.state.items.findIndex(x => x.name === fileName);
+                                if (index !== -1) this.scrollToItem(index, true);
                             }
-                        }, () => {
-                            // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
-                            if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
-                                this.refresh((succeeded) => {
-                                    if (succeeded) {
-                                        const index = this.state.items.findIndex(x => x.name === fileName);
-                                        if (index !== -1) this.scrollToItem(index, true);
-                                    }
-                                });
-                            }
-                            // next!
-                            this.upload(null, true);
                         });
-                        return;
                     }
-                    const lines = new TextDecoder('utf-8').decode(chunk).trim().split('\n');
-                    for (const line of lines) {
-                        const regex = /^([\w\s]+):\s(.+)$/;
-                        const match = line.trim().match(regex);
-                        if (match) {
-                            const k = match[1].trim();
-                            const v = match[2].trim();
-                            if (k === 'Name') {
-                                progress = 0;
-                                title = "Starting...";
-                                subtitle = fileName = v;
-                            } else if (k === 'Downloading') {
-                                title = "Downloading...";
-                                if (!isNaN(v)) {
-                                    progress = parseFloat(v) !== 1.0 ? parseFloat(v) : 0;
-                                }
-                            } else if (k === 'Merging') {
-                                progress = 0;
-                                title = "Merging...";
-                                subtitle = fileName = v;
-                            } else if (k === 'Moving') {
-                                progress = 0;
-                                title = "Moving...";
-                                subtitle = fileName = v;
-                            } else if (k === 'Processing') {
-                                title = "Processing...";
-                                if (!isNaN(v)) {
-                                    progress = parseFloat(v);
-                                }
-                            } else if (k === 'Result') {
-                                icon = null;
-                                theme = null;
-                                progress = 1.0;
-                                type =  'success';
-                                title = "Complete";
-                                result = JSON.parse(v);
-                                show = false;
-                            } else if (k === 'Error') {
-                                // reject the promise to propagate the error
-                                return Promise.reject(new Error(v));
+                    // next!
+                    this.upload(null, true);
+                    return;
+                }
+                const lines = new TextDecoder('utf-8').decode(chunk).trim().split('\n');
+                for (const line of lines) {
+                    const regex = /^([\w\s]+):\s(.+)$/;
+                    const match = line.trim().match(regex);
+                    if (match) {
+                        const k = match[1].trim();
+                        const v = match[2].trim();
+                        if (k === 'Name') {
+                            progress = 0;
+                            title = "Starting...";
+                            subtitle = fileName = v;
+                        } else if (k === 'Downloading') {
+                            title = "Downloading...";
+                            if (!isNaN(v)) {
+                                progress = parseFloat(v) !== 1.0 ? parseFloat(v) : 0;
                             }
-                            // Update the toast
-                            if (show) this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
+                        } else if (k === 'Merging') {
+                            progress = 0;
+                            title = "Merging...";
+                            subtitle = fileName = v;
+                        } else if (k === 'Moving') {
+                            progress = 0;
+                            title = "Moving...";
+                            subtitle = fileName = v;
+                        } else if (k === 'Processing') {
+                            title = "Processing...";
+                            if (!isNaN(v)) {
+                                progress = parseFloat(v);
+                            }
+                        } else if (k === 'Result') {
+                            icon = null;
+                            theme = null;
+                            progress = 1.0;
+                            type =  'success';
+                            title = "Complete";
+                            result = JSON.parse(v);
+                            show = false;
+                        } else if (k === 'Error') {
+                            // reject the promise to propagate the error
+                            return Promise.reject(new Error(v));
                         }
-                    };
-                    return reader.read().then(process);
+                        // Update the toast
+                        if (show) this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
+                    }
                 };
                 return reader.read().then(process);
-            })
-            .catch(error => {
-                console.error(error);
-                title = error.message;
-                this.onUploadProgress(key, null, title, subtitle, null, 'error', null);
-                let failed = extract(null, this.state.uploads.active, key, 'url');
-                // remove the failed upload from the list of active uploads
-                this.setState(prevState => {
-                    return {
-                        ...prevState,
-                        uploads: update(prevState.uploads, {
-                            $merge: {
-                                active: update(prevState.uploads.active, {
-                                    $unset: [key]
-                                })
-                            }
-                        })
-                    }
-                }, () => {
-                    // add the failed upload to the list of failed uploads
-                    this.setState(prevState => {
-                        return {
-                            ...prevState,
-                            uploads: update(prevState.uploads, {
-                                $merge: {
-                                    failed: update(prevState.uploads.failed, {
-                                        $push: [{
-                                            url: failed,
-                                            path: path
-                                        }]
-                                    }),
-                                }
-                            })
-                        }
-                    }, () => {
-                        // process any remaining queued items
-                        this.upload(null, true);
-                    });
-                });
-            });
+            };
+            return reader.read().then(process);
+        })
+        .catch(error => {
+            console.error(error);
+            title = error.message;
+            this.onUploadProgress(key, null, title, subtitle, null, 'error', null);
+            // remove the failed upload from the list of active uploads and add it to the list of failed uploads
+            this.props.dispatch(removeActiveUpload({ key: key, succeeded: false }));
             // process any remaining queued items
             this.upload(null, true);
         });
+        // process any remaining queued items
+        this.upload(null, true);
     }
 
     open(source) {
@@ -1172,7 +1026,7 @@ class Library extends Component {
     }
 
     onUploadProgress(key, index, title, subtitle, progress, type, theme, icon) {
-        const prefix = index != null ? `[${index} / ${this.state.uploads.total}] ` : "";
+        const prefix = index != null ? `[${index + 1} / ${this.props.ui.uploads.total}] ` : "";
         const options = {
             autoClose: progress === 0.0 ? false : null,
             render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />,
@@ -1181,7 +1035,7 @@ class Library extends Component {
             ...(type !== undefined && { type }),
             ...(theme !== undefined && { theme }),
         };
-        const toastId = extract(null, this.state.uploads.active, key, 'toast');
+        const toastId = extract(null, this.props.ui.uploads.active, key, 'toast');
         toast.update(toastId, options);
     }
 
