@@ -19,7 +19,7 @@
  */
 
 import React from 'react';
-import { clone as cloneShallow, cloneDeep, isEqual, unset, omit, castArray } from 'lodash';
+import { clone as cloneShallow, cloneDeep, isEqual } from 'lodash';
 import { useNavigate, useNavigationType, useLocation, useParams, useSearchParams } from 'react-router';
 
 export function extract(fallback, obj, level, ...rest) {
@@ -46,7 +46,7 @@ export function duration(seconds) {
     return string;
 }
 
-export function size(bytes, decimals = 2, prefix='', suffix='', zero=false) {
+export function size(bytes, decimals = 2, prefix = '', suffix = '', zero = false) {
     if (bytes === 0) return zero ? (prefix + '0 Bytes' + suffix) : '';
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
@@ -185,66 +185,150 @@ export function shorten(input, length) {
 }
 
 /**
- * Compares two objects excluding the supplied keys (including nested keys) from comparison.
- * @param {*} value The left-hand side object.
- * @param {*} other The right-hand side object.
- * @param {*} exclusions The keys to exclude from comparison, either as an array or arguments.
- * @returns {boolean} true if objects are equal (excluding specified keys), false otherwise.
+ * Recursively remove a nested path from an object.
+ * Returns a new (partially) cloned object without mutating the original.
+ *
+ * @param {Object} object - The source object.
+ * @param {string[]} path - An array representing the nested path (e.g. ["ui", "someKey"]).
+ * @returns {Object} A new object that excludes the nested path.
  */
-export function isEqualExcluding(value, other, ...exclusions) {
-    // ensure exclusions is an array
-    const exclusionList = castArray(exclusions).flat();
+function removeNestedPath(object, path) {
+    if (!object || typeof object !== 'object') {
+        // if it's not an object/array, just return it unchanged.
+        return object;
+    }
 
-    // deep clone objects to avoid mutation
-    const valueCopy = cloneDeep(value);
-    const otherCopy = cloneDeep(other);
+    // if the path is empty, there's nothing to remove.
+    if (path.length === 0) {
+        return object;
+    }
 
-    // remove excluded keys from both objects
-    exclusionList.forEach((key) => {
-        unset(valueCopy, key);
-        unset(otherCopy, key);
-    });
+    const [currentKey, ...restPath] = path;
 
-    return isEqual(valueCopy, otherCopy);
+    // if the current key isn't in the object, no removal needed.
+    if (!(currentKey in object)) {
+        return object;
+    }
+
+    // shallow clone so we don't mutate original
+    let cloned = Array.isArray(object) ? object.slice() : { ...object };
+
+    // if we are on the last part of the path, remove the key
+    if (restPath.length === 0) {
+        if (Array.isArray(cloned)) {
+            // if it's an array, parse the key as a numeric index if possible
+            const index = Number(currentKey);
+            if (!Number.isNaN(index)) {
+                cloned.splice(index, 1);
+            }
+        } else {
+            delete cloned[currentKey];
+        }
+    } else {
+        // otherwise, recurse deeper
+        cloned[currentKey] = removeNestedPath(cloned[currentKey], restPath);
+    }
+
+    return cloned;
 }
 
 /**
- * Returns the differences between two objects, excluding specified keys (including nested keys).
- * @param {*} lhs The left-hand side object.
- * @param {*} rhs The right-hand side object.
- * @param {*} exclusions The keys to exclude from comparison, either as an array or arguments.
- * @returns {object} A dictionary with all the different keys and values.
+ * Omit an array of dotted paths from an object.
+ * Each path can be a single key ("name") or nested ("ui.someKey").
+ *
+ * @param {Object|Array} object - The source object
+ * @param {string[]} paths - Array of dotted strings, e.g. ["ui.someKey", "items.0.price"]
+ * @returns {Object|Array} A new object/array excluding the specified nested paths.
  */
-export function differenceWith(lhs, rhs, ...exclusions) {
-    const exclusionList = castArray(exclusions).flat(); // Ensure array format
+function omitNested(object, paths) {
+    let result = object;
+    for (const dottedPath of paths) {
+        const pathArray = dottedPath.split('.');
+        result = removeNestedPath(result, pathArray);
+    }
+    return result;
+}
 
-    // remove exclusions deeply (dot notation supported)
-    const lhsClean = omit(lhs, exclusionList);
-    const rhsClean = omit(rhs, exclusionList);
+/**
+ * Compares two objects/arrays excluding the supplied root or nested keys.
+ *
+ * @param {*} value - The left-hand side object/array.
+ * @param {*} other - The right-hand side object/array.
+ * @param {...(string|string[])} exclusions - Root or nested keys to exclude.
+ *        Can be multiple dotted strings or an array of them.
+ *        E.g.: "ui.someKey", ["ui.anotherKey", "items.0.price"], etc.
+ *
+ * @returns {boolean} `true` if objects are equal (after exclusions), otherwise `false`.
+ */
+export function isEqualExcluding(value, other) {
+    // collect exclusions from either an array or rest parameters
+    const exclusions = Array.isArray(arguments[2])
+        ? arguments[2]
+        : Array.prototype.slice.call(arguments, 2);
 
-    const differences = {};
+    const newValue = omitNested(value, exclusions);
+    const newOther = omitNested(other, exclusions);
 
-    for (const key in lhsClean) {
-        if (!(key in rhsClean)) {
-            differences[key] = { from: lhsClean[key], to: undefined };
-        } else if (typeof lhsClean[key] === "object" && lhsClean[key] !== null &&
-                   typeof rhsClean[key] === "object" && rhsClean[key] !== null) {
-            const nestedDiff = differenceWith(lhsClean[key], rhsClean[key]);
-            if (Object.keys(nestedDiff).length > 0) {
-                differences[key] = nestedDiff;
+    return isEqual(newValue, newOther);
+}
+
+/**
+ * Returns the differences between two objects (or arrays) excluding the supplied
+ * root or nested keys from comparison.
+ *
+ * @param {*} lhs - The left-hand side object/array.
+ * @param {*} rhs - The right-hand side object/array.
+ * @param {...(string|string[])} exclusions - Keys (root or nested) to exclude.
+ *        Can be multiple dotted strings or an array of them:
+ *        e.g. "ui.someKey", ["ui.anotherKey", "items.0.price"], etc.
+ *
+ * @returns {Object} A dictionary with all the different keys and values.
+ */
+export function differenceWith(lhs, rhs) {
+    // collect exclusions from either an array or rest parameters
+    const exclusions = Array.isArray(arguments[2])
+        ? arguments[2]
+        : Array.prototype.slice.call(arguments, 2);
+
+    // remove excluded nested paths (does not mutate original)
+    const lhsClean = omitNested(lhs, exclusions);
+    const rhsClean = omitNested(rhs, exclusions);
+
+    // recursively compute differences
+    function computeDifference(a, b) {
+        const differences = {};
+
+        // compare keys from 'a'
+        for (const key in a) {
+            if (!(key in b)) {
+                differences[key] = { from: a[key], to: undefined };
+            } else if (
+                typeof a[key] === 'object' &&
+                a[key] !== null &&
+                typeof b[key] === 'object' &&
+                b[key] !== null
+            ) {
+                // recursively compare nested objects/arrays
+                const nestedDiff = computeDifference(a[key], b[key]);
+                if (Object.keys(nestedDiff).length > 0) {
+                    differences[key] = nestedDiff;
+                }
+            } else if (a[key] !== b[key]) {
+                differences[key] = { from: a[key], to: b[key] };
             }
-        } else if (!isEqual(lhsClean[key], rhsClean[key])) {
-            differences[key] = { from: lhsClean[key], to: rhsClean[key] };
         }
+
+        // compare keys from 'b' that weren't in 'a'
+        for (const key in b) {
+            if (!(key in a)) {
+                differences[key] = { from: undefined, to: b[key] };
+            }
+        }
+
+        return differences;
     }
 
-    for (const key in rhsClean) {
-        if (!(key in lhsClean)) {
-            differences[key] = { from: undefined, to: rhsClean[key] };
-        }
-    }
-
-    return differences;
+    return computeDifference(lhsClean, rhsClean);
 }
 
 export function withRouter(Component) {
