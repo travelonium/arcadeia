@@ -24,14 +24,15 @@
 
 // Your variable overrides can go here, e.g.:
 // $h1-font-size: 3rem;
-$loading-z-index: 1;
-$upload-zone-overlay-z-index: 2;
 $dropdown-link-active-bg: transparent;
 $dropdown-link-active-color: var(--bs-dropdown-color);
 
 @import "bootswatch/dist/spacelab/variables.scss";
 @import "bootstrap/scss/bootstrap.scss";
 @import "bootswatch/dist/spacelab/bootswatch.scss";
+
+$loading-z-index: $zindex-popover;
+$upload-zone-overlay-z-index: $zindex-toast;
 
 .logo-text {
 

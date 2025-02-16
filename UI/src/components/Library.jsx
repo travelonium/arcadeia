@@ -885,10 +885,12 @@ class Library extends Component {
     }
 
     onMediaViewerShow() {
+        console.debug("onMediaViewerShow()");
         this.viewing = true;
     }
 
     onMediaViewerHide() {
+        console.debug("onMediaViewerHide()");
         this.viewing = false;
         const id = extract(null, this.state.items, this.current, 'id');
         const path = encodeURI(this.props.location?.state?.path || this.path);
