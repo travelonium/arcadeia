@@ -166,8 +166,7 @@ export class UploadZone extends Component {
     render() {
         return (
             <form id="upload-zone-form"
-                className={cx("upload-zone d-flex position-absolute", this.props.className)}
-                style={{ width: this.props?.width }}
+                className={cx("upload-zone d-flex flex-grow-1", this.props.className)}
                 onSubmit={(event) => event.preventDefault()}
                 onDragEnter={this.onDrag.bind(this)}
                 onDragOver={this.onDrag.bind(this)}
@@ -175,7 +174,7 @@ export class UploadZone extends Component {
                 onDrop={this.onDrop.bind(this)}
             >
                 <input type="file" id="upload-zone-input" className="d-none" name="files" webkitdirectory="true" multiple={true} onChange={this.onChange.bind(this)} />
-                <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex" onClick={(event) => event.preventDefault()}>
+                <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex position-relative flex-grow-1" onClick={(event) => event.preventDefault()}>
                     <Container className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")} fluid>
                         <Badge className="d-flex align-items-center animate__animated animate__fadeIn animate__zoomIn" bg="light">
                             <Row className="align-items-center gx-0 pt-5">
@@ -194,7 +193,7 @@ export class UploadZone extends Component {
                             </Row>
                         </Badge>
                     </Container>
-                    <div className={cx("upload-zone-content", this.state.dragging ? "dragging" : "")}>
+                    <div className={cx("upload-zone-content d-flex flex-grow-1", this.state.dragging ? "dragging" : "")}>
                         {this.props.children}
                     </div>
                 </label>

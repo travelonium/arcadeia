@@ -1117,29 +1117,27 @@ class Library extends Component {
                 const columnWidth = width / columnCount;
                 const rowCount = Math.ceil(items.length / columnCount);
                 return (
-                    <UploadZone ref={this.uploadZone} width={width} height={height} onUpload={this.upload.bind(this)}>
-                        <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
-                        {
-                            ({ columnIndex, rowIndex, style }) => {
-                                let index = (rowIndex * columnCount) + columnIndex;
-                                let source = items[index];
-                                const view = this.props.ui.view[this.searching ? "search" : this.path] ?? this.props.ui.view.default;
-                                if (source !== undefined) {
-                                    this.mediaContainers[index] = React.createRef();
-                                    return (
-                                        <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                            <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
-                                        </div>
-                                    );
-                                } else {
-                                    return (
-                                        <div style={style}></div>
-                                    );
-                                }
+                    <Grid ref={this.grid} className="grid" columnCount={columnCount} columnWidth={columnWidth} height={height} rowCount={rowCount} rowHeight={rowHeight} width={width + offset} onScroll={this.onScroll.bind(this)} >
+                    {
+                        ({ columnIndex, rowIndex, style }) => {
+                            let index = (rowIndex * columnCount) + columnIndex;
+                            let source = items[index];
+                            const view = this.props.ui.view[this.searching ? "search" : this.path] ?? this.props.ui.view.default;
+                            if (source !== undefined) {
+                                this.mediaContainers[index] = React.createRef();
+                                return (
+                                    <div className="grid-item animate__animated animate__fadeIn" style={style}>
+                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                    </div>
+                                );
+                            } else {
+                                return (
+                                    <div style={style}></div>
+                                );
                             }
                         }
-                        </Grid>
-                    </UploadZone>
+                    }
+                    </Grid>
                 )}
             }
             </AutoSizer>
@@ -1193,15 +1191,15 @@ class Library extends Component {
                             <span className="statistics-size ms-1">{size(items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
                         </div>
                     </Breadcrumb>
-                    <div ref={this.gridWrapper} className="grid-wrapper d-flex mx-3" style={{flexGrow: 1, flexShrink: 1, flexBasis: 'auto'}}>
-                        { this.gridView() }
-                        <Container fluid className="scroll-to-top animate__animated animate__faster position-absolute d-flex justify-content-center pe-none pb-5">
+                    <div ref={this.gridWrapper} className="grid-wrapper d-flex flex-grow-1 position-relative mx-3">
+                        <UploadZone ref={this.uploadZone} onUpload={this.upload.bind(this)}>{this.gridView()}</UploadZone>
+                        <Container fluid className="scroll-to-top d-flex position-absolute justify-content-center pe-none pb-5 animate__animated animate__faster">
                             <Button ref={this.scrollToTopButton} className="animate__animated animate__fast px-3" variant="info" onClick={this.onScrollToTop.bind(this)}>
                                 <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
                             </Button>
                         </Container>
                         <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
-                        <Container fluid className={cx((loading || status) ? "d-flex" : "d-none", "animate__animated animate__fadeIn animate__faster flex-column align-self-stretch align-items-center")}>
+                        <Container fluid className={cx("loading", (loading || status) ? "d-flex" : "d-none", "flex-grow-1 position-absolute animate__animated animate__fadeIn animate__faster flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-2")}>
                                     <Spinner className="loading-spinner" role="status"/>
@@ -1209,7 +1207,7 @@ class Library extends Component {
                             </Row>
                             <Row className="mb-auto">
                                 <Col className={cx(status ? "d-flex" : "d-none", "text-center")}>
-                                    <p className="loading-status font-weight-light fs-6 text-body text-uppercase" >{this.state.status}</p>
+                                    <p className="loading-status font-weight-light fs-6 text-body text-uppercase" >{status}</p>
                                 </Col>
                             </Row>
                         </Container>
