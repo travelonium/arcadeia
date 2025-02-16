@@ -157,9 +157,9 @@ class Library extends Component {
 
         // check if significant differences exist in props or state, excluding specific keys
         const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
-        const updatedProps = differenceWith(this.props, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
+        const updatedProps = differenceWith(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
         const hasStateChanged = !isEqualExcluding(currentState, nextState);
-        const updatedState = differenceWith(this.state, nextState);
+        const updatedState = differenceWith(currentState, nextState);
 
         const shouldUpdate = ((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && (havePropsChanged || hasStateChanged);
 
