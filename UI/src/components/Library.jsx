@@ -1194,13 +1194,11 @@ class Library extends Component {
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex flex-grow-1 position-relative mx-3">
-                        <UploadZone ref={this.uploadZone} onUpload={this.upload.bind(this)}>{this.gridView()}</UploadZone>
                         <Container fluid className="scroll-to-top d-flex position-absolute justify-content-center pe-none pb-5 animate__animated animate__faster">
                             <Button ref={this.scrollToTopButton} className="animate__animated animate__fast px-3" variant="info" onClick={this.onScrollToTop.bind(this)}>
                                 <i className="icon bi bi-arrow-up-square pe-2"></i>Scroll To Top<i className="icon bi bi-arrow-up-square ps-2"></i>
                             </Button>
                         </Container>
-                        <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                         <Container fluid className={cx("loading", (loading || status) ? "d-flex" : "d-none", "flex-grow-1 position-absolute animate__animated animate__fadeIn animate__faster flex-column align-self-stretch align-items-center")}>
                             <Row className="mt-auto">
                                 <Col className={cx(loading ? "d-flex" : "d-none", "text-center mb-2")}>
@@ -1213,6 +1211,10 @@ class Library extends Component {
                                 </Col>
                             </Row>
                         </Container>
+                        <UploadZone ref={this.uploadZone} onUpload={this.upload.bind(this)}>
+                            {this.gridView()}
+                            <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                        </UploadZone>
                     </div>
                 </div>
                 {/*

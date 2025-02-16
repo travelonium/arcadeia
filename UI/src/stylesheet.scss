@@ -31,8 +31,7 @@ $dropdown-link-active-color: var(--bs-dropdown-color);
 @import "bootstrap/scss/bootstrap.scss";
 @import "bootswatch/dist/spacelab/bootswatch.scss";
 
-$loading-z-index: $zindex-popover;
-$upload-zone-overlay-z-index: $zindex-toast;
+$upload-zone-overlay-z-index: $zindex-modal + 1;
 
 .logo-text {
 
@@ -303,7 +302,6 @@ $upload-zone-overlay-z-index: $zindex-toast;
 
     .loading {
         inset: 0;
-        z-index: $loading-z-index;
     }
 }
 
@@ -337,6 +335,7 @@ $upload-zone-overlay-z-index: $zindex-toast;
 }
 
 .upload-zone {
+
     label {
         .badge {
             animation-duration: 150ms;
