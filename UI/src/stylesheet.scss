@@ -118,6 +118,15 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
             }
         }
     }
+
+    .view-dropdown {
+
+        &.overridden {
+            .dropdown-toggle {
+                color: black;
+            }
+        }
+    }
 }
 
 @include color-mode(dark) {
@@ -161,6 +170,16 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
     }
 
     .sort-dropdown {
+
+        &.overridden {
+            .dropdown-toggle {
+                color: white;
+            }
+        }
+    }
+
+
+    .view-dropdown {
 
         &.overridden {
             .dropdown-toggle {
@@ -219,7 +238,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
 
     .flag,
     .icon,
-    .button {
+    .button i {
         -moz-osx-font-smoothing: grayscale;
         -webkit-font-smoothing: antialiased;
         text-shadow: none;
@@ -249,6 +268,44 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
         .icon {
             opacity: $btn-disabled-opacity;
             color: $btn-link-disabled-color;
+        }
+    }
+
+    .button {
+        .badge {
+
+            &.bottom-right {
+                top: unset;
+                bottom: 0px;
+                right: 0px;
+            }
+
+            &.bottom-middle {
+                top: unset;
+                bottom: -2px;
+                left: 13px;
+            }
+
+            &.bottom-left {
+                top: unset;
+                bottom: 0px;
+                left: 0px;
+            }
+
+            &.top-right {
+                top: 0px;
+                right: 0px;
+            }
+
+            &.top-middle {
+                top: -2px;
+                left: 13px;
+            }
+
+            &.top-left {
+                top: 0px;
+                left: 0px;
+            }
         }
     }
 }
