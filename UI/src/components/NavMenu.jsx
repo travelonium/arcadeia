@@ -248,15 +248,19 @@ class NavMenu extends Component {
                                 <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
                                 <ViewDropdown className="me-1" name="view" tooltip="View" value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
-                                <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => console.log("Uploads")}>
+                                <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => {}}>
                                 {
-                                    !isEmpty(this.props.ui.uploads.active) || !isEmpty(this.props.ui.uploads.queued) ?
-                                    <Badge className="position-absolute bottom-right" bg="info" title="Queued" pill>{size(this.props.ui.uploads.active) + size(this.props.ui.uploads.queued)}</Badge>
+                                    (!isEmpty(this.props.ui.uploads.active) || !isEmpty(this.props.ui.uploads.queued)) ?
+                                    <Badge className="position-absolute bottom-right" bg="info" title="Queued" pill>
+                                        {size(this.props.ui.uploads.active) + size(this.props.ui.uploads.queued)}
+                                    </Badge>
                                     : <></>
                                 }
                                 {
-                                    !isEmpty(this.props.ui.uploads.failed) ?
-                                    <Badge className="position-absolute bottom-left" bg="danger" title="Failed" pill>{size(this.props.ui.uploads.failed)}</Badge>
+                                    (!isEmpty(this.props.ui.uploads.failed)) ?
+                                    <Badge className="position-absolute bottom-left" bg="danger" title="Failed" pill>
+                                        {size(this.props.ui.uploads.failed)}
+                                    </Badge>
                                     : <></>
                                 }
                                 </Button>
