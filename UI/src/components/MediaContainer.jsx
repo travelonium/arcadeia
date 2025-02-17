@@ -220,11 +220,37 @@ export class MediaContainer extends Component {
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                     <div className="thumbnail-container">
                         <Thumbnail source={source} library={this.props.library} />
-                        <Badge variant="dark" className={cx("duration", (source.duration > 0) ? "visible" : "invisible")}>{duration(source.duration)}</Badge>
-                        {
-                            (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
-                            <Badge variant="dark" className={cx("extension", source.extension ? "visible" : "invisible")}>{source.extension}</Badge>
-                        }
+                        <Container className="properties" fluid>
+                            <Row className="gx-2">
+                                <Col className="d-flex">
+                                {
+                                    (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
+                                    (source.extension) ? <Badge bg="primary" className="extension" title="Extension">{source.extension}</Badge> : <></>
+                                }
+                                </Col>
+                            {
+                                (source.duplicates > 0) ?
+                                <Col className="d-flex" xs="auto">
+                                    <Badge bg="warning" className="duplicates" title="Duplicates">{source.duplicates}</Badge>
+                                </Col> :
+                                <></>
+                            }
+                            {
+                                (source.width && source.height) ?
+                                <Col className="d-flex" xs="auto">
+                                    <Badge bg={(source.duration > 0) ? "dark" : "primary"} className="resolution" title="Resolution">{`${source.width} × ${source.height}`}</Badge>
+                                </Col> :
+                                <></>
+                            }
+                            {
+                                (source.duration > 0) ?
+                                <Col className="d-flex" xs="auto">
+                                    <Badge bg="primary" className="duration" title="Duration">{duration(source.duration)}</Badge>
+                                </Col> :
+                                <></>
+                            }
+                            </Row>
+                        </Container>
                         <div className="flags px-1">
                             <Flag name="favorite" tooltip={(favorite ? "Unflag" : "Flag") + " Favorite"} value={favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} />
                         </div>
