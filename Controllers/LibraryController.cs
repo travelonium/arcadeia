@@ -314,7 +314,7 @@ namespace Arcadeia.Controllers
             // Process uploaded file...
             // FIXME: Don't rely on or trust the FileName property without validation.
 
-            Progress<float> processingProgress = new(async value => await _notificationService.ShowUploadProgressAsync(Path.Combine(path, file.FileName), value));
+            Progress<float> processingProgress = new(async value => await _notificationService.ShowUploadProgressAsync(Path.Combine(path, file.FileName), fullPath, value));
 
             try
             {

@@ -65,19 +65,59 @@ export const uiSlice = createSlice({
                 state.uploads.queued.shift();
             }
         },
+        requeueFailedUpload: (state, action) => {
+            const { key } = action.payload;
+            if (state.uploads.failed) {
+                const index = state.uploads.failed.findIndex(upload => upload.key === key);
+                if (index !== -1) {
+                    const item = state.uploads.failed[index];
+                    state.uploads.failed.splice(index, 1);
+                    state.uploads.queued.push({ ...item, timestamp: Date.now() });
+                    state.uploads.total++;
+                }
+            }
+        },
         addActiveUpload: (state, action) => {
-            state.uploads.active = { ...state.uploads.active, ...action.payload };
+            state.uploads.active = {
+                ...state.uploads.active,
+                ...action.payload,
+            };
         },
         removeActiveUpload: (state, action) => {
             const { key, succeeded } = action.payload;
             if (!state.uploads.active[key]) return;
             const upload = {
                 key: key,
-                ...pick(state.uploads.active[key], ['url', 'path', 'name'])
+                ...pick(state.uploads.active[key], ['url', 'path', 'name']),
+                timestamp: Date.now()
             };
             if (succeeded) state.uploads.succeeded = [...state.uploads.succeeded, upload];
             else state.uploads.failed = [...state.uploads.failed, upload];
             delete state.uploads.active[key];
+        },
+        updateActiveUpload: (state, action) => {
+            const { key, value } = action.payload;
+            if (!state.uploads.active[key]) return;
+            state.uploads.active[key] = {
+                ...state.uploads.active[key],
+                ...value
+            }
+        },
+        removeUploads: (state, action) => {
+            const { type, key } = action.payload;
+            if (type && state.uploads[type]) {
+                if (Array.isArray(state.uploads[type])) {
+                    state.uploads[type] = key !== undefined
+                        ? state.uploads[type].filter(upload => upload.key !== key)
+                        : [];
+                } else if (typeof state.uploads[type] === "object") {
+                    if (key !== undefined) {
+                        delete state.uploads[type][key];
+                    } else {
+                        delete state.uploads[type];
+                    }
+                }
+            }
         },
         setSimultaneousUploads: (state, action) => {
             state.uploads.simultaneous = action.payload ?? initialState.uploads.simultaneous;
@@ -109,8 +149,11 @@ export const {
     setTotalUploads,
     queueUploads,
     dequeueUpload,
+    requeueFailedUpload,
     addActiveUpload,
     removeActiveUpload,
+    updateActiveUpload,
+    removeUploads,
     setSimultaneousUploads,
     setDuplicateUploads,
     setOverwriteUploads,

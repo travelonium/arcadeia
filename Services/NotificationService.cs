@@ -27,9 +27,9 @@ namespace Arcadeia.Services
     {
         private readonly IHubContext<SignalRHub> _hubContext = hubContext;
 
-        public async Task ShowUploadProgressAsync(string item, float progress)
+        public async Task ShowUploadProgressAsync(string item, string fullPath, float progress)
         {
-            await _hubContext.Clients.All.SendAsync("ShowUploadProgress", item, progress);
+            await _hubContext.Clients.All.SendAsync("ShowUploadProgress", item, fullPath, progress);
         }
 
         public async Task ShowUpdateProgressAsync(string uuid, string title, string item, int index, int total)

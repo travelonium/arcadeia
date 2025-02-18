@@ -337,6 +337,23 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
     }
 }
 
+.uploads {
+
+    .modal-body {
+        overflow: auto;
+        height: 50vh;
+
+        .list-group {
+            .list-group-item {
+                .progress {
+                    height: 5px;
+                    border-radius: 0px;
+                }
+            }
+        }
+    }
+}
+
 // the padding between the grid items and when hovered
 .grid-wrapper {
     .grid {

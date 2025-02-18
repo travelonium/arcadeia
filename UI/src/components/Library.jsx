@@ -26,6 +26,7 @@ import UploadZone from './UploadZone';
 import { connect } from "react-redux";
 import { toast } from 'react-toastify';
 import MediaViewer from './MediaViewer';
+import Uploads from './toolbar/Uploads';
 import update from 'immutability-helper';
 import React, { Component } from 'react';
 import { isEqual, isEmpty } from 'lodash';
@@ -50,6 +51,7 @@ class Library extends Component {
         this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
         this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
         this.grid = React.createRef();
+        this.uploads = React.createRef();
         this.uploadZone = React.createRef();
         this.gridWrapper = React.createRef();
         this.mediaViewer = React.createRef();
@@ -517,7 +519,9 @@ class Library extends Component {
     }
 
     open(source) {
-        let url = encodeURI(source.fullPath) + this.props.location.search;
+        let url;
+        if (typeof source === 'object') url = encodeURI(source.fullPath) + this.props.location.search;
+        else url = encodeURI(source) + this.props.location.search;
         this.props.navigate(url);
     }
 
@@ -595,6 +599,27 @@ class Library extends Component {
         const url = path + search;
         this.props.navigate(url);
         this.reload(id);
+    }
+
+    showUploads() {
+        console.debug("showUploads()");
+        this.uploads.current?.show();
+    }
+
+    onUploadsOpen(target) {
+        console.debug("onUploadsOpen()");
+        window.open(target, "_blank");
+    }
+
+    onUploadsShow(event) {
+        console.debug("onUploadsShow()");
+    }
+
+    onUploadsHide() {
+        console.debug("onUploadsHide()");
+        this.setState({
+            uploads: false
+        });
     }
 
     onKeyDown(event) {
@@ -891,6 +916,7 @@ class Library extends Component {
                         <UploadZone ref={this.uploadZone} signalRConnection={this.props.signalRConnection} onUploadComplete={this.onUploadComplete.bind(this)}>
                             {this.gridView()}
                             <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                            <Uploads ref={this.uploads} onShow={this.onUploadsShow.bind(this)} onHide={this.onUploadsHide.bind(this)} onUpload={() => this.uploadZone.current?.upload(null, true)} onOpen={this.onUploadsOpen.bind(this)} />
                         </UploadZone>
                     </div>
                 </div>

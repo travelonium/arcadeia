@@ -83,6 +83,7 @@ class NavMenu extends Component {
     }
 
     componentDidMount() {
+        console.log(this.props.library)
     }
 
     componentDidUpdate(prevProps) {
@@ -180,7 +181,7 @@ class NavMenu extends Component {
     onHistorySelect(source) {
         let fullPath = extract(null, source, "fullPath");
         if (fullPath) {
-            this.props.library.current.view(source);
+            this.props.library.current?.view(source);
         }
     }
 
@@ -248,7 +249,7 @@ class NavMenu extends Component {
                                 <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
                                 <ViewDropdown className="me-1" name="view" tooltip="View" value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
-                                <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => {}}>
+                                <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => this.props.library.current?.showUploads()}>
                                 {
                                     (!isEmpty(this.props.ui.uploads.active) || !isEmpty(this.props.ui.uploads.queued)) ?
                                     <Badge className="position-absolute bottom-right" bg="info" title="Queued" pill>
@@ -300,4 +301,6 @@ const mapStateToProps = (state) => ({
     settings: state.settings.current
 });
 
-export default connect(mapStateToProps, null, null)(withRouter(NavMenu));
+export default connect(mapStateToProps, null, null, { forwardRef: true })(
+    withRouter(NavMenu)
+);

@@ -28,7 +28,7 @@ import Badge from 'react-bootstrap/Badge';
 import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
-import { setTotalUploads, queueUploads, dequeueUpload, addActiveUpload, removeActiveUpload } from '../features/ui/slice';
+import { setTotalUploads, queueUploads, dequeueUpload, addActiveUpload, removeActiveUpload, updateActiveUpload } from '../features/ui/slice';
 
 class UploadZone extends Component {
 
@@ -90,12 +90,15 @@ class UploadZone extends Component {
                         url: item,
                         path: path,
                         key: path + item,
+                        timestamp: Date.now()
                     });
                 } else {
                     queued.push({
                         file: item,
                         path: path,
+                        name: item.name,
                         key: pb.join(path, item.name),
+                        timestamp: Date.now()
                     });
                 }
                 this.props.dispatch(queueUploads(queued));
@@ -173,6 +176,7 @@ class UploadZone extends Component {
     }
 
     uploadFile(file, key, path) {
+        const fileName = file.name;
         const total = this.props.ui.uploads.total;
         const index = this.props.ui.uploads.total - this.props.ui.uploads.queued.length;
         let data = new FormData();
@@ -191,6 +195,7 @@ class UploadZone extends Component {
                 path: path,
                 name: file.name,
                 toast: toastId,
+                timestamp: Date.now()
             }
         }));
         let subtitle = file.name;
@@ -204,9 +209,10 @@ class UploadZone extends Component {
             },
             onUploadProgress: this.onUploadFileProgress.bind(this, key, index, "Uploading...", subtitle, undefined, theme, undefined),
         };
-        const onShowUploadProgress = (item, progress) => {
+        const onShowUploadProgress = (item, fullPath, progress) => {
             if (item === key) {
-                this.onUploadFileProgress(key, index, "Processing...", subtitle, undefined, theme, undefined, progress)
+                console.log(pb.basename(fullPath))
+                this.onUploadFileProgress(key, index, "Processing...", pb.basename(fullPath), undefined, theme, undefined, progress)
             };
         };
         this.props.signalRConnection?.on("ShowUploadProgress", onShowUploadProgress.bind(this));
@@ -221,7 +227,7 @@ class UploadZone extends Component {
             this.props.dispatch(removeActiveUpload({ key: key, succeeded: true }));
             // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
             if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
-                if (this.props.onUploadComplete !== undefined) this.props.onUploadComplete(file.name);
+                if (this.props.onUploadComplete !== undefined) this.props.onUploadComplete(fileName);
             }
             // next!
             this.upload(null, true);
@@ -268,6 +274,7 @@ class UploadZone extends Component {
                 url: url,
                 path: path,
                 toast: toastId,
+                timestamp: Date.now()
             }
         }));
         let title;
@@ -487,6 +494,14 @@ class UploadZone extends Component {
     }
 
     onUploadProgress(key, index, title, subtitle, progress, type, theme, icon) {
+        this.props.dispatch(updateActiveUpload({
+            key: key,
+            value: {
+                status: title,
+                name: subtitle,
+                progress: progress
+            }
+        }));
         const prefix = index != null ? `[${index + 1} / ${this.props.ui.uploads.total}] ` : "";
         const options = {
             autoClose: progress === 0.0 ? false : null,
@@ -542,9 +557,6 @@ class UploadZone extends Component {
 const mapStateToProps = (state) => ({
     ui: {
         uploads: state.ui.uploads,
-    },
-    search: {
-        sort: state.search.sort
     }
 });
 
