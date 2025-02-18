@@ -228,7 +228,7 @@ const Uploads = forwardRef((props, ref) => {
             <Modal.Body>
                 <Tabs id="uploads-tabs" className="flex-row mb-3" activeKey={tab} onSelect={(tab) => setTab(tab)} variant="tabs" navbar justify>
                     <Tab id="tab-all" eventKey="all" title="All">
-                        <UploadListGroup types={["active", "queued", "succeeded", "failed"]} source={all}/>
+                        <UploadListGroup types={["queued", "succeeded", "failed"]} source={all}/>
                     </Tab>
                     <Tab id="tab-queued" eventKey="queued" title={<><i className="bi bi-circle text-secondary pe-2"/>Queued</>}>
                         <UploadListGroup types={["queued"]} source={queued}/>
