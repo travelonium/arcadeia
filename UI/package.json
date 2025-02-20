@@ -35,12 +35,7 @@
     "react-window": "^1.8.11",
     "redux-persist": "^6.0.0",
     "video.js": "^8.21.0",
-    "viewerjs": "^1.11.7",
-    "workbox-core": "^7.3.0",
-    "workbox-expiration": "^7.3.0",
-    "workbox-precaching": "^7.3.0",
-    "workbox-routing": "^7.3.0",
-    "workbox-strategies": "^7.3.0"
+    "viewerjs": "^1.11.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -57,6 +52,11 @@
     "vite": "^6.0.5",
     "vite-bundle-visualizer": "^1.2.1",
     "vite-plugin-pwa": "^0.21.1",
-    "vite-plugin-remove-console": "^2.2.0"
+    "vite-plugin-remove-console": "^2.2.0",
+    "workbox-core": "^7.3.0",
+    "workbox-expiration": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0"
   }
 }

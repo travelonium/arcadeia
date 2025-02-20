@@ -39,12 +39,16 @@ export default defineConfig({
       includes: ['trace', 'debug', 'group', 'groupCollapsed', 'groupEnd']
     }),
     VitePWA({
+      injectRegister: 'auto',
       registerType: 'autoUpdate',
-      strategies: 'injectManifest',
-      srcDir: 'src',
-      filename: 'service-worker.js',
+      manifest: false,
+      outDir: 'build',
       workbox: {
+        sourcemap: true,
         globPatterns: ['**/*.{js,css,html,woff,woff2,png,svg}']
+      },
+      devOptions: {
+        enabled: true
       }
     }),
   ],

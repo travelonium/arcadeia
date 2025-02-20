@@ -26,7 +26,6 @@ import { createRoot } from 'react-dom/client';
 import { ToastContainer } from 'react-toastify';
 import { BrowserRouter } from 'react-router';
 import { PersistGate } from 'redux-persist/integration/react';
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import './stylesheet.scss';
 
 const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
@@ -45,8 +44,3 @@ root.render(
         <ToastContainer stacked position="bottom-right" theme="colored" />
     </BrowserRouter>
 );
-
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://cra.link/PWA
-serviceWorkerRegistration.register();

@@ -37,8 +37,30 @@ Docker Desktop includes Docker Compose, so no additional installation is require
    ```bash
    docker compose --version
 
-## Installation
+## Installation (Docker)
 1. Download and unpack the latest release package from [GitHub](https://github.com/travelonium/arcadeia/releases/latest):
+
+```bash
+mkdir arcadeia
+cd arcadeia
+wget https://github.com/travelonium/arcadeia/releases/latest/download/arcadeia.tar.gz
+tar -xvzf arcadeia.tar.gz
+rm arcadeia.tar.gz
+chmod +x start stop restart logs exec
+```
+
+2. Run **Arcadeia**:
+```bash
+./start
+```
+
+3. Open **Arcadeia** in your browser by navigating to: http://localhost/
+
+## Installation (Local)
+1. Download and install the [.NET SDK 8.0](https://dotnet.microsoft.com/en-us/download/dotnet) installer for your operating system and processor architecture.
+2. Download and install [FFmpeg](https://ffmpeg.org/download.html) for your operating system and architecture either manually or using a package manager of your choice.
+3. Download and install [yt-dlp](https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#installation) for your operating system and architecture either manually or using a package manager of your choice.
+4. Download and unpack the latest release package from [GitHub](https://github.com/travelonium/arcadeia/releases/latest):
 
 ```bash
 mkdir arcadeia

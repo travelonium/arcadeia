@@ -26,6 +26,8 @@ const initialState = {
     scrollPosition: {},
     uploads: {
         total: 0,
+        items: {},
+
         queued: [],
         active: {},
         failed: [],
