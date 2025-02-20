@@ -18,3 +18,6 @@ services:
         target: /usr/local/apache2/conf/extra/vhosts/default.conf
         consistency: cached
         read_only: true
+  solr:
+    ports:
+      - "8983:8983"
