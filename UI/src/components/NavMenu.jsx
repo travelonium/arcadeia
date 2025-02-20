@@ -83,7 +83,6 @@ class NavMenu extends Component {
     }
 
     componentDidMount() {
-        console.log(this.props.library)
     }
 
     componentDidUpdate(prevProps) {

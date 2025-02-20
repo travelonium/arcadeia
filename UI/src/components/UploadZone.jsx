@@ -211,7 +211,6 @@ class UploadZone extends Component {
         };
         const onShowUploadProgress = (item, fullPath, progress) => {
             if (item === key) {
-                console.log(pb.basename(fullPath))
                 this.onUploadFileProgress(key, index, "Processing...", pb.basename(fullPath), undefined, theme, undefined, progress)
             };
         };

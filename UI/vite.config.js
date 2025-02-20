@@ -36,7 +36,7 @@ export default defineConfig({
   plugins: [
     react(),
     removeConsole({
-      includes: ['trace', 'debug', 'log', 'group', 'groupEnd']
+      includes: ['trace', 'debug', 'group', 'groupCollapsed', 'groupEnd']
     }),
     VitePWA({
       registerType: 'autoUpdate',
