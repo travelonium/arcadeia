@@ -133,12 +133,12 @@ const Uploads = forwardRef((props, ref) => {
                         </Col>
                         <Col className="d-flex align-items-center gx-0" xs="auto">
                             {
-                                (upload.url && upload.type === 'failed') ?
+                                (upload.url && upload.state === 'failed') ?
                                     <Button variant="outline-info" size="sm" onClick={() => onRetry(upload.key)}>Retry</Button>
                                     : <></>
                             }
                             {
-                                (upload.type === 'queued' || upload.type === 'succeeded' || upload.type === 'failed') ?
+                                (upload.state === 'queued' || upload.state === 'succeeded' || upload.state === 'failed') ?
                                     <Button variant="outline-danger ms-2" size="sm" onClick={() => dispatch(removeUploads({ key: upload.key }))}>Remove</Button>
                                     : <></>
                             }
