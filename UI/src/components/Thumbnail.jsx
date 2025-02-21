@@ -21,7 +21,6 @@
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import ProgressBar from 'react-bootstrap/ProgressBar';
-import { extract } from '../utils';
 import cx from 'classnames';
 
 export class Thumbnail extends Component {
@@ -31,14 +30,14 @@ export class Thumbnail extends Component {
     constructor(props) {
         super(props);
         this.animateInterval = null;
-        const thumbnails = extract(0, this.props, 'source', 'thumbnails');
+        const thumbnails = this.props?.source?.thumbnails ?? 0;
         this.state = {
             index: -1,
             loaded: true,
-            id: extract(null, this.props, 'source', 'id'),
-            type: extract(null, this.props, 'source', 'type'),
+            id: this.props.source?.id,
+            type: this.props.source?.type,
             count: (this.props.animated === false) ? Math.min(thumbnails, 1) : thumbnails,
-            children: extract([], this.props, 'source', 'children').reverse().reduce((previous, item) => {
+            children: (this.props.source?.children ?? []).reverse().reduce((previous, item) => {
                 if ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) previous.push(item.id);
                 return previous;
             }, []),
@@ -61,15 +60,37 @@ export class Thumbnail extends Component {
         }
     }
 
-    thumbnail(id, index) {
+    icon(type, count, children) {
+        if (type === "Folder" && children.length === 0) {
+            return <i className="thumbnail-icon bi bi-folder-fill" />;
+        } else if (type === "Video" && count === 0) {
+            return <i className="thumbnail-icon bi bi-play-btn-fill" />;
+        } else if (type === "Photo" && count === 0) {
+            return <i className="thumbnail-icon bi bi-image-fill" />;
+        } else if (type === "Audio" && count === 0) {
+            return <i className="thumbnail-icon bi bi-cassette-fill" />;
+        } else {
+            return <></>;
+        }
+    }
+
+    src(id, index, size) {
         // check whether the item has any thumbnails at all and if not, display a broken thumbnail
         if ((index < 0) || (id === null)) return "/placeholder.png";
-        return "/api/thumbnails/" + id + "/" + (this.props.size ? this.props.size : index) + ".jpg";
+        return "/api/thumbnails/" + id + "/" + (size ? size : index) + ".jpg";
+    }
+
+    thumbnail(type, id, index, children, size) {
+        if (type === "Folder" && children.length > 0) {
+            return children.map((id, index) => <Card.Img key={index} src={this.src(id, 0, size)} />);
+        } else {
+            return <Card.Img src={this.src(id, index, size)} onLoad={() => this.setState({ loaded: true })} />;
+        }
     }
 
     animate() {
         let index = this.state.index;
-        let viewing = extract(false, this.props, "library", "current", "viewing");
+        let viewing = this.props.library.current?.viewing ?? false;
         if (((!viewing) || (index === -1)) && (this.state.count > 0) && (this.state.loaded)) {
             this.setState({
                 index: (index < (this.state.count - 1)) ? ++index : 0,
@@ -82,13 +103,18 @@ export class Thumbnail extends Component {
         return (
             <div className={cx("thumbnail", this.props.className, (this.state.children.length > 0) ? "" : "childless", "d-flex")}>
                 <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
-                    { ((this.state.type === "Folder") && (this.state.children.length === 0)) ? <i className="thumbnail-icon bi bi-folder-fill"></i> : <></> }
-                </div>
                 {
-                    ((this.state.type === "Folder") && (this.state.children.length > 0)) ? this.state.children.map((id, index) => <Card.Img key={index} src={this.thumbnail(id, 0)} />)
-                    : <Card.Img src={this.thumbnail(this.state.id, this.state.index)} onLoad={() => this.setState({ loaded: true })} />
+                    this.icon(this.state.type, this.state.count, this.state.children.length)
                 }
-                { (this.state.count > 1) ? <ProgressBar variant="info" min={1} max={(this.state.id != null) ? this.state.count : 0} now={this.state.index + 1} className={((this.state.id != null) && (this.state.count)) ? "visible" : "invisible"} /> : <></> }
+                </div>
+            {
+                this.thumbnail(this.state.type, this.state.id, this.state.index, this.state.children, this.props.size)
+            }
+            {
+                (this.state.count > 1) ?
+                <ProgressBar variant="info" min={1} max={(this.state.id != null) ? this.state.count : 0} now={this.state.index + 1} className={((this.state.id != null) && (this.state.count)) ? "visible" : "invisible"} />
+                : <></>
+            }
             </div>
         );
     }
