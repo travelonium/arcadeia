@@ -40,7 +40,7 @@ import createMigrate from 'redux-persist/es/createMigrate';
 const persistConfig = {
     key: 'root',
     blacklist: ['search', 'settings'],
-    version: 5,
+    version: 6,
     storage,
     migrate: createMigrate({
         2: (state) => {
@@ -79,6 +79,37 @@ const persistConfig = {
                 }
             };
         },
+        6: (state) => {
+            if (!state.ui?.uploads) return state;
+            const { queued = [], failed = [], succeeded = [] } = state.ui.uploads;
+            return {
+                ...state,
+                ui: {
+                    ...state.ui,
+                    uploads: {
+                        ...state.ui.uploads,
+                        queued: undefined,
+                        active: undefined,
+                        failed: undefined,
+                        succeeded: undefined,
+                        items: {
+                            ...queued.reduce((acc, item) => {
+                                acc[item.key] = { ...item, state: 'queued' };
+                                return acc;
+                            }, {}),
+                            ...failed.reduce((acc, item) => {
+                                acc[item.key] = { ...item, state: 'failed' };
+                                return acc;
+                            }, {}),
+                            ...succeeded.reduce((acc, item) => {
+                                acc[item.key] = { ...item, state: 'succeeded' };
+                                return acc;
+                            }, {})
+                        },
+                    }
+                }
+            };
+        }
     }, { debug: false })
 };
 
@@ -108,8 +139,8 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
         serializableCheck: {
-            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER, 'ui/queueUploads'],
-            ignoredPaths: ['ui.uploads.queued'],
+            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER, 'ui/queueUpload'],
+            ignoredPaths: ['ui.uploads.items'],
         },
     }),
 });

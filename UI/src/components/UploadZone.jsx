@@ -28,7 +28,8 @@ import Badge from 'react-bootstrap/Badge';
 import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
-import { setTotalUploads, queueUploads, dequeueUpload, addActiveUpload, removeActiveUpload, updateActiveUpload } from '../features/ui/slice';
+import { queueUpload, startUpload, updateUpload, switchUploadState } from '../features/ui/slice';
+import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
 
 class UploadZone extends Component {
 
@@ -39,6 +40,9 @@ class UploadZone extends Component {
         this.uploadTimeout = null;
         this.state = {
             dragging: false,
+            timestamp: Object.values(props.ui.uploads.items).reduce((oldest, item) => {
+                return (item.state === 'queued' && item.timestamp < oldest) ? item.timestamp : oldest;
+            }, Date.now())
         };
     }
 
@@ -53,6 +57,22 @@ class UploadZone extends Component {
             console.error('Error decoding the URI:', error);
             return null;
         }
+    }
+
+    get all() {
+        return this.props.ui.uploads.all.filter(item => item.timestamp >= this.state.timestamp);
+    }
+
+    get queued() {
+        return this.props.ui.uploads.queued.filter(item => item.timestamp >= this.state.timestamp && item.state === 'queued');
+    }
+
+    get active() {
+        return this.props.ui.uploads.active.filter(item => item.timestamp >= this.state.timestamp && item.state === 'active');
+    }
+
+    get failed() {
+        return this.props.ui.uploads.failed.filter(item => item.timestamp >= this.state.timestamp && item.state === 'failed');
     }
 
     isValidHttpUrl(string) {
@@ -84,45 +104,32 @@ class UploadZone extends Component {
         }
         if (items) {
             let queue = (item, path) => {
-                let queued = [];
                 if (typeof item === 'string') {
-                    queued.push({
-                        url: item,
-                        path: path,
+                    this.props.dispatch(queueUpload({
                         key: path + item,
-                        timestamp: Date.now()
-                    });
+                        value: {
+                            url: item,
+                            path: path
+                        }
+                    }));
                 } else {
-                    queued.push({
-                        file: item,
-                        path: path,
-                        name: item.name,
-                        key: pb.join(path, item.name),
-                        timestamp: Date.now()
-                    });
+                    this.props.dispatch(queueUpload({
+                        key: pb.join(path, item.webkitRelativePath, item.name),
+                        value: {
+                            name: item.name,
+                            file: item,
+                            path: path,
+                        }
+                    }));
                 }
-                this.props.dispatch(queueUploads(queued));
                 this.upload(null, true);
             }
             let process = (item, path) => {
-                if (typeof item === 'string') {
-                    // the item is a url, queue it and its destination path if not already queued or active or optionally already uploaded
-                    const key = path + item;
-                    const active = this.props.ui.uploads.active.hasOwnProperty(key);
-                    const queued = this.props.ui.uploads.queued.findIndex(x => x.key === key) !== -1;
-                    const succeeded = this.props.ui.uploads.succeeded.findIndex(x => x.key === key) !== -1;
-                    if (!active && !queued && (this.props.ui.uploads.reupload || !succeeded)) queue(item, path);
-                } else {
-                    // the item is a file object, queue it and its destination path if not already queued or active or optionally already uploaded
-                    const key = pb.join(path, item.webkitRelativePath, item.name);
-                    const active = this.props.ui.uploads.active.hasOwnProperty(key);
-                    const queued = this.props.ui.uploads.queued.findIndex(x => x.key === key) !== -1;
-                    const succeeded = this.props.ui.uploads.succeeded.findIndex(x => x.key === key) !== -1;
-                    if (!active && !queued && (this.props.ui.uploads.reupload || !succeeded)) {
-                        if (item.webkitRelativePath) path = pb.normalize(pb.dirname(pb.join(path, item.webkitRelativePath)) + "/");
-                        queue(item, path);
-                    }
+                if (typeof item !== 'string') {
+                    // the item is a file object, normalize its path before queueing it
+                    if (item.webkitRelativePath) path = pb.normalize(pb.dirname(pb.join(path, item.webkitRelativePath)) + "/");
                 }
+                queue(item, path);
             };
             let traverse = (item, path = this.path) => {
                 if (item.isFile) {
@@ -151,34 +158,45 @@ class UploadZone extends Component {
             return;
         }
         // do we already have the maximum simultaneous number of active uploads?
-        if (Object.keys(this.props.ui.uploads.active).length >= this.props.ui.uploads.simultaneous) return;
+        const active = this.active.length;
+        if (active >= this.props.ui.uploads.simultaneous) return;
         // nope, do we have any items in the queue? if not, log the list of failed uploads if any
-        if (!this.props.ui.uploads.queued.length) {
-            // if no uploads are currently active either, reset the total
-            if (!Object.keys(this.props.ui.uploads.active).length) {
-                this.props.dispatch(setTotalUploads());
-                if (this.props.ui.uploads.failed.length > 0) {
-                    console.warn("Failed Uploads:", this.props.ui.uploads.failed);
-                }
+        const queued = this.queued.length;
+        if (queued === 0) {
+            // if no uploads are currently active either, reset the timestamp
+            if (active === 0) {
+                const failed = this.failed;
+                if (failed.length > 0) console.warn("Failed Uploads:", failed);
+                this.setState({
+                    timestamp: Date.now()
+                });
             }
             return;
         }
         // yes, we can start one more
-        const key = this.props.ui.uploads.queued[0].key;
-        const url = this.props.ui.uploads.queued[0].url;
-        const file = this.props.ui.uploads.queued[0].file;
-        const path = this.props.ui.uploads.queued[0].path;
-        // dequeue the first item and start uploading it
-        this.props.dispatch(dequeueUpload());
-        if (file) this.uploadFile(file, key, path);
-        else if (url) this.uploadUrl(url, key, path);
-        else console.error("Neither the file nor the URL were valid!");
+        // dequeue the oldest queued item and start uploading it
+        const key = this.props.dispatch(startUpload())?.payload?.key;
+        if (key) {
+            const item = this.props.ui.uploads.items[key];
+            const url = item?.url;
+            const file = item?.file;
+            const path = item?.path;
+            if (file) {
+                this.uploadFile(file, key, path);
+            } else if (url) {
+                this.uploadUrl(url, key, path);
+            } else {
+                console.error("Neither the file nor the URL were valid!");
+            }
+        } else {
+            console.error("Failed to start an upload!");
+        }
     }
 
     uploadFile(file, key, path) {
         const fileName = file.name;
-        const total = this.props.ui.uploads.total;
-        const index = this.props.ui.uploads.total - this.props.ui.uploads.queued.length;
+        const total = this.all.length;
+        const index = total - this.queued.length;
         let data = new FormData();
         data.append('files', file, pb.join(path, file.name));
         const prefix = "[" + index + " / " + total + "] ";
@@ -190,12 +208,12 @@ class UploadZone extends Component {
                 icon: <div className="Toastify__spinner"></div>
             }
         );
-        this.props.dispatch(addActiveUpload({
-            [key]: {
-                path: path,
+        this.props.dispatch(updateUpload({
+            key: key,
+            value: {
                 name: file.name,
+                path: path,
                 toast: toastId,
-                timestamp: Date.now()
             }
         }));
         let subtitle = file.name;
@@ -222,8 +240,8 @@ class UploadZone extends Component {
         .then((response) => {
             subtitle = extract(file.name, response, 'data', 0, 'name');
             this.onUploadFileProgress(key, index, "Upload Complete", subtitle, 'success', null, null, 1.0);
-            // remove the successfully uploaded item from the list of active uploads and add it to the list of succeeded uploads
-            this.props.dispatch(removeActiveUpload({ key: key, succeeded: true }));
+            // set the successfully uploaded item's state to 'succeeded'
+            this.props.dispatch(switchUploadState({ key: key, to: 'succeeded' }));
             // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
             if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
                 if (this.props.onUploadComplete !== undefined) this.props.onUploadComplete(fileName);
@@ -244,8 +262,8 @@ class UploadZone extends Component {
                 // well, something else must've happened
             }
             this.onUploadFileProgress(key, null, message, subtitle, 'error', null, null, null);
-            // remove the failed upload from the list of active uploads and add it to the list of failed uploads
-            this.props.dispatch(removeActiveUpload({ key: key, succeeded: false }));
+            // set the failed upload item's state to 'failed'
+            this.props.dispatch(switchUploadState({ key: key, to: 'failed' }));
             // process any remaining queued items
             this.upload(null, true);
         })
@@ -257,8 +275,8 @@ class UploadZone extends Component {
     }
 
     uploadUrl(url, key, path) {
-        const total = this.props.ui.uploads.total;
-        const index = this.props.ui.uploads.total - this.props.ui.uploads.queued.length;
+        const total = this.all.length;
+        const index = total - this.queued.length;
         const prefix = "[" + index + " / " + total + "] ";
         const toastId = toast.info(<ProgressToast title={prefix + "Resolving..."} subtitle={url} />,
             {
@@ -268,12 +286,12 @@ class UploadZone extends Component {
                 icon: <div className="Toastify__spinner"></div>
             }
         );
-        this.props.dispatch(addActiveUpload({
-            [key]: {
+        this.props.dispatch(updateUpload({
+            key: key,
+            value: {
                 url: url,
                 path: path,
                 toast: toastId,
-                timestamp: Date.now()
             }
         }));
         let title;
@@ -299,8 +317,8 @@ class UploadZone extends Component {
                     progress = 1.0;
                     title = "Upload Complete";
                     this.onUploadProgress(key, index, title, subtitle, progress, type, theme, icon);
-                    // remove the successfully uploaded item from the list of active uploads and add it to the list of succeeded uploads
-                    this.props.dispatch(removeActiveUpload({ key: key, succeeded: true }));
+                    // set the successfully uploaded item's state to 'succeeded'
+                    this.props.dispatch(switchUploadState({ key: key, to: 'succeeded' }));
                     // reload the grid items if the uploaded file's path is the current path or is in a subdirectory of the current path
                     if ((path === this.path) || pb.normalize(pb.dirname(path) + "/") === this.path) {
                         if (this.props.onUploadComplete !== undefined) this.props.onUploadComplete(fileName);
@@ -362,8 +380,8 @@ class UploadZone extends Component {
             console.error(error);
             title = error.message;
             this.onUploadProgress(key, null, title, subtitle, null, 'error', null);
-            // remove the failed upload from the list of active uploads and add it to the list of failed uploads
-            this.props.dispatch(removeActiveUpload({ key: key, succeeded: false }));
+            // set the failed upload item's state to 'failed'
+            this.props.dispatch(switchUploadState({ key: key, to: 'failed' }));
             // process any remaining queued items
             this.upload(null, true);
         });
@@ -493,7 +511,7 @@ class UploadZone extends Component {
     }
 
     onUploadProgress(key, index, title, subtitle, progress, type, theme, icon) {
-        this.props.dispatch(updateActiveUpload({
+        this.props.dispatch(updateUpload({
             key: key,
             value: {
                 status: title,
@@ -501,7 +519,7 @@ class UploadZone extends Component {
                 progress: progress
             }
         }));
-        const prefix = index != null ? `[${index + 1} / ${this.props.ui.uploads.total}] ` : "";
+        const prefix = index != null ? `[${index} / ${this.all.length}] ` : "";
         const options = {
             autoClose: progress === 0.0 ? false : null,
             render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />,
@@ -510,7 +528,7 @@ class UploadZone extends Component {
             ...(type !== undefined && { type }),
             ...(theme !== undefined && { theme }),
         };
-        const toastId = extract(null, this.props.ui.uploads.active, key, 'toast');
+        const toastId = extract(null, this.props.ui.uploads.items, key, 'toast');
         toast.update(toastId, options);
     }
 
@@ -555,7 +573,14 @@ class UploadZone extends Component {
 
 const mapStateToProps = (state) => ({
     ui: {
-        uploads: state.ui.uploads,
+        uploads: {
+            ...state.ui.uploads,
+            all: selectAll(state),
+            queued: selectQueued(state),
+            active: selectActive(state),
+            succeeded: selectSucceeded(state),
+            failed: selectFailed(state)
+        },
     }
 });
 

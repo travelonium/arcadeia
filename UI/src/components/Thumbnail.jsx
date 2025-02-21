@@ -62,6 +62,7 @@ export class Thumbnail extends Component {
     }
 
     thumbnail(id, index) {
+        // check whether the item has any thumbnails at all and if not, display a broken thumbnail
         if ((index < 0) || (id === null)) return "/placeholder.png";
         return "/api/thumbnails/" + id + "/" + (this.props.size ? this.props.size : index) + ".jpg";
     }

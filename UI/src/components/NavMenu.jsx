@@ -23,7 +23,6 @@ import cx from 'classnames';
 import { Flag } from './toolbar/Flag';
 import { connect } from "react-redux";
 import Nav from 'react-bootstrap/Nav';
-import { isEmpty, size } from 'lodash';
 import Form from 'react-bootstrap/Form';
 import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
@@ -37,6 +36,7 @@ import { HistoryDropdown } from './toolbar/HistoryDropdown';
 import { setSort, resetSort } from '../features/search/slice';
 import { extract, getFlag, setFlag, withRouter } from '../utils';
 import { setTheme, setView, resetView } from '../features/ui/slice';
+import { selectActive, selectQueued, selectFailed } from '../features/ui/selectors';
 
 class NavMenu extends Component {
     static displayName = NavMenu.name;
@@ -213,6 +213,9 @@ class NavMenu extends Component {
     }
 
     render() {
+        const active = this.props.ui.uploads.active.length;
+        const queued = this.props.ui.uploads.queued.length;
+        const failed = this.props.ui.uploads.failed.length;
         const path = this.state.query ? "search" : this.path;
         const viewOverridden = (path in this.props.ui.view);
         const sortOverridden = (path in this.props.search.sort);
@@ -250,16 +253,16 @@ class NavMenu extends Component {
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
                                 <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => this.props.library.current?.showUploads()}>
                                 {
-                                    (!isEmpty(this.props.ui.uploads.active) || !isEmpty(this.props.ui.uploads.queued)) ?
+                                    (active > 0 || queued > 0) ?
                                     <Badge className="position-absolute bottom-right" bg="info" title="Queued" pill>
-                                        {size(this.props.ui.uploads.active) + size(this.props.ui.uploads.queued)}
+                                        {active + queued}
                                     </Badge>
                                     : <></>
                                 }
                                 {
-                                    (!isEmpty(this.props.ui.uploads.failed)) ?
+                                    (failed > 0) ?
                                     <Badge className="position-absolute bottom-left" bg="danger" title="Failed" pill>
-                                        {size(this.props.ui.uploads.failed)}
+                                        {failed}
                                     </Badge>
                                     : <></>
                                 }
@@ -289,7 +292,12 @@ const mapStateToProps = (state) => ({
     ui: {
         view: state.ui.view,
         theme: state.ui.theme,
-        uploads: state.ui.uploads,
+        uploads: {
+            ...state.ui.uploads,
+            queued: selectQueued(state),
+            active: selectActive(state),
+            failed: selectFailed(state)
+        },
         history: {
             items: state.ui.history.items
         }

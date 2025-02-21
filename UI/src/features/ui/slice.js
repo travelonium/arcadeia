@@ -18,7 +18,6 @@
  *
  */
 
-import { pick } from 'lodash';
 import initialState from './initialState';
 import { createSlice } from '@reduxjs/toolkit';
 
@@ -53,71 +52,70 @@ export const uiSlice = createSlice({
                 delete state.scrollPosition[path];
             }
         },
-        setTotalUploads: (state, action) => {
-            state.uploads.total = action.payload ?? initialState.uploads.total;
-        },
-        queueUploads: (state, action) => {
-            state.uploads.total += action.payload.length;
-            state.uploads.queued.push(...action.payload);
-        },
-        dequeueUpload: (state) => {
-            if (state.uploads.queued.length > 0) {
-                state.uploads.queued.shift();
-            }
-        },
-        requeueFailedUpload: (state, action) => {
-            const { key } = action.payload;
-            if (state.uploads.failed) {
-                const index = state.uploads.failed.findIndex(upload => upload.key === key);
-                if (index !== -1) {
-                    const item = state.uploads.failed[index];
-                    state.uploads.failed.splice(index, 1);
-                    state.uploads.queued.push({ ...item, timestamp: Date.now() });
-                    state.uploads.total++;
+        queueUpload: (state, action) => {
+            const { key, value } = action.payload;
+            const item = state.uploads.items[key];
+            if (item) {
+                if (item.state === 'active') {
+                    console.log("Already Active:", item.url ?? item.name);
+                    return;
+                };
+                if (item.state === 'queued') {
+                    console.log("Already Queued:", item.url ?? item.name);
+                    return;
+                };
+                if (item.state === 'succeeded' && !state.uploads.reupload) {
+                    console.log("Already Uploaded:", item.url ?? item.name);
+                    return;
                 }
             }
-        },
-        addActiveUpload: (state, action) => {
-            state.uploads.active = {
-                ...state.uploads.active,
-                ...action.payload,
-            };
-        },
-        removeActiveUpload: (state, action) => {
-            const { key, succeeded } = action.payload;
-            if (!state.uploads.active[key]) return;
-            const upload = {
-                key: key,
-                ...pick(state.uploads.active[key], ['url', 'path', 'name']),
-                timestamp: Date.now()
-            };
-            if (succeeded) state.uploads.succeeded = [...state.uploads.succeeded, upload];
-            else state.uploads.failed = [...state.uploads.failed, upload];
-            delete state.uploads.active[key];
-        },
-        updateActiveUpload: (state, action) => {
-            const { key, value } = action.payload;
-            if (!state.uploads.active[key]) return;
-            state.uploads.active[key] = {
-                ...state.uploads.active[key],
-                ...value
+            state.uploads.items[key] = {
+                ...value,
+                state: 'queued',
+                timestamp: Date.now(),
             }
+            console.debug("Queued:", value.url ?? value.name);
+        },
+        startUpload: (state, action) => {
+            // find the key of the oldest queued item
+            const key = Object.keys(state.uploads.items)
+                .filter((k) => state.uploads.items[k].state === 'queued')
+                .reduce((oldest, k) => !oldest || state.uploads.items[k].timestamp < state.uploads.items[oldest].timestamp ? k : oldest, null);
+            if (key) {
+                // update state directly
+                state.uploads.items[key].state = 'active';
+                state.uploads.items[key].timestamp = Date.now();
+                console.log(state.uploads.items[key]);
+                // return the dequeued item through the action payload
+                action.payload = {
+                    key: key
+                };
+                console.debug("Dequeued:", state.uploads.items[key]?.url ?? state.uploads.items[key]?.file?.name);
+            }
+        },
+        updateUpload: (state, action) => {
+            const { key, value } = action.payload;
+            if (!state.uploads.items[key]) return;
+            Object.assign(state.uploads.items[key], value);
+        },
+        switchUploadState: (state, action) => {
+            const { key, to } = action.payload;
+            if (!state.uploads.items[key]) return;
+            Object.assign(state.uploads.items[key], {
+                state: to,
+                timestamp: Date.now()
+            });
         },
         removeUploads: (state, action) => {
-            const { type, key } = action.payload;
-            if (type && state.uploads[type]) {
-                if (Array.isArray(state.uploads[type])) {
-                    state.uploads[type] = key !== undefined
-                        ? state.uploads[type].filter(upload => upload.key !== key)
-                        : [];
-                } else if (typeof state.uploads[type] === "object") {
-                    if (key !== undefined) {
-                        delete state.uploads[type][key];
-                    } else {
-                        delete state.uploads[type];
+            if (action.payload.key) {
+                delete state.uploads.items[action.payload.key];
+            } else if (action.payload.state) {
+                Object.entries(state.uploads.items).forEach(([key, value]) => {
+                    if (value.state === action.payload.state) {
+                        delete state.uploads.items[key];
                     }
-                }
-            }
+                });
+            } else throw new Error("Neither key nor state has been supplied to the removeUploads.");
         },
         setSimultaneousUploads: (state, action) => {
             state.uploads.simultaneous = action.payload ?? initialState.uploads.simultaneous;
@@ -146,13 +144,10 @@ export const {
     resetView,
     setTheme,
     setScrollPosition,
-    setTotalUploads,
-    queueUploads,
-    dequeueUpload,
-    requeueFailedUpload,
-    addActiveUpload,
-    removeActiveUpload,
-    updateActiveUpload,
+    queueUpload,
+    startUpload,
+    updateUpload,
+    switchUploadState,
     removeUploads,
     setSimultaneousUploads,
     setDuplicateUploads,

@@ -262,6 +262,7 @@ Temporary Items
 # Data files and directories
 **/data
 **/.backup
+**/.tools
 *.txt
 
 # Custom development and production settings

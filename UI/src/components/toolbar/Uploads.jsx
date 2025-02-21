@@ -28,16 +28,21 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import { requeueFailedUpload, removeUploads } from '../../features/ui/slice';
+import { switchUploadState, removeUploads } from '../../features/ui/slice';
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../../features/ui/selectors';
 
 const Uploads = forwardRef((props, ref) => {
     const dispatch = useDispatch();
 
-    const uploads = useSelector((state) => state.ui.uploads);
-
     const [state, setState] = useState(false);
     const [tab, setTab] = useState('all');
+
+    const all = useSelector(selectAll);
+    const active = useSelector(selectActive);
+    const queued = useSelector(selectQueued);
+    const failed = useSelector(selectFailed);
+    const succeeded = useSelector(selectSucceeded);
 
     useImperativeHandle(ref, () => ({
         show() {
@@ -54,12 +59,8 @@ const Uploads = forwardRef((props, ref) => {
         props.onHide?.()
     }
 
-    function onRemove(type, key) {
-        dispatch(removeUploads({type: type, key: key}));
-    }
-
     function onRetry(key) {
-        dispatch(requeueFailedUpload({key: key}));
+        dispatch(switchUploadState({ key: key, to: 'queued' }));
         props.onUpload?.()
     }
 
@@ -76,7 +77,7 @@ const Uploads = forwardRef((props, ref) => {
     const Upload = ({ upload }) => {
         let icon = null;
         let color = null;
-        switch (upload.type) {
+        switch (upload.state) {
             case 'queued':
                 color = 'text-secondary';
                 icon = 'bi bi-circle';
@@ -120,7 +121,7 @@ const Uploads = forwardRef((props, ref) => {
                                     </Col>
                                 </Row>
                                 {
-                                    (upload.progress != null) ?
+                                    (upload.state === 'active' && upload.progress != null) ?
                                         <Row>
                                             <Col className="pt-2 gx-0" xs={12}>
                                                 <ProgressBar variant="info" min={0.0} now={upload.progress} max={1.0} animated={false} />
@@ -138,7 +139,7 @@ const Uploads = forwardRef((props, ref) => {
                             }
                             {
                                 (upload.type === 'queued' || upload.type === 'succeeded' || upload.type === 'failed') ?
-                                    <Button variant="outline-danger ms-2" size="sm" onClick={() => onRemove(upload.type, upload.key)}>Remove</Button>
+                                    <Button variant="outline-danger ms-2" size="sm" onClick={() => dispatch(removeUploads({ key: upload.key }))}>Remove</Button>
                                     : <></>
                             }
                         </Col>
@@ -148,13 +149,13 @@ const Uploads = forwardRef((props, ref) => {
         )
     }
 
-    const UploadListGroup = ({ source, types }) => {
-        if (source.length === 0) return <></>;
+    const UploadListGroup = ({ uploads, states }) => {
+        if (uploads.length === 0) return <></>;
         else return (
             <>
                 <ListGroup variant="flush">
                 {
-                    source.map((item, index) => {
+                    uploads.map((item, index) => {
                         return (
                             <Upload key={index} upload={item} />
                         )
@@ -164,59 +165,22 @@ const Uploads = forwardRef((props, ref) => {
                 <Container fluid>
                     <Row className="pt-1">
                         <Col className="d-flex align-items-center">
+                        {
+                            (states) ?
                             <Button variant="danger" className="d-flex flex-grow-1 justify-content-center" onClick={() => {
-                                if (types) {
-                                    types.forEach(type => {
-                                        dispatch(removeUploads({type: type}))
+                                if (states) {
+                                    states.forEach(state => {
+                                        dispatch(removeUploads({ state: state }))
                                     });
                                 }
-                        }}>Clear</Button>
+                            }}>Clear</Button> : <></>
+                        }
                         </Col>
                     </Row>
                 </Container>
             </>
         )
     }
-
-    const active = [
-        ...Object.keys(uploads.active).map((key) => {
-            return {
-                type: 'active',
-                ...uploads.active[key]
-            }
-        })
-    ].sort((a, b) => b.timestamp - a.timestamp);
-
-    const queued = [
-        ...uploads.queued.map((item) => {
-            return {
-                type: 'queued',
-                ...item
-            }
-        })
-    ].sort((a, b) => b.timestamp - a.timestamp);
-
-    const succeeded = [
-        ...uploads.succeeded.map((item) => {
-            return {
-                type: 'succeeded',
-                ...item
-            }
-        })
-    ].sort((a, b) => b.timestamp - a.timestamp);
-
-    const failed = [
-        ...uploads.failed.map((item) => {
-            return {
-                type: 'failed',
-                ...item
-            }
-        })
-    ].sort((a, b) => b.timestamp - a.timestamp);
-
-    const all = [
-        ...active, ...queued, ...succeeded, ...failed
-    ].sort((a, b) => b.timestamp - a.timestamp);
 
     return (
         <Modal className="uploads" show={state} onShow={onShow} onHide={onHide} backdrop={true} animation={true} size={"lg"} aria-labelledby="contained-modal-title-vcenter" centered>
@@ -228,19 +192,19 @@ const Uploads = forwardRef((props, ref) => {
             <Modal.Body>
                 <Tabs id="uploads-tabs" className="flex-row mb-3" activeKey={tab} onSelect={(tab) => setTab(tab)} variant="tabs" navbar justify>
                     <Tab id="tab-all" eventKey="all" title="All">
-                        <UploadListGroup types={["queued", "succeeded", "failed"]} source={all}/>
+                        <UploadListGroup states={["queued", "succeeded", "failed"]} uploads={all}/>
                     </Tab>
                     <Tab id="tab-queued" eventKey="queued" title={<><i className="bi bi-circle text-secondary pe-2"/>Queued</>}>
-                        <UploadListGroup types={["queued"]} source={queued}/>
+                        <UploadListGroup states={["queued"]} uploads={queued}/>
                     </Tab>
                     <Tab id="tab-active" eventKey="active" title={<><i className="bi bi-circle-fill text-info pe-2"/>Active</>}>
-                        <UploadListGroup types={["active"]} source={active}/>
+                        <UploadListGroup uploads={active}/>
                     </Tab>
                     <Tab id="tab-succeeded" eventKey="succeeded" title={<><i className="bi bi-check-circle text-success pe-2"/>Succeeded</>}>
-                        <UploadListGroup types={["succeeded"]} source={succeeded}/>
+                        <UploadListGroup states={["succeeded"]} uploads={succeeded}/>
                     </Tab>
-                    <Tab id="tab-failed" eventKey={["failed"]} title={<><i className="bi bi-check-circle text-danger pe-2"/>Failed</>}>
-                        <UploadListGroup types="failed" source={failed}/>
+                    <Tab id="tab-failed" eventKey="failed" title={<><i className="bi bi-check-circle text-danger pe-2"/>Failed</>}>
+                        <UploadListGroup states={["failed"]} uploads={failed}/>
                     </Tab>
                 </Tabs>
             </Modal.Body>
