@@ -37,10 +37,7 @@ export class Thumbnail extends Component {
             id: this.props.source?.id,
             type: this.props.source?.type,
             count: (this.props.animated === false) ? Math.min(thumbnails, 1) : thumbnails,
-            children: (this.props.source?.children ?? []).reverse().reduce((previous, item) => {
-                if ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) previous.push(item.id);
-                return previous;
-            }, []),
+            children: (this.props.source?.children ?? []).reverse().filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0).map((item) => item.id)
         };
     }
 
@@ -61,16 +58,19 @@ export class Thumbnail extends Component {
     }
 
     icon(type, count, children) {
-        if (type === "Folder" && children.length === 0) {
-            return <i className="thumbnail-icon bi bi-folder-fill" />;
-        } else if (type === "Video" && count === 0) {
-            return <i className="thumbnail-icon bi bi-play-btn-fill" />;
-        } else if (type === "Photo" && count === 0) {
-            return <i className="thumbnail-icon bi bi-image-fill" />;
-        } else if (type === "Audio" && count === 0) {
-            return <i className="thumbnail-icon bi bi-cassette-fill" />;
-        } else {
-            return <></>;
+        if (type === "Folder" && children.length > 0) return null;
+        if ((type === "Video" || type === "Photo" || type === "Audio") && count > 0) return null;
+        switch (type) {
+            case "Folder":
+                return <i className="thumbnail-icon bi bi-folder-fill" />;
+            case "Video":
+                return <i className="thumbnail-icon bi bi-play-btn-fill" />;
+            case "Photo":
+                return <i className="thumbnail-icon bi bi-image-fill" />;
+            case "Audio":
+                return <i className="thumbnail-icon bi bi-cassette-fill" />;
+            default:
+                return null;
         }
     }
 
@@ -104,7 +104,7 @@ export class Thumbnail extends Component {
             <div className={cx("thumbnail", this.props.className, (this.state.children.length > 0) ? "" : "childless", "d-flex")}>
                 <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
                 {
-                    this.icon(this.state.type, this.state.count, this.state.children.length)
+                    this.icon(this.state.type, this.state.count, this.state.children.length) ?? <></>
                 }
                 </div>
             {
