@@ -321,6 +321,53 @@ class Library extends Component {
         });
     }
 
+    retrieve(id, fullPath, callback = undefined) {
+        if ((!id && !fullPath) || (id && fullPath)) throw new Error("Either id or fullPath needs to be provided.");
+        const solrUrl = this.props.settings?.Solr?.URL;
+        if (!solrUrl) return;
+        const target = `${solrUrl}/select`;
+        const input = {
+            q: "*:*",
+            fq: [
+                id ? `id:'${id}'` : `fullPath:"${fullPath}"`
+            ],
+            "q.op": "AND",
+            defType: "edismax",
+            wt: "json",
+        };
+        fetch(target + "?" + querify(input).toString(), {
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+            },
+        })
+        .then((response) => {
+            if (response.ok) return response.json();
+            let message = "Error querying the Solr index!";
+            return response.text().then((data) => {
+                try {
+                    let json = JSON.parse(data);
+                    let exception = extract(null, json, "error", "msg");
+                    if (exception) message = exception;
+                } catch (error) {}
+                throw Error(message);
+            });
+        })
+        .then((result) => {
+            const numFound = result?.response?.numFound ?? 0;
+            const docs = result?.response?.docs ?? [];
+            if (callback !== undefined) {
+                callback(docs);
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            if (callback !== undefined) {
+                callback();
+            }
+        });
+    }
+
     search(path = this.path, start = 0, callback = undefined) {
         const rows = 10000;
         const deleted = false;
@@ -608,7 +655,15 @@ class Library extends Component {
 
     onUploadsOpen(target) {
         console.debug("onUploadsOpen()");
-        window.open(target, "_blank");
+        if (target.startsWith('http')) {
+            window.open(target, "_blank");
+        } else {
+            this.retrieve(null, target, (docs) => {
+                if (docs?.length === 1) {
+                    this.view(docs[0]);
+                }
+            });
+        }
     }
 
     onUploadsShow(event) {

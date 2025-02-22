@@ -111,13 +111,20 @@ const Uploads = forwardRef((props, ref) => {
                             <Container fluid>
                                 <Row>
                                     <Col className="gx-0 pb-1" xs={12}>
-                                        <strong>{upload.name ?? upload.url}</strong>
+                                    {
+                                        (upload.state === 'succeeded') ?
+                                            <a href={pb.join(upload.path, upload.name)} className="text-decoration-none text-body" onClick={() => onOpen(upload.path, upload.name)}><strong>{upload.name ?? upload.url}</strong></a> :
+                                            <strong>{upload.name ?? upload.url}</strong>
+                                    }
                                     </Col>
                                     <Col className="gx-0 small text-muted" xs={12}>
                                     {
                                         (upload.url) ?
                                             <a href={upload.url} className="text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{upload.url}</a>
                                             : <></>
+                                    }
+                                    {
+                                        (!upload.url && upload.path) ? upload.path : <></>
                                     }
                                     </Col>
                                 </Row>

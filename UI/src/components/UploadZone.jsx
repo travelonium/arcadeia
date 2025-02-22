@@ -114,7 +114,7 @@ class UploadZone extends Component {
                     }));
                 } else {
                     this.props.dispatch(queueUpload({
-                        key: pb.join(path, item.webkitRelativePath, item.name),
+                        key: pb.join(path, item.name),
                         value: {
                             name: item.name,
                             file: item,
