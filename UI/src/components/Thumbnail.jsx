@@ -90,7 +90,7 @@ export class Thumbnail extends Component {
 
     animate() {
         let index = this.state.index;
-        let viewing = this.props.library.current?.viewing ?? false;
+        let viewing = this.props.library?.current?.viewing ?? false;
         if (((!viewing) || (index === -1)) && (this.state.count > 0) && (this.state.loaded)) {
             this.setState({
                 index: (index < (this.state.count - 1)) ? ++index : 0,
