@@ -36,8 +36,7 @@ export class Thumbnail extends Component {
             loaded: true,
             id: this.props.source?.id,
             type: this.props.source?.type,
-            count: (this.props.animated === false) ? Math.min(thumbnails, 1) : thumbnails,
-            children: (this.props.source?.children ?? []).reverse().filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0).map((item) => item.id)
+            count: (this.props.animated === false) ? Math.min(thumbnails, 1) : thumbnails
         };
     }
 
@@ -101,14 +100,14 @@ export class Thumbnail extends Component {
 
     render() {
         return (
-            <div className={cx("thumbnail", this.props.className, (this.state.children.length > 0) ? "" : "childless", "d-flex")}>
+            <div className={cx("thumbnail", this.props.className, "d-flex")}>
                 <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
                 {
-                    this.icon(this.state.type, this.state.count, this.state.children.length) ?? <></>
+                    this.icon(this.state.type, this.state.count, this.props.children?.length) ?? <></>
                 }
                 </div>
             {
-                this.thumbnail(this.state.type, this.state.id, this.state.index, this.state.children, this.props.size)
+                this.thumbnail(this.state.type, this.state.id, this.state.index, this.props.children ?? [], this.props.size)
             }
             {
                 (this.state.count > 1) ?

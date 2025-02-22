@@ -142,13 +142,14 @@ export class MediaContainer extends Component {
     }
 
     card(source) {
-        const flags = extract([], source, 'flags');
+        const flags = source?.flags ?? [];
         const favorite = flags.includes('Favorite');
+        const children = (source?.children ?? []).reverse().filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0).map((item) => item.id);
         return (
-            <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
+            <Card className={cx((children.length > 0) ? "" : "childless")} onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                     <div className="thumbnail-container">
-                        <Thumbnail source={source} library={this.props.library} />
+                        <Thumbnail source={source} children={children} library={this.props.library} />
                         <Container className="properties" fluid>
                             <Row className="gx-2">
                                 <Col className="d-flex">
@@ -215,11 +216,12 @@ export class MediaContainer extends Component {
     thumbnail(source) {
         const flags = extract([], source, 'flags');
         const favorite = flags.includes('Favorite');
+        const children = (source?.children ?? []).reverse().filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0).map((item) => item.id);
         return (
-            <Card onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
+            <Card className={cx((children.length > 0) ? "" : "childless")} onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
                     <div className="thumbnail-container">
-                        <Thumbnail source={source} library={this.props.library} />
+                        <Thumbnail source={source} children={children} library={this.props.library} />
                         <Container className="properties" fluid>
                             <Row className="gx-2">
                                 <Col className="d-flex">

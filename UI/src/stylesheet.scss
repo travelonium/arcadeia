@@ -490,6 +490,17 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
             }
         }
 
+        // in case of drives, servers and folders, hide the type icon when they have no children with thumbnails
+        @at-root .drive, .server, .folder {
+
+            .card.childless {
+
+                .type {
+                    opacity: 0;
+                }
+            }
+        }
+
         .thumbnail-container {
             width: 100%;
             height: 56.25%; // 9:16
@@ -549,10 +560,6 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 position: absolute;
                 bottom: 7px;
                 left: 10px;
-            }
-
-            .thumbnail.childless~.type {
-                display: none;
             }
         }
 
@@ -685,8 +692,11 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
     &.thumbnail-view {
 
         .card {
+
             .thumbnail-container {
+
                 .thumbnail {
+
                     .card-img {
                         position: absolute;
                         transition: all .15s ease-in-out;
@@ -713,7 +723,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
 
                     // in case of drives, servers and folders, hide the name and description when not hovered only when they have a thumbnail
                     @at-root .drive#{&}, .server#{&}, .folder#{&} {
-                        :not(.thumbnail-container:has(.thumbnail.childless))~.content-container {
+                        &:not(.childless) .content-container {
                             opacity: 0.0;
                         }
                     }
@@ -727,8 +737,11 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 }
 
                 &:hover {
+
                     .thumbnail-container {
+
                         .thumbnail {
+
                             .card-img {
                                 position: absolute;
                             }
@@ -756,6 +769,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
         }
 
         .card {
+
             .thumbnail-container {
                 height: 100%;
 
