@@ -653,6 +653,11 @@ class Library extends Component {
         this.uploads.current?.show();
     }
 
+    onUploadsShow(event) {
+        console.debug("onUploadsShow()");
+        this.uploadZone.current.dismissToasts();
+    }
+
     onUploadsOpen(target) {
         console.debug("onUploadsOpen()");
         if (target.startsWith('http')) {
@@ -666,19 +671,8 @@ class Library extends Component {
         }
     }
 
-    onUploadsShow(event) {
-        console.debug("onUploadsShow()");
-        toast.dismiss();
-        this.props.dispatch(updateUpload({ value: {
-            toastId: undefined
-        }}));
-    }
-
     onUploadsHide() {
         console.debug("onUploadsHide()");
-        this.setState({
-            uploads: false
-        });
     }
 
     onKeyDown(event) {

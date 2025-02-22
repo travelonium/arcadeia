@@ -37,6 +37,7 @@ class UploadZone extends Component {
 
     constructor(props) {
         super(props);
+        this.toasts = {};
         this.uploadTimeout = null;
         this.state = {
             dragging: false,
@@ -94,6 +95,13 @@ class UploadZone extends Component {
                 <small>{subtitle}</small>
             </>
         );
+    }
+
+    dismissToasts() {
+        Object.keys(this.toasts).forEach((key) => {
+            toast.dismiss(this.toasts[key]);
+            delete this.toasts[key];
+        });
     }
 
     upload(items = null, defer = false) {
@@ -200,7 +208,6 @@ class UploadZone extends Component {
         const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
         let data = new FormData();
         data.append('files', file, pb.join(path, file.name));
-        this.onUploadProgress(key, index, "Uploading...", file.name, 0.0, undefined, theme, <div className="Toastify__spinner" />);
         this.props.dispatch(updateUpload({
             key: key,
             value: {
@@ -208,6 +215,7 @@ class UploadZone extends Component {
                 path: path
             }
         }));
+        this.onUploadProgress(key, index, "Uploading...", file.name, 0.0, undefined, theme, <div className="Toastify__spinner" />);
         let subtitle = file.name;
         let config = {
             headers: {
@@ -269,7 +277,6 @@ class UploadZone extends Component {
         const total = this.all.length;
         const index = total - this.queued.length;
         let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
-        this.onUploadProgress(key, index, "Resolving...", url, 0.0, undefined, theme, <div className="Toastify__spinner" />);
         this.props.dispatch(updateUpload({
             key: key,
             value: {
@@ -277,6 +284,7 @@ class UploadZone extends Component {
                 path: path
             }
         }));
+        this.onUploadProgress(key, index, "Resolving...", url, 0.0, undefined, theme, <div className="Toastify__spinner" />);
         let title;
         // eslint-disable-next-line
         let result;
@@ -493,21 +501,21 @@ class UploadZone extends Component {
     }
 
     onUploadProgress(key, index, title, subtitle, progress, type, theme, icon) {
-        let toastId;
         // only create or update the toast if the Uploads dialog is not open
         if (!this.props.uploads?.current?.open) {
-            toastId = this.props.ui.uploads.items?.[key]?.toast;
+            const toastId = this.toasts[key];
             const prefix = index != null ? `[${index} / ${this.all.length}] ` : "";
             const options = {
+                onClose: (reason) => delete this.toasts[key],
                 autoClose: progress === 0.0 ? false : null,
                 progress: progress !== 1.0 ? progress : null,
-                ...(icon != null && { icon }),
-                ...(type != null && { type }),
-                ...(theme != null && { theme }),
-                ...(toastId != null && { render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} /> }),
+                ...(icon !== undefined && { icon }),
+                ...(type !== undefined && { type }),
+                ...(theme !== undefined && { theme }),
+                ...(toastId !== undefined && { render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} /> }),
             };
             if (!toastId) {
-                toastId = toast.info(<ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />, options);
+                this.toasts[key] = toast.info(<ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />, options);
             } else {
                 toast.update(toastId, options);
             }
@@ -517,7 +525,6 @@ class UploadZone extends Component {
             value: {
                 status: title,
                 name: subtitle,
-                toast: toastId,
                 progress: progress,
             }
         }));
