@@ -47,7 +47,10 @@ const Uploads = forwardRef((props, ref) => {
     useImperativeHandle(ref, () => ({
         show() {
             setState(true);
-        }
+        },
+        get open() {
+            return state;
+        },
     }));
 
     function onShow() {

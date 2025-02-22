@@ -36,7 +36,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { setScrollPosition } from '../features/ui/slice';
+import { setScrollPosition, updateUpload } from '../features/ui/slice';
 import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag } from '../utils';
 
 class Library extends Component {
@@ -668,6 +668,10 @@ class Library extends Component {
 
     onUploadsShow(event) {
         console.debug("onUploadsShow()");
+        toast.dismiss();
+        this.props.dispatch(updateUpload({ value: {
+            toastId: undefined
+        }}));
     }
 
     onUploadsHide() {
@@ -968,7 +972,7 @@ class Library extends Component {
                                 </Col>
                             </Row>
                         </Container>
-                        <UploadZone ref={this.uploadZone} signalRConnection={this.props.signalRConnection} onUploadComplete={this.onUploadComplete.bind(this)}>
+                        <UploadZone ref={this.uploadZone} signalRConnection={this.props.signalRConnection} uploads={this.uploads} onUploadComplete={this.onUploadComplete.bind(this)}>
                             {this.gridView()}
                             <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                             <Uploads ref={this.uploads} onShow={this.onUploadsShow.bind(this)} onHide={this.onUploadsHide.bind(this)} onUpload={() => this.uploadZone.current?.upload(null, true)} onOpen={this.onUploadsOpen.bind(this)} />

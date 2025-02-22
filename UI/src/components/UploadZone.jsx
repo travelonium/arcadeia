@@ -197,27 +197,18 @@ class UploadZone extends Component {
         const fileName = file.name;
         const total = this.all.length;
         const index = total - this.queued.length;
+        const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
         let data = new FormData();
         data.append('files', file, pb.join(path, file.name));
-        const prefix = "[" + index + " / " + total + "] ";
-        const toastId = toast.info(<ProgressToast title={prefix + "Uploading..."} subtitle={file.name} />,
-            {
-                progress: 0,
-                autoClose: false,
-                theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
-                icon: <div className="Toastify__spinner"></div>
-            }
-        );
+        this.onUploadProgress(key, index, "Uploading...", file.name, 0.0, undefined, theme, <div className="Toastify__spinner" />);
         this.props.dispatch(updateUpload({
             key: key,
             value: {
                 name: file.name,
-                path: path,
-                toast: toastId,
+                path: path
             }
         }));
         let subtitle = file.name;
-        const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
         let config = {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -277,21 +268,13 @@ class UploadZone extends Component {
     uploadUrl(url, key, path) {
         const total = this.all.length;
         const index = total - this.queued.length;
-        const prefix = "[" + index + " / " + total + "] ";
-        const toastId = toast.info(<ProgressToast title={prefix + "Resolving..."} subtitle={url} />,
-            {
-                progress: 0,
-                autoClose: false,
-                theme: (this.props.ui.theme === 'dark') ? 'dark' : 'light',
-                icon: <div className="Toastify__spinner"></div>
-            }
-        );
+        let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
+        this.onUploadProgress(key, index, "Resolving...", url, 0.0, undefined, theme, <div className="Toastify__spinner" />);
         this.props.dispatch(updateUpload({
             key: key,
             value: {
                 url: url,
-                path: path,
-                toast: toastId,
+                path: path
             }
         }));
         let title;
@@ -302,7 +285,6 @@ class UploadZone extends Component {
         let progress = null;
         let type = undefined;
         let icon = undefined;
-        let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
         const target = new URL("/api/library/upload", window.location.origin);
         target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
         target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
@@ -511,25 +493,34 @@ class UploadZone extends Component {
     }
 
     onUploadProgress(key, index, title, subtitle, progress, type, theme, icon) {
+        let toastId;
+        // only create or update the toast if the Uploads dialog is not open
+        if (!this.props.uploads?.current?.open) {
+            toastId = this.props.ui.uploads.items?.[key]?.toast;
+            const prefix = index != null ? `[${index} / ${this.all.length}] ` : "";
+            const options = {
+                autoClose: progress === 0.0 ? false : null,
+                progress: progress !== 1.0 ? progress : null,
+                ...(icon != null && { icon }),
+                ...(type != null && { type }),
+                ...(theme != null && { theme }),
+                ...(toastId != null && { render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} /> }),
+            };
+            if (!toastId) {
+                toastId = toast.info(<ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />, options);
+            } else {
+                toast.update(toastId, options);
+            }
+        }
         this.props.dispatch(updateUpload({
             key: key,
             value: {
                 status: title,
                 name: subtitle,
-                progress: progress
+                toast: toastId,
+                progress: progress,
             }
         }));
-        const prefix = index != null ? `[${index} / ${this.all.length}] ` : "";
-        const options = {
-            autoClose: progress === 0.0 ? false : null,
-            render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />,
-            progress: progress !== 1.0 ? progress : null,
-            ...(icon !== undefined && { icon }),
-            ...(type !== undefined && { type }),
-            ...(theme !== undefined && { theme }),
-        };
-        const toastId = extract(null, this.props.ui.uploads.items, key, 'toast');
-        toast.update(toastId, options);
     }
 
     render() {

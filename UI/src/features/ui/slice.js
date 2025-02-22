@@ -96,8 +96,16 @@ export const uiSlice = createSlice({
         },
         updateUpload: (state, action) => {
             const { key, value } = action.payload;
-            if (!state.uploads.items[key]) return;
-            Object.assign(state.uploads.items[key], value);
+            if (key) {
+                // a specific key has been given, update the item
+                if (!state.uploads.items[key]) return;
+                Object.assign(state.uploads.items[key], value);
+            } else {
+                // update all items using the provided value
+                Object.keys(state.uploads.items).forEach((key) => {
+                    Object.assign(state.uploads.items[key], value);
+                });
+            }
         },
         switchUploadState: (state, action) => {
             const { key, to } = action.payload;
