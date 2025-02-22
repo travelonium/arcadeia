@@ -424,7 +424,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
             border-radius: .25rem;
             height: calc(100% - 1rem);
             z-index: $upload-zone-overlay-z-index;
-            background-color: rgba($body-bg, 0.45);
+            background-color: rgba($body-bg, 0.55);
         }
 
         .upload-zone-content.dragging {
