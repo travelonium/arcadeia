@@ -116,8 +116,8 @@ const Uploads = forwardRef((props, ref) => {
                                     <Col className="gx-0 small text-muted" xs={12}>
                                     {
                                         (upload.url) ?
-                                            <a href="#" className="text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{upload.url ?? upload.path}</a>
-                                            : upload.url ?? upload.path
+                                            <a href={upload.url} className="text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{upload.url}</a>
+                                            : <></>
                                     }
                                     </Col>
                                 </Row>
@@ -133,16 +133,16 @@ const Uploads = forwardRef((props, ref) => {
                             </Container>
                         </Col>
                         <Col className="d-flex align-items-center gx-0" xs="auto">
-                            {
-                                (upload.url && upload.state === 'failed') ?
-                                    <Button variant="outline-info" size="sm" onClick={() => onRetry(upload.key)}>Retry</Button>
-                                    : <></>
-                            }
-                            {
-                                (upload.state === 'queued' || upload.state === 'succeeded' || upload.state === 'failed') ?
-                                    <Button variant="outline-danger ms-2" size="sm" onClick={() => dispatch(removeUploads({ key: upload.key }))}>Remove</Button>
-                                    : <></>
-                            }
+                        {
+                            (upload.url && upload.state === 'failed') ?
+                                <Button variant="outline-info" size="sm" onClick={() => onRetry(upload.key)}>Retry</Button>
+                                : <></>
+                        }
+                        {
+                            (upload.state === 'queued' || upload.state === 'succeeded' || upload.state === 'failed') ?
+                                <Button variant="outline-danger ms-2" size="sm" onClick={() => dispatch(removeUploads({ key: upload.key }))}>Remove</Button>
+                                : <></>
+                        }
                         </Col>
                     </Row>
                 </Container>
@@ -154,7 +154,7 @@ const Uploads = forwardRef((props, ref) => {
         if (uploads.length === 0) return <></>;
         else return (
             <>
-                <ListGroup variant="flush">
+                <ListGroup className="flex-grow-1" variant="flush">
                 {
                     uploads.map((item, index) => {
                         return (
@@ -169,11 +169,9 @@ const Uploads = forwardRef((props, ref) => {
                         {
                             (states) ?
                             <Button variant="danger" className="d-flex flex-grow-1 justify-content-center" onClick={() => {
-                                if (states) {
-                                    states.forEach(state => {
-                                        dispatch(removeUploads({ state: state }))
-                                    });
-                                }
+                                states.forEach(state => {
+                                    dispatch(removeUploads({ state: state }))
+                                });
                             }}>Clear</Button> : <></>
                         }
                         </Col>
@@ -190,21 +188,21 @@ const Uploads = forwardRef((props, ref) => {
                     Uploads
                 </Modal.Title>
             </Modal.Header>
-            <Modal.Body>
-                <Tabs id="uploads-tabs" className="flex-row mb-3" activeKey={tab} onSelect={(tab) => setTab(tab)} variant="tabs" navbar justify>
-                    <Tab id="tab-all" eventKey="all" title="All">
+            <Modal.Body className="d-flex flex-column p-0">
+                <Tabs id="uploads-tabs" className="flex-row mb-2 px-2 pt-2" activeKey={tab} onSelect={(tab) => setTab(tab)} variant="tabs" navbar justify>
+                    <Tab id="tab-all" className="flex-column flex-grow-1" eventKey="all" title="All">
                         <UploadListGroup states={["queued", "succeeded", "failed"]} uploads={all}/>
                     </Tab>
-                    <Tab id="tab-queued" eventKey="queued" title={<><i className="bi bi-circle text-secondary pe-2"/>Queued</>}>
+                    <Tab id="tab-queued" className="flex-column flex-grow-1" eventKey="queued" title={<><i className="bi bi-circle text-secondary pe-2"/>Queued</>}>
                         <UploadListGroup states={["queued"]} uploads={queued}/>
                     </Tab>
-                    <Tab id="tab-active" eventKey="active" title={<><i className="bi bi-circle-fill text-info pe-2"/>Active</>}>
+                    <Tab id="tab-active" className="flex-column flex-grow-1" eventKey="active" title={<><i className="bi bi-circle-fill text-info pe-2"/>Active</>}>
                         <UploadListGroup uploads={active}/>
                     </Tab>
-                    <Tab id="tab-succeeded" eventKey="succeeded" title={<><i className="bi bi-check-circle text-success pe-2"/>Succeeded</>}>
+                    <Tab id="tab-succeeded" className="flex-column flex-grow-1" eventKey="succeeded" title={<><i className="bi bi-check-circle text-success pe-2"/>Succeeded</>}>
                         <UploadListGroup states={["succeeded"]} uploads={succeeded}/>
                     </Tab>
-                    <Tab id="tab-failed" eventKey="failed" title={<><i className="bi bi-check-circle text-danger pe-2"/>Failed</>}>
+                    <Tab id="tab-failed" className="flex-column flex-grow-1" eventKey="failed" title={<><i className="bi bi-check-circle text-danger pe-2"/>Failed</>}>
                         <UploadListGroup states={["failed"]} uploads={failed}/>
                     </Tab>
                 </Tabs>

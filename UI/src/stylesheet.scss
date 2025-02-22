@@ -340,8 +340,26 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
 .uploads {
 
     .modal-body {
-        overflow: auto;
+        overflow: hidden;
         height: 50vh;
+
+        .tab-content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: auto;
+            padding-left: .5rem;
+            padding-right: .5rem;
+            padding-bottom: 1.5rem;
+
+            .tab-pane {
+                display: flex;
+
+                &:not(.active) {
+                    display: none;
+                }
+            }
+        }
 
         .list-group {
             .list-group-item {
