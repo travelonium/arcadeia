@@ -28,7 +28,7 @@ import Badge from 'react-bootstrap/Badge';
 import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
-import { queueUpload, startUpload, updateUpload, switchUploadState } from '../features/ui/slice';
+import { queueUpload, startUploadThunk, updateUpload, switchUploadState } from '../features/ui/slice';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
 
 class UploadZone extends Component {
@@ -175,22 +175,22 @@ class UploadZone extends Component {
         }
         // yes, we can start one more
         // dequeue the oldest queued item and start uploading it
-        const key = this.props.dispatch(startUpload())?.payload?.key;
-        if (key) {
-            const item = this.props.ui.uploads.items[key];
-            const url = item?.url;
-            const file = item?.file;
-            const path = item?.path;
-            if (file) {
-                this.uploadFile(file, key, path);
-            } else if (url) {
-                this.uploadUrl(url, key, path);
+        this.props.dispatch(startUploadThunk()).then(({ key, item }) => {
+            if (key) {
+                const url = item?.url;
+                const file = item?.file;
+                const path = item?.path;
+                if (file) {
+                    this.uploadFile(file, key, path);
+                } else if (url) {
+                    this.uploadUrl(url, key, path);
+                } else {
+                    console.error("Neither the file nor the URL were valid!");
+                }
             } else {
-                console.error("Neither the file nor the URL were valid!");
+                console.error("Failed to start an upload!");
             }
-        } else {
-            console.error("Failed to start an upload!");
-        }
+        });
     }
 
     uploadFile(file, key, path) {

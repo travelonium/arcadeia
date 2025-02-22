@@ -18,6 +18,7 @@
  *
  */
 
+import pb from 'path-browserify';
 import initialState from './initialState';
 import { createSlice } from '@reduxjs/toolkit';
 
@@ -71,6 +72,7 @@ export const uiSlice = createSlice({
             }
             state.uploads.items[key] = {
                 ...value,
+                key: key,
                 state: 'queued',
                 timestamp: Date.now(),
             }
@@ -85,12 +87,11 @@ export const uiSlice = createSlice({
                 // update state directly
                 state.uploads.items[key].state = 'active';
                 state.uploads.items[key].timestamp = Date.now();
-                console.log(state.uploads.items[key]);
                 // return the dequeued item through the action payload
                 action.payload = {
                     key: key
                 };
-                console.debug("Dequeued:", state.uploads.items[key]?.url ?? state.uploads.items[key]?.file?.name);
+                console.debug("Dequeued:", state.uploads.items[key]?.url ?? pb.join(state.uploads.items[key]?.path, state.uploads.items[key]?.file?.webkitRelativePath, state.uploads.items[key]?.file?.name));
             }
         },
         updateUpload: (state, action) => {
@@ -137,6 +138,30 @@ export const uiSlice = createSlice({
         },
     },
 });
+
+export const startUploadThunk = () => (dispatch, getState) => {
+    return new Promise((resolve) => {
+        const result = dispatch(startUpload());
+        const key = result?.payload?.key;
+        if (!key) {
+            resolve({ key: null, item: null });
+            return;
+        }
+        setTimeout(() => {
+            const updatedState = getState();
+            resolve({ key: key, item: updatedState.ui.uploads.items[key] });
+        }, 0);
+    });
+};
+
+export const switchUploadStateThunk = (key, to) => (dispatch, getState) => {
+    return new Promise((resolve) => {
+        const result = dispatch(switchUploadState({ key, to }));
+        setTimeout(() => {
+            resolve();
+        }, 0);
+    });
+};
 
 const { actions, reducer } = uiSlice;
 export const {

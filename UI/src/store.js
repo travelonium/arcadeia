@@ -29,13 +29,14 @@ import {
     PURGE,
     REGISTER,
 } from 'redux-persist';
+import { thunk } from 'redux-thunk'
+import uiReducer from './features/ui/slice';
 import storage from 'redux-persist/lib/storage';
 import searchReducer from './features/search/slice';
-import searchInitialState from './features/search/initialState';
-import uiReducer from './features/ui/slice';
 import uiInitialState from './features/ui/initialState';
 import settingsReducer from './features/settings/slice';
 import createMigrate from 'redux-persist/es/createMigrate';
+import searchInitialState from './features/search/initialState';
 
 const persistConfig = {
     key: 'root',
@@ -142,7 +143,7 @@ export const store = configureStore({
             ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER, 'ui/queueUpload'],
             ignoredPaths: ['ui.uploads.items'],
         },
-    }),
+    }).concat(thunk),
 });
 
 export const persistor = persistStore(store);

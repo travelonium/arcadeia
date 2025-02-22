@@ -28,7 +28,7 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import { switchUploadState, removeUploads } from '../../features/ui/slice';
+import { switchUploadStateThunk, removeUploads } from '../../features/ui/slice';
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../../features/ui/selectors';
 
@@ -60,8 +60,9 @@ const Uploads = forwardRef((props, ref) => {
     }
 
     function onRetry(key) {
-        dispatch(switchUploadState({ key: key, to: 'queued' }));
-        props.onUpload?.()
+        dispatch(switchUploadStateThunk(key, 'queued')).then(() => {
+            props.onUpload?.()
+        });
     }
 
     function onOpen(path, name, url) {
