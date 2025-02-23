@@ -543,7 +543,7 @@ class UploadZone extends Component {
                 <input type="file" id="upload-zone-input" className="d-none" name="files" webkitdirectory="true" multiple={true} onChange={this.onChange.bind(this)} />
                 <label id="upload-zone-label" htmlFor="upload-zone-input" className="d-flex position-relative flex-grow-1" onClick={(event) => event.preventDefault()}>
                     <Container className={cx("upload-zone-overlay justify-content-center align-items-center", this.state.dragging ? "dragging" : "d-none")} fluid>
-                        <Badge className="d-flex align-items-center animate__animated animate__fadeIn animate__zoomIn" bg="light">
+                        <Badge className="upload-zone-overlay-badge d-flex align-items-center animate__animated animate__fadeIn animate__zoomIn" bg="light">
                             <Row className="align-items-center gx-0 pt-5">
                                 <Col className="d-flex align-items-center justify-content-center" xs={12}>
                                     <span className="upload-zone-box d-flex align-items-center justify-content-center">

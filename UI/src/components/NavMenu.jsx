@@ -31,7 +31,7 @@ import Navbar from 'react-bootstrap/Navbar';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { ViewDropdown } from './toolbar/ViewDropdown';
 import { SortDropdown } from './toolbar/SortDropdown';
-import { Container, Row, Col, NavItem } from 'react-bootstrap';
+import { Container, Row, Col } from 'react-bootstrap';
 import { HistoryDropdown } from './toolbar/HistoryDropdown';
 import { setSort, resetSort } from '../features/search/slice';
 import { extract, getFlag, setFlag, withRouter } from '../utils';
@@ -98,7 +98,7 @@ class NavMenu extends Component {
         this.props.setSearchParams((params) => {
             const [flags, values] = setFlag(params.get("flags") ?? 0, params.get("values") ?? 0, 1, this.state.favorite);
             if (this.state.query) {
-                params.set('query', this.state.query)
+                params.set('query', this.state.query);
             } else {
                 params.delete('query');
             }

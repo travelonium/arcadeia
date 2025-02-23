@@ -20,6 +20,7 @@
 
 import cx from 'classnames';
 import { Flag } from './toolbar/Flag';
+import { connect } from "react-redux";
 import Card from 'react-bootstrap/Card';
 import { Thumbnail } from './Thumbnail';
 import React, { Component } from 'react';
@@ -29,8 +30,7 @@ import Popover from 'react-bootstrap/Popover';
 import { EditableText } from './EditableText';
 import { Col, Container, Row } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { duration, size, extract, clone } from '../utils';
-
+import { duration, size, extract, clone, withRouter } from '../utils';
 
 export class MediaContainer extends Component {
 
@@ -128,6 +128,17 @@ export class MediaContainer extends Component {
         this.toggle("Favorite");
     }
 
+    onDuplicates(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const params = new URLSearchParams(this.props.location.search);
+        params.set('duplicates', true);
+        const source = this.state.current;
+        const path = source.fullPath;
+        const url = encodeURI(path + "?" + params.toString());
+        this.props.navigate(url);
+    }
+
     onEditing(editing) {
         this.props.library.current.editing = editing;
     }
@@ -161,27 +172,27 @@ export class MediaContainer extends Component {
                                 <Col className="d-flex">
                                 {
                                     (source.type === "Folder") ? <i className="type bi bi-folder-fill"></i> :
-                                    (source.extension) ? <Badge bg="primary" className="extension" title="Extension">{source.extension}</Badge> : <></>
+                                    (source.extension) ? <Badge className="btn btn-primary extension" title="Extension">{source.extension}</Badge> : <></>
                                 }
                                 </Col>
                             {
                                 (source.duplicates > 0) ?
                                 <Col className="d-flex" xs="auto">
-                                    <Badge bg="warning" className="duplicates" title="Duplicates">{source.duplicates}</Badge>
+                                    <Badge className="btn btn-warning duplicates" title="Duplicates" onClick={this.onDuplicates.bind(this)}>{source.duplicates}</Badge>
                                 </Col> :
                                 <></>
                             }
                             {
                                 (source.width && source.height) ?
                                 <Col className="d-flex" xs="auto">
-                                    <Badge bg={(source.duration > 0) ? "dark" : "primary"} className="resolution" title="Resolution">{`${source.width} × ${source.height}`}</Badge>
+                                    <Badge className={cx("resolution btn", (source.duration > 0) ? "btn-dark" : "btn-primary")} title="Resolution">{`${source.width} × ${source.height}`}</Badge>
                                 </Col> :
                                 <></>
                             }
                             {
                                 (source.duration > 0) ?
                                 <Col className="d-flex" xs="auto">
-                                    <Badge bg="primary" className="duration" title="Duration">{duration(source.duration)}</Badge>
+                                    <Badge className="duration btn btn-primary" title="Duration">{duration(source.duration)}</Badge>
                                 </Col> :
                                 <></>
                             }
@@ -308,3 +319,9 @@ export class MediaContainer extends Component {
         );
     }
 }
+
+const mapStateToProps = (state) => ({});
+
+export default connect(mapStateToProps, null, null, { forwardRef: true })(
+    withRouter(MediaContainer)
+);

@@ -429,7 +429,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
 .upload-zone {
 
     label {
-        .badge {
+        .upload-zone-overlay-badge {
             animation-duration: 150ms;
             border: 1px solid $gray-400;
         }

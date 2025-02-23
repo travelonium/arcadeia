@@ -31,7 +31,7 @@ import update from 'immutability-helper';
 import React, { Component } from 'react';
 import { isEqual, isEmpty } from 'lodash';
 import Button from 'react-bootstrap/Button';
-import { MediaContainer } from './MediaContainer';
+import MediaContainer from './MediaContainer';
 import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -115,6 +115,10 @@ class Library extends Component {
         return this.props.searchParams.get('query') ? true : false;
     }
 
+    get duplicates() {
+        return this.props.searchParams.get("duplicates") === "true";
+    }
+
     componentDidMount() {
         console.debug("componentDidMount()");
         // install the event handler for keydown keyboard events
@@ -143,12 +147,17 @@ class Library extends Component {
 
         const nextPath = this.getPath(nextProps?.location?.pathname);
         const nextName = this.getName(nextProps?.location?.pathname);
+        const nextDuplicates = nextProps.searchParams.get("duplicates") === "true";
         const currentPath = this.getPath(currentProps?.location?.pathname);
         const currentName = this.getName(currentProps?.location?.pathname);
+        const currentDuplicates = currentProps.searchParams.get("duplicates") === "true";
 
         // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
         const wasMediaViewerShow = (currentPath != null && nextPath != null) && (currentName == null && nextName != null);
         const wasMediaViewerHide = (currentPath != null && nextPath != null) && (currentName != null && nextName == null);
+
+        // was it a click on the duplicates badge?
+        const wasDuplicates = (nextDuplicates !== currentDuplicates) && (currentPath != null && nextPath != null) && (nextName !== currentName);
 
         // was this triggered by a browser back / forward?
         const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
@@ -159,7 +168,7 @@ class Library extends Component {
         const hasStateChanged = !isEqualExcluding(currentState, nextState);
         const updatedState = differenceWith(currentState, nextState);
 
-        const shouldUpdate = ((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && (havePropsChanged || hasStateChanged);
+        const shouldUpdate = wasDuplicates || (((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && (havePropsChanged || hasStateChanged));
 
         if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
         if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
@@ -175,7 +184,9 @@ class Library extends Component {
         if (this.state.items == null ||
             !isEqualExcluding(prevProps.location, this.props.location, 'key') ||
             !isEqual(prevProps.search, this.props.search)) {
-            if (currentName && this.state.items != null) {
+            if (currentName && this.duplicates) {
+                this.refresh();
+            } else if (currentName && this.state.items != null) {
                 // the path has not changed since last update, no refresh necessary
                 const index = this.state.items.findIndex(x => x.name === currentName);
                 if (index !== -1) {
@@ -268,7 +279,7 @@ class Library extends Component {
 
     refresh(callback = undefined) {
         console.debug("refresh()");
-        this.search(this.path, 0, (succeeded) => {
+        this.search(this.duplicates ? this.pathname : this.path, 0, (succeeded) => {
             if (callback !== undefined) {
                 callback(succeeded);
             }
@@ -375,6 +386,7 @@ class Library extends Component {
         const query = searching ? this.query : "*";
         const recursive = this.recursive;
         const favorite = this.favorite;
+        const duplicates = this.duplicates;
         const solrUrl = this.props.settings?.Solr?.URL;
         if (!solrUrl) return;
         const target = `${solrUrl}/select`;
@@ -399,7 +411,7 @@ class Library extends Component {
             duplicates: {
                 q: "{!term f=checksum v=$row.checksum}",
                 start: 0,
-                rows: 0,
+                rows: duplicates ? rows : 0,
             }
         };
         if (favorite) {
@@ -410,7 +422,9 @@ class Library extends Component {
         } else {
             input.fq.push("-flags:Deleted");
         }
-        if (!recursive || !searching) {
+        if (duplicates) {
+            input.fq.push("fullPath:\"" + path.split('?')[0] + "\"");
+        } else if (!recursive || !searching) {
             input.fq.push("path:\"" + path.split('?')[0] + "\"");
         } else {
             input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
@@ -454,12 +468,20 @@ class Library extends Component {
                 return response.json();
             })
             .then((result) => {
-                const numFound = extract(0, result, "response", "numFound");
-                const docs = extract([], result, "response", "docs").map((doc) => {
-                    doc.children = extract([], doc, "children", "docs");
-                    doc.duplicates = Math.max(0, extract(0, doc, "duplicates", "numFound") - 1);
-                    return doc;
-                });
+                const numFound = result?.response?.numFound ?? 0;
+                const docs = duplicates ?
+                    (result?.response?.docs ?? []).reduce((acc, doc) => {
+                        acc.push(...(doc?.duplicates?.docs ?? []).map((item) => {
+                            item.duplicates = Math.max(0, (doc?.duplicates?.numFound ?? 0) - 1);
+                            return item;
+                        }));
+                        return acc;
+                    }, []) :
+                    (result?.response?.docs ?? []).map((doc) => {
+                        doc.children = doc?.children?.docs ?? [];
+                        doc.duplicates = Math.max(0, (doc?.duplicates?.numFound ?? 0) - 1);
+                        return doc;
+                    });
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
                 this.setState({
@@ -934,6 +956,7 @@ class Library extends Component {
                                             // remove the query parameter before navigating to the new path
                                             const params = new URLSearchParams(this.props.location.search);
                                             params.delete('query');
+                                            params.delete('duplicates');
                                             if (params.size) link += "?" + params.toString();
                                             this.props.navigate(link);
                                         }
