@@ -414,7 +414,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
         }
     }
 
-    .periodic-scan-interval {
+    .periodic-scan-interval, .parallel-scanner-tasks {
 
         .badge {
             font-size: $btn-font-size-sm;

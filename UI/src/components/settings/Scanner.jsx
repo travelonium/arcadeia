@@ -39,12 +39,14 @@ export default function Scanner() {
     const [startupUpdate, setStartupUpdate] = useState(null);
     const [forceGenerateMissingThumbnails, setForceGenerateMissingThumbnails] = useState(null);
     const [periodicScanIntervalMilliseconds, setPeriodicScanIntervalMilliseconds] = useState(null);
+    const [parallelScannerTasks, setParallelScannerTasks] = useState(null);
 
     useEffect(() => {
         setStartupScan(settings?.Scanner?.StartupScan);
         setStartupUpdate(settings?.Scanner?.StartupUpdate);
         setForceGenerateMissingThumbnails(settings?.Scanner?.ForceGenerateMissingThumbnails);
         setPeriodicScanIntervalMilliseconds(settings?.Scanner?.PeriodicScanIntervalMilliseconds);
+        setParallelScannerTasks(settings?.Scanner?.ParallelScannerTasks);
     }, [settings]);
 
     function onChange(setting, value) {
@@ -69,7 +71,13 @@ export default function Scanner() {
                 dispatch(writeSettings({ Scanner: { PeriodicScanIntervalMilliseconds: value * 60 * 60 * 1000 } }));
                 break;
 
+            case 'ParallelScannerTasks':
+                setParallelScannerTasks(value);
+                dispatch(writeSettings({ Scanner: { ParallelScannerTasks: value } }));
+                break;
+
             default:
+                console.error(`${setting} is not implemented!`);
                 break;
         }
     }
@@ -185,6 +193,37 @@ export default function Scanner() {
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
                                         Adjusts the interval at which a periodic scan is performed or disables it altogether.
+                                    </Card.Text>
+                                </Card.Body>
+                            </Card>
+                        </Row>
+
+                        <Row className="parallel-scanner-tasks align-items-center mb-3">
+                            <Card className="px-0">
+                                <Card.Header className="pe-2">
+                                    <Row className="align-items-center">
+                                        <Col><b>Parallel Scanner Tasks</b></Col>
+                                        <Col className="d-flex" xs="auto">
+                                            <Badge bg="info">
+                                                <span className="parallel-scanner-tasks-value" title="Parallel Tasks / CPU Cores">{parallelScannerTasks ?? 0} / {settings?.System?.ProcessorCount}</span>
+                                            </Badge>
+                                        </Col>
+                                        <Col className="d-flex mt-3 mt-sm-0" xs={12} sm="auto">
+                                            <Form.Range min={1} max={settings?.System?.ProcessorCount} step={1}
+                                                name="parallel-scanner-tasks"
+                                                disabled={parallelScannerTasks == null || readOnly}
+                                                value={parallelScannerTasks ?? 0}
+                                                onChange={(event) => setParallelScannerTasks(event.target.value)}
+                                                onMouseUp={(event) => onChange('ParallelScannerTasks', event.target.value)}
+                                                onTouchEnd={(event) => onChange('ParallelScannerTasks', event.target.value)}
+                                                onKeyUp={(event) => onChange('ParallelScannerTasks', event.target.value)} />
+                                        </Col>
+                                    </Row>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Card.Text className="d-flex align-items-center">
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
+                                        Adjusts the number of parallel scanner tasks used during scan or update.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
