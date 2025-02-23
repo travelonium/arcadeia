@@ -23,12 +23,14 @@ import { Flag } from './toolbar/Flag';
 import Card from 'react-bootstrap/Card';
 import { Thumbnail } from './Thumbnail';
 import React, { Component } from 'react';
+import update from 'immutability-helper';
 import Badge from 'react-bootstrap/Badge';
 import Popover from 'react-bootstrap/Popover';
 import { EditableText } from './EditableText';
 import { Col, Container, Row } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import { duration, size, extract, clone } from '../utils';
+
 
 export class MediaContainer extends Component {
 
@@ -50,8 +52,12 @@ export class MediaContainer extends Component {
     }
 
     set(source, callback = undefined) {
-        this.setState({
-            current: source,
+        this.setState(prevState => {
+            return {
+                current: update(prevState.current, {
+                    $merge: source
+                })
+            }
         }, () => {
             if (callback !== undefined) {
                 callback(this.state.current);

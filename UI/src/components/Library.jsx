@@ -528,18 +528,16 @@ class Library extends Component {
             },
         })
         .then((response) => {
-            if (!response.ok) {
-                let message = "Error querying the Solr index!";
-                return response.text().then((data) => {
-                    try {
-                        let json = JSON.parse(data);
-                        let exception = extract(null, json, "error", "msg");
-                        if (exception) message = exception;
-                    } catch (error) {}
-                    throw Error(message);
-                });
-            }
-            return response.json();
+            if (response.ok) return response.json();
+            let message = "Error querying the Solr index!";
+            return response.text().then((data) => {
+                try {
+                    let json = JSON.parse(data);
+                    let exception = extract(null, json, "error", "msg");
+                    if (exception) message = exception;
+                } catch (error) {}
+                throw Error(message);
+            });
         })
         .then((result) => {
             const numFound = extract(0, result, "response", "numFound");
