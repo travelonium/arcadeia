@@ -39,13 +39,14 @@ export default defineConfig({
       includes: ['trace', 'debug', 'group', 'groupCollapsed', 'groupEnd']
     }),
     VitePWA({
-      injectRegister: 'auto',
       registerType: 'autoUpdate',
       manifest: false,
       outDir: 'build',
       workbox: {
         sourcemap: true,
-        globPatterns: ['**/*.{js,css,html,woff,woff2,png,svg}']
+        globPatterns: ['**/*.{js,css,html,woff,woff2,png,svg}'],
+        clientsClaim: true, // makes new SW take control immediately
+        skipWaiting: true, // forces SW activation without waiting
       },
       devOptions: {
         enabled: true
@@ -54,7 +55,7 @@ export default defineConfig({
   ],
   base: '/',
   build: {
-    outDir: 'build',  // Match the output directory .NET Core expects
+    outDir: 'build',  // match the output directory .NET Core expects
   },
   server: {
     proxy: {

@@ -25,12 +25,23 @@ import { store, persistor } from './store';
 import { createRoot } from 'react-dom/client';
 import { ToastContainer } from 'react-toastify';
 import { BrowserRouter } from 'react-router';
+import { registerSW } from "virtual:pwa-register";
 import { PersistGate } from 'redux-persist/integration/react';
 import './stylesheet.scss';
 
 const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
+
+// auto-reload when a new service worker is available
+const updateSW = registerSW({
+    onNeedRefresh() {
+        updateSW(true); // forces page reload
+    },
+    onOfflineReady() {
+        console.log("PWA is ready to work offline.");
+    },
+});
 
 root.render(
     <BrowserRouter basename={baseUrl}>
