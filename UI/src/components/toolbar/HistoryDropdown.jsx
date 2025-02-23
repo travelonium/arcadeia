@@ -278,7 +278,7 @@ export class HistoryDropdown extends Component {
                         return (
                             <Dropdown.Item key={index} eventKey={id} active={false} onAuxClick={this.onSelect.bind(this, id)}>
                                 <div className="item-container d-flex flex-row">
-                                    <Thumbnail className="flex-shrink-0 pe-2" source={item} animated={false} />
+                                    <Thumbnail className="flex-shrink-0 me-2" source={item} animated={false} />
                                     <div className="content d-flex flex-column justify-content-center flex-fill">
                                         <span className="name flex-shrink-1">{name}</span>
                                         <span className="date-accessed flex-shrink-1" title={this.convertUtcDateToLocalDate(dateAccessed)}>

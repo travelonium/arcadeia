@@ -536,8 +536,15 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 width: 100%;
                 height: 100%;
 
-                .thumbnail-icon {
-                    font-size: 7rem;
+                .thumbnail-icon-wrapper {
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+
+                    .thumbnail-icon {
+                        font-size: 7rem;
+                    }
                 }
             }
 
@@ -795,6 +802,17 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 text-align: center;
             }
         }
+    }
+}
+
+// center the thumbnail icon in its container
+.thumbnail {
+
+    .thumbnail-icon-wrapper {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
     }
 }
 

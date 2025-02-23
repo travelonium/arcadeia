@@ -100,8 +100,8 @@ export class Thumbnail extends Component {
 
     render() {
         return (
-            <div className={cx("thumbnail", this.props.className, "d-flex")}>
-                <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute w-100">
+            <div className={cx("thumbnail", this.props.className, "d-flex position-relative")}>
+                <div className="thumbnail-icon-wrapper align-self-center text-center position-absolute">
                 {
                     this.icon(this.state.type, this.state.count, this.props.children?.length) ?? <></>
                 }
