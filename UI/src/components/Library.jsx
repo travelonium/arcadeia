@@ -157,7 +157,7 @@ class Library extends Component {
         const wasMediaViewerHide = (currentPath != null && nextPath != null) && (currentName != null && nextName == null);
 
         // was it a click on the duplicates badge?
-        const wasDuplicates = (nextDuplicates !== currentDuplicates) && (currentPath != null && nextPath != null) && (nextName !== currentName);
+        const wasDuplicates = (currentDuplicates !== nextDuplicates) && (currentPath != null && nextPath != null) && (nextName !== currentName);
 
         // was this triggered by a browser back / forward?
         const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
@@ -279,11 +279,15 @@ class Library extends Component {
 
     refresh(callback = undefined) {
         console.debug("refresh()");
-        this.search(this.duplicates ? this.pathname : this.path, 0, (succeeded) => {
+        this.search({
+            path: this.path,
+            name: this.duplicates ? this.name : undefined,
+            start: 0,
+            callback: (succeeded) => {
             if (callback !== undefined) {
                 callback(succeeded);
             }
-        });
+        }});
     }
 
     /**
@@ -379,7 +383,7 @@ class Library extends Component {
         });
     }
 
-    search(path = this.path, start = 0, callback = undefined) {
+    search({path = this.path, name = undefined, start = 0, callback = undefined}) {
         const rows = 10000;
         const deleted = false;
         const searching = this.searching;
@@ -410,24 +414,39 @@ class Library extends Component {
             },
             duplicates: {
                 q: "{!term f=checksum v=$row.checksum}",
+                fq: [
+                    "-id:{!term f=id v=$row.id}"
+                ],
                 start: 0,
                 rows: duplicates ? rows : 0,
             }
         };
-        if (favorite) {
-            input.fq.push("flags:Favorite");
-        }
-        if (deleted) {
-            input.fq.push("flags:Deleted");
+        if (duplicates && name) {
+            input.fq.push("fullPath:\"" + path + name + "\"");
+            /* i think that finding duplicates in the entire library is more useful than narrowing it down
+            if (recursive) {
+                input.duplicates.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
+            } else {
+                input.duplicates.fq.push("path:\"" + path + "\"");
+            }
+            */
         } else {
-            input.fq.push("-flags:Deleted");
-        }
-        if (duplicates) {
-            input.fq.push("fullPath:\"" + path.split('?')[0] + "\"");
-        } else if (!recursive || !searching) {
-            input.fq.push("path:\"" + path.split('?')[0] + "\"");
-        } else {
-            input.fq.push("path:" + (path.split('?')[0]).replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
+            if (favorite) {
+                input.fq.push("flags:Favorite");
+            }
+            if (deleted) {
+                input.fq.push("flags:Deleted");
+            } else {
+                input.fq.push("-flags:Deleted");
+            }
+            if (!recursive || !searching) {
+                input.fq.push("path:\"" + path + "\"");
+            } else {
+                input.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
+            }
+            if (duplicates) {
+                // currently not implemented.
+            }
         }
         this.controller.abort();
         this.controller = new AbortController();
@@ -469,38 +488,56 @@ class Library extends Component {
             })
             .then((result) => {
                 const numFound = result?.response?.numFound ?? 0;
-                const docs = duplicates ?
-                    (result?.response?.docs ?? []).reduce((acc, doc) => {
-                        acc.push(...(doc?.duplicates?.docs ?? []).map((item) => {
-                            item.duplicates = Math.max(0, (doc?.duplicates?.numFound ?? 0) - 1);
+                let docs = (result?.response?.docs ?? []);
+                // helper function to process duplicate documents
+                const flatten = (doc) => {
+                    const duplicates = doc?.duplicates?.numFound ?? 0;
+                    doc.children = doc?.children?.docs ?? [];
+                    return [
+                        ...[doc, ...(doc?.duplicates?.docs ?? [])].map((item) => {
+                            item.duplicates = duplicates;
                             return item;
-                        }));
-                        return acc;
-                    }, []) :
-                    (result?.response?.docs ?? []).map((doc) => {
+                        })
+                    ];
+                };
+                if (duplicates) {
+                    docs = docs.flatMap(flatten);
+
+                    if (!this.name) {
+                        // remove items with no duplicates and deduplicate by id
+                        docs = docs.filter((doc, index, self) =>
+                            doc?.duplicates > 0 &&
+                            index === self.findIndex((item) => item.id === doc.id)
+                        );
+                    }
+                } else {
+                    docs = docs.map((doc) => {
+                        doc.duplicates = doc?.duplicates?.numFound ?? 0;
                         doc.children = doc?.children?.docs ?? [];
-                        doc.duplicates = Math.max(0, (doc?.duplicates?.numFound ?? 0) - 1);
                         return doc;
                     });
+                }
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
-                this.setState({
-                    loading: more,
-                    status: docs.length ? "" : "No Results",
-                    items: more ? this.state.items : this.items
-                }, () => {
-                    if (more) {
-                        this.search(path, start + rows);
-                    } else {
-                        let index = (searching ? 0 : this.props.ui.scrollPosition[path]) ?? 0;
-                        this.showScrollToTop((index && !searching) ? true : false);
-                        this.scrollToItem(index);
-                        this.items = [];
-                        if (callback !== undefined) {
-                            callback(true);
+                this.setState(
+                    {
+                        loading: more,
+                        status: docs.length ? "" : "No Results",
+                        items: more ? this.state.items : this.items
+                    },
+                    () => {
+                        if (more) {
+                            this.search({ path, start: start + rows });
+                        } else {
+                            const index = (searching ? 0 : this.props.ui.scrollPosition[path]) ?? 0;
+                            this.showScrollToTop(index && !searching);
+                            this.scrollToItem(index);
+                            this.items = [];
+
+                            if (callback) callback(true);
                         }
                     }
-                });
+                );
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
@@ -587,8 +624,11 @@ class Library extends Component {
 
     open(source) {
         let url;
-        if (typeof source === 'object') url = encodeURI(source.fullPath) + this.props.location.search;
-        else url = encodeURI(source) + this.props.location.search;
+        const params = new URLSearchParams(this.props.location.search);
+        params.delete('duplicates');
+        params.delete('query');
+        if (typeof source === 'object') url = encodeURI(source.fullPath) + "?" + params.toString();
+        else url = encodeURI(source) + "?" + params.toString();
         this.props.navigate(url);
     }
 
