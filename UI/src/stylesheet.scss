@@ -723,6 +723,14 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 }
             }
 
+            .content-container {
+                pointer-events: none;
+
+                > * {
+                    pointer-events: auto;
+                }
+            }
+
             // non-touch devices supporting a real hover effect
             @media all and (hover: hover) {
 
