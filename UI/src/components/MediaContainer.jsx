@@ -19,6 +19,7 @@
  */
 
 import cx from 'classnames';
+import { isEmpty } from 'lodash';
 import { Flag } from './toolbar/Flag';
 import { connect } from "react-redux";
 import Card from 'react-bootstrap/Card';
@@ -30,7 +31,7 @@ import Popover from 'react-bootstrap/Popover';
 import { EditableText } from './EditableText';
 import { Col, Container, Row } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { duration, size, extract, clone, withRouter } from '../utils';
+import { duration, size, extract, clone, withRouter, isEqualExcluding, differenceWith } from '../utils';
 
 export class MediaContainer extends Component {
 
@@ -48,7 +49,34 @@ export class MediaContainer extends Component {
         };
     }
 
+    shouldComponentUpdate(nextProps, nextState) {
+        const currentProps = this.props;
+        const currentState = this.state;
+
+        // check if significant differences exist in props or state, excluding specific keys
+        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'ref', 'forwardedRef', 'library', 'onOpen', 'onView', 'onUpdate');
+        const hasStateChanged = !isEqualExcluding(currentState, nextState);
+
+        // calculate the differences in state and props
+        /*
+        const updatedProps = differenceWith(currentProps, nextProps, 'ref', 'forwardedRef', 'library', 'onOpen', 'onView', 'onUpdate');
+        const updatedState = differenceWith(currentState, nextState);
+        */
+
+        const shouldUpdate = havePropsChanged || hasStateChanged;
+
+        /*
+        if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
+        if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
+        if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
+        console.groupEnd();
+        */
+
+        return shouldUpdate;
+    }
+
     componentDidUpdate(prevProps) {
+        // console.debug("componentDidUpdate()");
     }
 
     set(source, callback = undefined) {
@@ -161,7 +189,11 @@ export class MediaContainer extends Component {
     card(source) {
         const flags = source?.flags ?? [];
         const favorite = flags.includes('Favorite');
-        const children = (source?.children ?? []).reverse().filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0).map((item) => item.id);
+        const children = (source?.children ?? [])
+            .filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0)
+            .map((item) => item.id)
+            .slice()
+            .reverse();
         return (
             <Card className={cx((children.length > 0) ? "" : "childless")} onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>
@@ -233,7 +265,11 @@ export class MediaContainer extends Component {
     thumbnail(source) {
         const flags = extract([], source, 'flags');
         const favorite = flags.includes('Favorite');
-        const children = (source?.children ?? []).reverse().filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0).map((item) => item.id);
+        const children = (source?.children ?? [])
+            .filter((item) => ((item.type === "Audio") || (item.type === "Photo") || (item.type === "Video")) && item.thumbnails > 0)
+            .map((item) => item.id)
+            .slice()
+            .reverse();
         return (
             <Card className={cx((children.length > 0) ? "" : "childless")} onClick={this.onClick.bind(this)} onAuxClick={this.onAuxClick.bind(this)} >
                 <OverlayTrigger placement="auto" delay={{ show: 1000, hide: 0 }} overlay={this.preview.bind(this)}>

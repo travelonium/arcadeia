@@ -18,10 +18,12 @@
  *
  */
 
+import cx from 'classnames';
+import { isEmpty } from 'lodash';
 import Card from 'react-bootstrap/Card';
 import React, { Component } from 'react';
 import ProgressBar from 'react-bootstrap/ProgressBar';
-import cx from 'classnames';
+import { isEqualExcluding, differenceWith } from '../utils';
 
 export class Thumbnail extends Component {
 
@@ -54,6 +56,37 @@ export class Thumbnail extends Component {
             clearInterval(this.animateInterval);
             this.animateInterval = null;
         }
+    }
+
+
+    shouldComponentUpdate(nextProps, nextState) {
+        const currentProps = this.props;
+        const currentState = this.state;
+
+        // check if significant differences exist in props or state, excluding specific keys
+        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'library');
+        const hasStateChanged = !isEqualExcluding(currentState, nextState);
+
+        // calculate the differences in state and props
+        /*
+        const updatedProps = differenceWith(currentProps, nextProps, 'library');
+        const updatedState = differenceWith(currentState, nextState);
+        */
+
+        const shouldUpdate = havePropsChanged || hasStateChanged;
+
+        /*
+        if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
+        if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
+        if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
+        console.groupEnd();
+        */
+
+        return shouldUpdate;
+    }
+
+    componentDidUpdate(prevProps) {
+        // console.debug("componentDidUpdate()");
     }
 
     icon(type, count, children) {
