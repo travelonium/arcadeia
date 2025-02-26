@@ -245,17 +245,14 @@ namespace Arcadeia
          {
             if (!process.HasExited)
             {
+               logger?.LogDebug("FFmpeg Execution Timeout: {FileName} {Arguments}\n{Result}",
+                                process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
                process.Kill();
-            }
-
-            if (process.HasExited)
-            {
-               logger?.LogDebug("{Errors}", errorTask.Result);
             }
             else
             {
                logger?.LogDebug("FFmpeg Execution Failed: {FileName} {Arguments}\n{Result}",
-                                process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
+                                 process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
             }
 
             return null;
