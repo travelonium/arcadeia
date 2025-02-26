@@ -32,15 +32,16 @@ namespace Arcadeia.Controllers
 {
    [ApiController]
    [Route("api/[controller]")]
-   public partial class SettingsController(IConfiguration configuration,
-                                           IScannerService _scannerService,
-                                           ILogger<SettingsController> _logger,
-                                           IOptionsMonitor<Settings> _settings,
-                                           IFileSystemService fileSystemService,
-                                           IHostApplicationLifetime applicationLifetime) : Controller
+   public partial class SettingsController : Controller
    {
-      private readonly IConfigurationRoot _configuration = (IConfigurationRoot)configuration;
-      private readonly CancellationToken _cancellationToken = applicationLifetime.ApplicationStopping;
+      private readonly IConfigurationRoot configuration;
+      private readonly CancellationToken cancellationToken;
+      private readonly IScannerService scannerService;
+      private readonly ILogger<SettingsController> logger;
+      private readonly IOptionsMonitor<Settings> settings;
+      private readonly IFileSystemService fileSystemService;
+      private static Lazy<string[]> hardwareAccelerators = new();
+      private static Lazy<Codecs?> codecs = new();
 
       [GeneratedRegex(@"^([\w]+)$", RegexOptions.Multiline)]
       private static partial Regex HardwareAcceleratorsRegex();
@@ -57,6 +58,22 @@ namespace Arcadeia.Controllers
          "Mounts",
          "Security"
       ];
+      public SettingsController(IConfiguration configuration,
+                                              IScannerService scannerService,
+                                              ILogger<SettingsController> logger,
+                                              IOptionsMonitor<Settings> settings,
+                                              IFileSystemService fileSystemService,
+                                              IHostApplicationLifetime applicationLifetime)
+      {
+         this.scannerService = scannerService;
+         this.logger = logger;
+         this.settings = settings;
+         this.fileSystemService = fileSystemService;
+         this.configuration = (IConfigurationRoot)configuration;
+         cancellationToken = applicationLifetime.ApplicationStopping;
+         if (!hardwareAccelerators.IsValueCreated) hardwareAccelerators = new Lazy<string[]>([.. HardwareAccelerators()]);
+         if (!codecs.IsValueCreated) codecs = new Lazy<Codecs?>(Codecs());
+      }
 
       // GET: /api/settings
       [HttpGet]
@@ -64,9 +81,9 @@ namespace Arcadeia.Controllers
       public async Task<IActionResult> Get()
       {
          // Manually reload the configuration to ensure that recent changes are reflected
-         await Task.Run(() => _configuration.Reload());
+         await Task.Run(() => configuration.Reload());
 
-         var json = (await Task.Run(() => _configuration.ToJson(_whitelist))) as JsonObject;
+         var json = (await Task.Run(() => configuration.ToJson(_whitelist))) as JsonObject;
 
          if (json is not null)
          {
@@ -78,10 +95,10 @@ namespace Arcadeia.Controllers
                ["FFmpeg"] = new JsonObject
                {
                   // Add supported hardware acceleration methods
-                  ["HardwareAcceleration"] = JsonNode.Parse(JsonSerializer.Serialize(HardwareAccelerators())),
+                  ["HardwareAcceleration"] = JsonNode.Parse(JsonSerializer.Serialize(hardwareAccelerators.Value)),
 
                   // Add the supported codecs
-                  ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(Codecs())),
+                  ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(codecs.Value)),
                },
             };
 
@@ -94,7 +111,7 @@ namespace Arcadeia.Controllers
                   try
                   {
                      if (item is null) continue;
-                     var mount = _settings.CurrentValue.Mounts.FirstOrDefault(mount => mount.Folder == item?["Folder"]?.ToString());
+                     var mount = settings.CurrentValue.Mounts.FirstOrDefault(mount => mount.Folder == item?["Folder"]?.ToString());
                      if (mount is null) continue;
 
                      // Mask the password in Options
@@ -135,8 +152,8 @@ namespace Arcadeia.Controllers
             var scanner = json["Scanner"];
             if (scanner is not null)
             {
-               scanner["Scanning"] = _scannerService.Scanning;
-               scanner["Updating"] = _scannerService.Updating;
+               scanner["Scanning"] = scannerService.Scanning;
+               scanner["Updating"] = scannerService.Updating;
             }
          }
          else
@@ -153,7 +170,7 @@ namespace Arcadeia.Controllers
       [Consumes("application/json")]
       public async Task<IActionResult> Post([FromBody] JsonObject configuration)
       {
-         if (_settings.CurrentValue.Security.Settings.ReadOnly)
+         if (settings.CurrentValue.Security.Settings.ReadOnly)
          {
             return StatusCode(401, new { message = "The settings are read-only." });
          }
@@ -172,7 +189,7 @@ namespace Arcadeia.Controllers
             }
 
             // Get the configuration root and the writable provider
-            if (_configuration is not IConfigurationRoot configurationRoot)
+            if (this.configuration is not IConfigurationRoot configurationRoot)
             {
                return StatusCode(500, new { message = "Configuration root is not accessible." });
             }
@@ -191,25 +208,25 @@ namespace Arcadeia.Controllers
             provider.Update(configuration);
 
             // Manually reload the configuration to ensure that recent changes are reflected
-            await Task.Run(() => _configuration.Reload());
+            await Task.Run(() => this.configuration.Reload());
 
             // Restart the _scannerService if any changes have been made to the Scanner.
             if (configuration.ContainsKey("Scanner"))
             {
-               await _scannerService.RestartAsync(_cancellationToken);
+               await scannerService.RestartAsync(cancellationToken);
             }
 
             // Restart the FileSystemService if any changes have been made to the Mounts.
             if (configuration.ContainsKey("Mounts"))
             {
-               await fileSystemService.RestartAsync(_cancellationToken);
+               await fileSystemService.RestartAsync(cancellationToken);
             }
 
             return Ok();
          }
          catch (Exception ex)
          {
-            _logger.LogError(ex, "Error Updating Settings, Because: {}", ex.Message);
+            logger.LogError(ex, "Error Updating Settings, Because: {}", ex.Message);
 
             return StatusCode(500, new { message = "An error occurred while updating the settings.", error = ex.Message });
          }
@@ -217,21 +234,21 @@ namespace Arcadeia.Controllers
 
       private Codecs? Codecs()
       {
-         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
+         string executable = System.IO.Path.Combine(settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
 
          string[] arguments =
          [
             "-encoders"
          ];
 
-         var encoders = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+         var encoders = VideoFile.FFmpeg(executable, arguments, settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, logger);
 
          arguments =
          [
             "-decoders"
          ];
 
-         var decoders = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+         var decoders = VideoFile.FFmpeg(executable, arguments, settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, logger);
 
          if (encoders is not null && decoders is not null)
          {
@@ -243,14 +260,14 @@ namespace Arcadeia.Controllers
 
       private IEnumerable<string> HardwareAccelerators()
       {
-         string executable = System.IO.Path.Combine(_settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
+         string executable = System.IO.Path.Combine(settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
 
          string[] arguments =
          [
             "-hwaccels"
          ];
 
-         var result = VideoFile.FFmpeg(executable, arguments, _settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, _logger);
+         var result = VideoFile.FFmpeg(executable, arguments, settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, logger);
 
          if (result != null)
          {
