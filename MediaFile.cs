@@ -129,9 +129,9 @@ namespace Arcadeia
 
             base.Model = value;
 
-            Size = value.Size;
+            Size = value.Size ?? 0;
             Checksum = value.Checksum;
-            Views = value.Views;
+            Views = value.Views ?? 0;
             DateAccessed = value.DateAccessed;
 
             if (string.IsNullOrEmpty(Id)) throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");

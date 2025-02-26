@@ -53,7 +53,7 @@ namespace Arcadeia.Models
       public string? FullPath { get; set; }
 
       [SolrField("size")]
-      public long Size { get; set; }
+      public long? Size { get; set; }
 
       [SolrField("checksum")]
       public string? Checksum { get; set; }
@@ -65,7 +65,7 @@ namespace Arcadeia.Models
       public string? Extension { get; set; }
 
       [SolrField("views")]
-      public long Views { get; set; }
+      public long? Views { get; set; }
 
       [SolrField("dateAccessed")]
       public DateTime? DateAccessed { get; set; }
@@ -83,7 +83,7 @@ namespace Arcadeia.Models
       public DateTime? DateTaken { get; set; }
 
       [SolrField("thumbnails")]
-      public int Thumbnails { get; set; }
+      public long? Thumbnails { get; set; }
 
       [SolrField("duration")]
       public double? Duration { get; set; }
