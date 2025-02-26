@@ -89,10 +89,10 @@ namespace Arcadeia.Models
       public double? Duration { get; set; }
 
       [SolrField("width")]
-      public long Width { get; set; }
+      public long? Width { get; set; }
 
       [SolrField("height")]
-      public long Height { get; set; }
+      public long? Height { get; set; }
 
       [SolrField("flags")]
       public string[]? Flags { get; set; }

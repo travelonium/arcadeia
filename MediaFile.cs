@@ -206,10 +206,36 @@ namespace Arcadeia
             return;
          }
 
-         if (Created || Modified)
+         if
+         (
+            (Created || Modified) &&
+            (
+               (Size != Original?.Size) ||
+               (DateModified.TruncateToSeconds() != Original?.DateModified.TruncateToSeconds()) ||
+               (DateCreated.TruncateToSeconds() != Original?.DateCreated.TruncateToSeconds())
+            )
+         )
          {
-            // Retrieve the media specific file information.
-            GetFileInfo(FullPath);
+            try
+            {
+               Checksum = Size > 0 ? GetFileChecksum(FullPath) : null;
+            }
+            catch (Exception e)
+            {
+               Logger.LogWarning("Failed To Calculate File Checksum For: {}, Because: {}", FullPath, e.Message);
+            }
+         }
+
+         if ((Created || Modified) && (Checksum != Original?.Checksum))
+         {
+            try
+            {
+               GetFileInfo(FullPath, Size);
+            }
+            catch (Exception e)
+            {
+               Logger.LogWarning("Failed To Retrieve MediaFile Information For: {}, Because: {}", FullPath, e.Message);
+            }
          }
 
          try
@@ -240,26 +266,6 @@ namespace Arcadeia
          {
             Logger.LogWarning("Failed To Generate Thumbnails For: {}, Because: {}", FullPath, e.Message);
          }
-
-         if
-         (
-            (Created || Modified) &&
-            (
-               (Size != Original?.Size) ||
-               (DateModified.TruncateToSeconds() != Original?.DateModified.TruncateToSeconds()) ||
-               (DateCreated.TruncateToSeconds() != Original?.DateCreated.TruncateToSeconds())
-            )
-         )
-         {
-            try
-            {
-               Checksum = Size > 0 ? GetFileChecksum(FullPath) : null;
-            }
-            catch (Exception e)
-            {
-               Logger.LogWarning("Failed To Calculate File Checksum For: {}, Because: {}", FullPath, e.Message);
-            }
-         }
       }
 
       #endregion // Constructors
@@ -271,7 +277,8 @@ namespace Arcadeia
       /// overridden for each individual type of media file with an implementation specific to that type.
       /// </summary>
       /// <param name="path">The full path to the physical file.</param>
-      public virtual void GetFileInfo(string path)
+      /// <param name="size">The size of the physical file.</param>
+      public virtual void GetFileInfo(string path, long size)
       {
          throw new NotImplementedException("This MediaFile does not offer a GetFileInfo() method!");
       }

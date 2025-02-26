@@ -44,8 +44,8 @@ namespace Arcadeia
       /// </value>
       public double? Duration { get; set; }
 
-      private long _width = -1;
-      private long _height = -1;
+      private long? _width;
+      private long? _height;
 
       /// <summary>
       /// Gets or sets the resolution of the video file.
@@ -59,11 +59,8 @@ namespace Arcadeia
 
          set
          {
-            if (Resolution != value)
-            {
-               _width = value.Width;
-               _height = value.Height;
-            }
+            _width = value.Width;
+            _height = value.Height;
          }
       }
 
@@ -117,8 +114,16 @@ namespace Arcadeia
 
       #region Video File Operations
 
-      public override void GetFileInfo(string path)
+      public override void GetFileInfo(string path, long size)
       {
+         if (size == 0)
+         {
+            Duration = null;
+            Resolution = new ResolutionType();
+
+            return;
+         }
+
          string? output = null;
          string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", "ffprobe" + Platform.Extension.Executable);
 

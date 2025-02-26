@@ -41,8 +41,8 @@ namespace Arcadeia
       /// </value>
       public DateTime? DateTaken { get; set; }
 
-      private long _width  = -1;
-      private long _height = -1;
+      private long? _width;
+      private long? _height;
 
       /// <summary>
       /// Gets or sets the resolution of the photo file.
@@ -56,11 +56,8 @@ namespace Arcadeia
 
          set
          {
-            if (Resolution != value)
-            {
-               _width = value.Width;
-               _height = value.Height;
-            }
+            _width = value.Width;
+            _height = value.Height;
          }
       }
 
@@ -147,8 +144,16 @@ namespace Arcadeia
          return null;
       }
 
-      public override void GetFileInfo(string path)
+      public override void GetFileInfo(string path, long size)
       {
+         if (size == 0)
+         {
+            DateTaken = null;
+            Resolution = new ResolutionType();
+
+            return;
+         }
+
          var info = GetImageInfo(path);
 
          /*--------------------------------------------------------------------------------
@@ -157,7 +162,6 @@ namespace Arcadeia
 
          if (info != null)
          {
-
             Resolution = new ResolutionType(info.Width, info.Height);
          }
 
