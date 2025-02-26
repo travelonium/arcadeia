@@ -241,11 +241,19 @@ namespace Arcadeia
             Logger.LogWarning("Failed To Generate Thumbnails For: {}, Because: {}", FullPath, e.Message);
          }
 
-         if ((Created || Modified || Checksum is null) && (Size > 0))
+         if
+         (
+            (Created || Modified) &&
+            (
+               (Size != Original?.Size) ||
+               (DateModified.TruncateToSeconds() != Original?.DateModified.TruncateToSeconds()) ||
+               (DateCreated.TruncateToSeconds() != Original?.DateCreated.TruncateToSeconds())
+            )
+         )
          {
             try
             {
-               Checksum = GetFileChecksum(FullPath);
+               Checksum = Size > 0 ? GetFileChecksum(FullPath) : null;
             }
             catch (Exception e)
             {
