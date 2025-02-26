@@ -281,11 +281,11 @@ namespace Arcadeia
             // Overwrite output files
             "-y",
             // Select I-frames and set scale
-            $"-vf select=\"eq(pict_type\\,I),scale={width}:{height}" +
+            $"-vf select=\"eq(pict_type\\,I)+not(mod(n\\,10)),scale={width}:{height}" +
             // Add cropping if requested
             (crop ? (height > 0 ? $",crop=iw:'min({height},ih)'\"" : $",crop=iw:'min(iw/16*9,ih)'\"") : "\""),
             // Output only one frame
-            "-vframes 1",
+            "-frames:v 1",
             // Output format: image
             "-f image2",
             // Output to stdout
