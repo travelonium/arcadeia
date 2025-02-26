@@ -172,6 +172,15 @@ namespace Arcadeia.Solr
                { "stored", true },
             }
          },
+         {  "parents", new Dictionary<string, object>
+            {
+               { "name", "parents" },
+               { "type", "text_general" },
+               { "multiValued", true },
+               { "indexed", true },
+               { "stored", true },
+            }
+         },
          {
             "description", new Dictionary<string, object>
             {

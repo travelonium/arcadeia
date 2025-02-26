@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using SolrNet;
@@ -54,7 +54,13 @@ namespace Arcadeia
       /// A flag indicating that the MediaContainer based entry has been modified and will be updated.
       /// This will inform the destructor that it needs to updated the entry in the index.
       /// </summary>
-      public bool Modified = false;
+      public bool Modified
+      {
+         get
+         {
+            return Model != Original;
+         }
+      }
 
       /// <summary>
       /// A flag indicating that the MediaContainer based entity has been deleted from the disk.
@@ -92,41 +98,37 @@ namespace Arcadeia
          }
       }
 
-      private IMediaContainer? _parent = null;
-
       /// <summary>
       /// The parent MediaContainer based type of this instance.
       /// </summary>
-      public IMediaContainer? Parent
-      {
-         get => _parent;
-         set
-         {
-            if (_parent != value)
-            {
-               Modified = true;
-
-               _parent = value;
-            }
-         }
-      }
-
-      private string? _parentType = null;
+      public IMediaContainer? Parent { get; set; }
 
       /// <summary>
       /// Type of the parent MediaContainer based type of this instance.
       /// </summary>
-      public string? ParentType
-      {
-         get => _parentType;
-         set
-         {
-            if (_parentType != value)
-            {
-               Modified = true;
+      public string? ParentType { get; set; }
 
-               _parentType = value;
+      /// <summary>
+      /// Gets a list of the MediaContainer parents of this MediaContainer instance.
+      /// </summary>
+      public IEnumerable<IMediaContainer> Parents
+      {
+         get
+         {
+            var parent = (IMediaContainer) this;
+            var result = new List<IMediaContainer>();
+
+            do
+            {
+               parent = parent.Parent;
+               if (parent != null)
+               {
+                  result.Add(parent);
+               }
             }
+            while (parent != null);
+
+            return result;
          }
       }
 
@@ -188,8 +190,6 @@ namespace Arcadeia
          }
       }
 
-      private string? _id = null;
-
       /// <summary>
       /// Gets or sets the "id" of the MediaContainer. The Id is used to located the SolR index entry
       /// and also the the thumbnails database entry of the MediaContainer.
@@ -197,22 +197,7 @@ namespace Arcadeia
       /// <value>
       /// The unique identifier of the container entry.
       /// </value>
-      public string? Id
-      {
-         get => _id;
-
-         set
-         {
-            if (_id != value)
-            {
-               Modified = true;
-
-               _id = value;
-            }
-         }
-      }
-
-      private string? _name = null;
+      public string? Id { get; set; }
 
       /// <summary>
       /// Gets or sets the "name" attribute of the container entry. This is for example the folder,
@@ -221,22 +206,7 @@ namespace Arcadeia
       /// <value>
       /// The "name" attribute of the container entry.
       /// </value>
-      public string? Name
-      {
-         get => _name;
-
-         set
-         {
-            if (_name != value)
-            {
-               Modified = true;
-
-               _name = value;
-            }
-         }
-      }
-
-      private string? _description = null;
+      public string? Name { get; set; }
 
       /// <summary>
       /// Gets or sets the "description" attribute of the container entry.
@@ -244,22 +214,7 @@ namespace Arcadeia
       /// <value>
       /// The "description" attribute of the container entry.
       /// </value>
-      public string? Description
-      {
-         get => _description;
-
-         set
-         {
-            if (_description != value)
-            {
-               Modified = true;
-
-               _description = value;
-            }
-         }
-      }
-
-      private string? _type = null;
+      public string? Description { get; set; }
 
       /// <summary>
       /// Gets or sets the "type" attribute of the container entry.
@@ -267,20 +222,7 @@ namespace Arcadeia
       /// <value>
       /// The "type" attribute of the container entry.
       /// </value>
-      public string? Type
-      {
-         get => _type;
-
-         set
-         {
-            if (_type != value)
-            {
-               Modified = true;
-
-               _type = value;
-            }
-         }
-      }
+      public string? Type { get; set; }
 
       /// <summary>
       /// Get the path the container is located in which is the parent's full path.
@@ -356,31 +298,13 @@ namespace Arcadeia
          }
       }
 
-      protected string? _dateAdded = null;
-
       /// <summary>
       /// Gets or sets the date the container was added to the MediaLibrary.
       /// </summary>
       /// <value>
       /// The addition date in DateTime.
       /// </value>
-      public DateTime DateAdded
-      {
-         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateAdded, CultureInfo.InvariantCulture), DateTimeKind.Utc);
-
-         set
-         {
-            TimeSpan difference = value - DateAdded;
-            if (difference >= TimeSpan.FromSeconds(1))
-            {
-               Modified = true;
-
-               _dateAdded = value.ToString(CultureInfo.InvariantCulture);
-            }
-         }
-      }
-
-      protected string? _dateCreated = null;
+      public DateTime? DateAdded { get; set; }
 
       /// <summary>
       /// Gets or sets the creation date of the file.
@@ -388,23 +312,7 @@ namespace Arcadeia
       /// <value>
       /// The creation date in DateTime.
       /// </value>
-      public DateTime DateCreated
-      {
-         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateCreated, CultureInfo.InvariantCulture), DateTimeKind.Utc);
-
-         set
-         {
-            TimeSpan difference = value - DateCreated;
-            if (difference >= TimeSpan.FromSeconds(1))
-            {
-               Modified = true;
-
-               _dateCreated = value.ToString(CultureInfo.InvariantCulture);
-            }
-         }
-      }
-
-      protected string? _dateModified = null;
+      public DateTime? DateCreated { get; set; }
 
       /// <summary>
       /// Gets or sets the last modification date of the file.
@@ -412,23 +320,7 @@ namespace Arcadeia
       /// <value>
       /// The last modification date in DateTime.
       /// </value>
-      public DateTime DateModified
-      {
-         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateModified, CultureInfo.InvariantCulture), DateTimeKind.Utc);
-
-         set
-         {
-            TimeSpan difference = value - DateModified;
-            if (difference >= TimeSpan.FromSeconds(1))
-            {
-               Modified = true;
-
-               _dateModified = value.ToString(CultureInfo.InvariantCulture);
-            }
-         }
-      }
-
-      private MediaContainerFlags? _flags = null;
+      public DateTime? DateModified { get; set; }
 
       /// <summary>
       /// Gets or sets the "flags" attribute of the media container entry.
@@ -436,20 +328,12 @@ namespace Arcadeia
       /// <value>
       /// The flags attribute value. The individual flags can be accessed using their respective name.
       /// </value>
-      public MediaContainerFlags? Flags
-      {
-         get => _flags;
+      public MediaContainerFlags? Flags { get; set; }
 
-         set
-         {
-            if ((_flags == null) || (value != null && !_flags.All.SetEquals(value.All)))
-            {
-               Modified = true;
-
-               _flags = value;
-            }
-         }
-      }
+      /// <summary>
+      /// Gets or sets the original MediaContainer model assigned at load.
+      /// </summary>
+      public Models.MediaContainer? Original { get; set; }
 
       /// <summary>
       /// Gets the MediaContainer model used when returning a JSON response from a Controller.
@@ -461,6 +345,7 @@ namespace Arcadeia
             Id = Id,
             Parent = Parent?.Id,
             ParentType = Parent?.Type,
+            Parents = [.. Parents.Select(parent => parent.Id!)],
             Name = Name,
             Description = Description,
             Type = Type,
@@ -555,7 +440,7 @@ namespace Arcadeia
          Services = services;
          Settings = settings;
          ThumbnailsDatabase = thumbnailsDatabase;
-         MediaLibrary = mediaLibrary ?? (IMediaLibrary)this;
+         MediaLibrary = mediaLibrary ?? (IMediaLibrary) this;
          Progress = progress;
 
          // The Solr service needs to be initialized only once when the MediaLibrary is instantiated
@@ -575,8 +460,7 @@ namespace Arcadeia
          if (model != null)
          {
             Model = model;
-
-            Modified = false;
+            Original = model;
 
             return;
          }
@@ -807,9 +691,6 @@ namespace Arcadeia
          // This can happen when a container has been loaded that exists neither on the disk nor in the library.
          if (Created && Deleted) return false;
 
-         // No MediaContainer should be processed having its Name field set to null.
-         if (string.IsNullOrEmpty(Name)) Skipped = true;
-
          if (Skipped)
          {
             Logger.LogDebug("{} Skipped: {}", Type, FullPath);
@@ -826,6 +707,8 @@ namespace Arcadeia
 
             if (result)
             {
+               Original = null;
+
                Logger.LogInformation("{} Removed: {}", Type, FullPath);
             }
 
@@ -841,31 +724,43 @@ namespace Arcadeia
             using IServiceScope scope = Services.CreateScope();
             ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
 
-            result = solrIndexService.Add(Model);
+            var model = Model;
+            result = solrIndexService.Add(model);
 
             if (result)
             {
-               Logger.LogInformation("{} Added: {}", Type, FullPath);
-
                Created = false;
-               Modified = false;
+               Original = model;
+
+               Logger.LogInformation("{} Added: {}", Type, FullPath);
             }
 
             return result;
          }
-
-         if (Modified)
+         else if (Modified)
          {
+            var model = Model;
+
+            if (Original != null && Logger.IsEnabled(LogLevel.Trace))
+            {
+               var differences = Original?.Differences(model);
+
+               if (differences?.Count() > 0)
+               {
+                  Logger.LogTrace("{} Modified: {}\n\t{}", Type, FullPath, string.Join("\n\t", differences));
+               }
+            }
+
             using IServiceScope scope = Services.CreateScope();
             ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
 
-            result = solrIndexService.Update(Model);
+            result = solrIndexService.Update(model);
 
             if (result)
             {
-               Logger.LogInformation("{} Updated: {}", Type, FullPath);
+               Original = model;
 
-               Modified = false;
+               Logger.LogInformation("{} Updated: {}", Type, FullPath);
             }
 
             return result;

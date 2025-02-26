@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Diagnostics;
@@ -31,7 +31,7 @@ namespace Arcadeia
       // A simple dictionary caching the newly created Ids keyed by the FullPath of their holders.
       // This makes parallel scanning possible as otherwise concurrency issues with updating the
       // Solr index leads to duplicate entries. The cache should be cleared once the scanning is over.
-      private readonly Dictionary<string, string> _cache = new();
+      private readonly Dictionary<string, string> _cache = [];
 
       #region Constructors
 
@@ -50,11 +50,7 @@ namespace Arcadeia
          {
             DateCreated = DateTime.UtcNow;
 
-            if (Save())
-            {
-               Created = false;
-               Modified = false;
-            }
+            Save();
          }
       }
 

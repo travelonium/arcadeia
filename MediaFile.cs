@@ -32,28 +32,13 @@ namespace Arcadeia
    {
       #region Fields
 
-      private long _size = -1;
-
       /// <summary>
       /// Gets or sets the size of the file.
       /// </summary>
       /// <value>
       /// The file size in Int64.
       /// </value>
-      public long Size
-      {
-         get => _size;
-
-         set
-         {
-            if (_size != value)
-            {
-               Modified = true;
-
-               _size = value;
-            }
-         }
-      }
+      public long Size { get; set; }
 
       /// <summary>
       /// Gets or sets the thumbnail(s) of the current media file.
@@ -61,11 +46,7 @@ namespace Arcadeia
       /// <value>
       /// The thumbnail(s).
       /// </value>
-      public MediaFileThumbnails? Thumbnails
-      {
-         get;
-         set;
-      }
+      public MediaFileThumbnails? Thumbnails { get; set; }
 
       /// <summary>
       /// Gets the content type (MIME type) of the file.
@@ -98,30 +79,13 @@ namespace Arcadeia
          }
       }
 
-      private long _views = 0;
-
       /// <summary>
       /// Gets or sets the views count of the file.
       /// </summary>
       /// <value>
       /// The views count in Int64.
       /// </value>
-      public long Views
-      {
-         get => _views;
-
-         set
-         {
-            if (_views != value)
-            {
-               Modified = true;
-
-               _views = value;
-            }
-         }
-      }
-
-      private string? _checksum = null;
+      public long Views { get; set; }
 
       /// <summary>
       /// Gets or sets the checksum of the file.
@@ -129,22 +93,7 @@ namespace Arcadeia
       /// <value>
       /// The checksum in String.
       /// </value>
-      public string? Checksum
-      {
-         get => _checksum;
-
-         set
-         {
-            if (_checksum != value)
-            {
-               Modified = true;
-
-               _checksum = value;
-            }
-         }
-      }
-
-      private string? _dateAccessed = null;
+      public string? Checksum { get; set; }
 
       /// <summary>
       /// Gets or sets the date the file was accessed last.
@@ -152,21 +101,7 @@ namespace Arcadeia
       /// <value>
       /// The last access date in DateTime.
       /// </value>
-      public DateTime DateAccessed
-      {
-         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateAccessed, CultureInfo.InvariantCulture), DateTimeKind.Utc);
-
-         set
-         {
-            TimeSpan difference = value - DateAccessed;
-            if (difference >= TimeSpan.FromSeconds(1))
-            {
-               Modified = true;
-
-               _dateAccessed = value.ToString(CultureInfo.InvariantCulture);
-            }
-         }
-      }
+      public DateTime? DateAccessed { get; set; }
 
       /// <summary>
       /// Gets a tailored MediaContainer model describing a media file.
@@ -197,17 +132,11 @@ namespace Arcadeia
             Size = value.Size;
             Checksum = value.Checksum;
             Views = value.Views;
-
-            if (value.DateAccessed.HasValue)
-            {
-               DateAccessed = value.DateAccessed.Value;
-            }
+            DateAccessed = value.DateAccessed;
 
             if (string.IsNullOrEmpty(Id)) throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
 
             Thumbnails = new(ThumbnailsDatabase, Id);
-
-            if ((ContentType != value.ContentType) || (Extension != value.Extension)) Modified = true;
          }
       }
 
@@ -287,7 +216,7 @@ namespace Arcadeia
          {
             if (Thumbnails.Initialized)
             {
-               if (Created || Modified)
+               if ((Created || Modified) && (Checksum != Original?.Checksum))
                {
                   // Try to regenerate thumbnails for the file.
                   GenerateThumbnails(force: true);

@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Globalization;
@@ -33,29 +33,13 @@ namespace Arcadeia
 
       #region Fields
 
-      protected string? _dateTaken = null;
-
       /// <summary>
       /// Gets or sets the date the photo was originally taken.
       /// </summary>
       /// <value>
       /// The original date in DateTime.
       /// </value>
-      public DateTime DateTaken
-      {
-         get => DateTime.SpecifyKind(Convert.ToDateTime(_dateTaken, CultureInfo.InvariantCulture), DateTimeKind.Utc);
-
-         set
-         {
-            TimeSpan difference = value - DateTaken;
-            if (difference >= TimeSpan.FromSeconds(1))
-            {
-               Modified = true;
-
-               _dateTaken = value.ToString(CultureInfo.InvariantCulture);
-            }
-         }
-      }
+      public DateTime? DateTaken { get; set; }
 
       private long _width  = -1;
       private long _height = -1;
@@ -74,8 +58,6 @@ namespace Arcadeia
          {
             if (Resolution != value)
             {
-               Modified = true;
-
                _width = value.Width;
                _height = value.Height;
             }
@@ -348,11 +330,6 @@ namespace Arcadeia
          }
 
          Progress?.Report(1.0f);
-
-         if (thumbnails > 0)
-         {
-            Modified = true;
-         }
 
          return thumbnails;
       }

@@ -36,28 +36,13 @@ namespace Arcadeia
 
       #region Fields
 
-      private double _duration = -1.0;
-
       /// <summary>
       /// Gets or sets the duration of the video file.
       /// </summary>
       /// <value>
       /// The video file duration.
       /// </value>
-      public double Duration
-      {
-         get => _duration;
-
-         set
-         {
-            if (_duration != value)
-            {
-               Modified = true;
-
-               _duration = value;
-            }
-         }
-      }
+      public double? Duration { get; set; }
 
       private long _width = -1;
       private long _height = -1;
@@ -76,8 +61,6 @@ namespace Arcadeia
          {
             if (Resolution != value)
             {
-               Modified = true;
-
                _width = value.Width;
                _height = value.Height;
             }
@@ -336,29 +319,31 @@ namespace Arcadeia
          // Calculate the total number of thumbnails to be generated used for progress reporting
          foreach (var item in Settings.CurrentValue.Thumbnails.Video)
          {
-            total += (item.Value.Count > 0) ? (int)Math.Min(item.Value.Count, Math.Floor(Duration)) : 1;
+            total += (item.Value.Count > 0) ? (int)Math.Min(item.Value.Count, Math.Floor(Duration ?? -1)) : 1;
          }
 
          Progress?.Report(0.0f);
 
          foreach (var item in Settings.CurrentValue.Thumbnails.Video)
          {
+            double duration = Duration ?? 0.0f;
+
             // No point in generating thumbnails for a zero-length file
-            if (Duration == 0.0f) break;
+            if (duration == 0.0f) break;
 
             string label = item.Key;
             bool crop = item.Value.Crop;
             bool sprite = item.Value.Sprite;
             int height = item.Value.Height;
             int width = item.Value.Width;
-            int count = Math.Min(item.Value.Count, (int)Math.Floor(Duration));
+            int count = Math.Min(item.Value.Count, (int)Math.Floor(duration));
 
             using var collection = new MagickImageCollection();
 
             for (int counter = 0; counter < Math.Max(1, count); counter++)
             {
                byte[]? thumbnail = null;
-               int position = (int)((counter + 0.5) * Duration / (count != 0 ? count : Math.Min(24, Math.Floor(Duration))));
+               int position = (int)((counter + 0.5) * duration / (count != 0 ? count : Math.Min(24, Math.Floor(duration))));
                string column = ((count >= 1) && !sprite) ? string.Format("{0}{1}", item.Key, counter) : label;
 
                if (!force)
@@ -419,11 +404,6 @@ namespace Arcadeia
          }
 
          Progress?.Report(1.0f);
-
-         if (thumbnails > 0)
-         {
-            Modified = true;
-         }
 
          return thumbnails;
       }

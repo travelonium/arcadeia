@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Text;
@@ -100,8 +100,8 @@ namespace Arcadeia.Controllers
          long width = item.Width;
          long height = item.Height;
          bool sprite = item.Sprite;
-         double duration = videoFile.Duration;
          string from = "00:00:00";
+         double duration = videoFile.Duration ?? 0;
          int count = (item.Count > 0) ? (int)Math.Min(item.Count, Math.Floor(duration)) : 0;
 
          if (!sprite || (count <= 1))
