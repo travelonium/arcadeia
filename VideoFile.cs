@@ -354,7 +354,7 @@ namespace Arcadeia
                   if (!nullColumns.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
-               if (!sprite || (counter == 0)) Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+               if (!sprite || (counter == 0)) Logger.LogTrace("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail
                if (!string.IsNullOrEmpty(FullPath)) thumbnail = GenerateThumbnail(FullPath, position, width, height, crop);

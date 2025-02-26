@@ -308,7 +308,7 @@ namespace Arcadeia
                   if (!nullColumns.Contains(column, StringComparer.InvariantCultureIgnoreCase)) continue;
                }
 
-               Logger.LogDebug("Generating The {} Thumbnail For: {}", column, FullPath);
+               Logger.LogTrace("Generating The {} Thumbnail For: {}", column, FullPath);
 
                // Generate the thumbnail.
                if (!string.IsNullOrEmpty(FullPath)) thumbnail = GenerateThumbnail(FullPath, width, height, crop);
