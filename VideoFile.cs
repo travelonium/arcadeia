@@ -158,16 +158,19 @@ namespace Arcadeia
 
             process.WaitForExit(Settings.CurrentValue.FFmpeg.TimeoutMilliseconds);
 
-            if (process.HasExited)
+            if (!process.HasExited || process.ExitCode != 0)
             {
-               if (process.ExitCode != 0)
+               if (!process.HasExited)
                {
-                  Logger.LogDebug("{Errors}", errorTask.Result);
+                  Logger.LogWarning("FFprobe Execution Timeout: {FileName} {Arguments}\n{Result}",
+                                    process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
+                  process.Kill();
                }
-            }
-            else
-            {
-               Logger.LogDebug("File Info Retrieval Timeout: {FullPath}", FullPath);
+               else
+               {
+                  Logger.LogWarning("FFprobe Execution Failed: {FileName} {Arguments}\n{Result}",
+                                    process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
+               }
             }
          }
 
@@ -245,14 +248,14 @@ namespace Arcadeia
          {
             if (!process.HasExited)
             {
-               logger?.LogDebug("FFmpeg Execution Timeout: {FileName} {Arguments}\n{Result}",
-                                process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
+               logger?.LogWarning("FFmpeg Execution Timeout: {FileName} {Arguments}\n{Result}",
+                                  process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
                process.Kill();
             }
             else
             {
-               logger?.LogDebug("FFmpeg Execution Failed: {FileName} {Arguments}\n{Result}",
-                                 process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
+               logger?.LogWarning("FFmpeg Execution Failed: {FileName} {Arguments}\n{Result}",
+                                  process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
             }
 
             return null;
