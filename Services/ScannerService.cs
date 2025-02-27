@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using System.Diagnostics;
@@ -319,7 +319,7 @@ namespace Arcadeia.Services
                      {
                         if (pattern.IsMatch(file) || pattern.IsMatch(name))
                         {
-                           _logger.LogDebug("File Ignored: {}", file);
+                           _logger.LogTrace("File Ignored: {}", file);
 
                            return;
                         }
@@ -327,6 +327,8 @@ namespace Arcadeia.Services
 
                      try
                      {
+                        _logger.LogDebug("Processing File {} / {}: {}", currentIndex + 1, total, file);
+
                         // Add the file to the MediaLibrary
                         using var newMediaFile = _mediaLibrary.InsertMediaFile(file);
                      }
@@ -473,9 +475,9 @@ namespace Arcadeia.Services
                            // Find duplicates in Solr
                            var query = new SolrQueryByField("fullPath", document.FullPath);
                            var orders = new[]
-                        {
-                                new SortOrder("dateAdded", Order.ASC)
-                               };
+                           {
+                              new SortOrder("dateAdded", Order.ASC)
+                           };
 
                            var results = solrIndexService.Get(query, orders);
                            if (results.Count > 1)
@@ -496,6 +498,8 @@ namespace Arcadeia.Services
                            if (availableFolders.Any(folder => document.FullPath.StartsWith(folder)))
                            {
                               cancellationToken.ThrowIfCancellationRequested();
+
+                              _logger.LogDebug("Processing File {} / {}: {}", currentIndex + 1, total, document.FullPath);
 
                               // Update the current media container
                               using var mediaContainer = _mediaLibrary.UpdateMediaContainer(id: document.Id, document.Type);
