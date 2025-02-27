@@ -51,6 +51,7 @@ class NavMenu extends Component {
             query: this.query,
             favorite: this.favorite ?? false,
             recursive: this.recursive ?? false,
+            duplicates: this.duplicates ?? false,
         };
     }
 
@@ -80,6 +81,11 @@ class NavMenu extends Component {
     get recursive() {
         const recursive = this.props.searchParams.get("recursive");
         return (recursive != null) ? recursive === "true" : null;
+    }
+
+    get duplicates() {
+        const duplicates = this.props.searchParams.get("duplicates");
+        return (duplicates != null) ? duplicates === "true" : null;
     }
 
     componentDidMount() {
@@ -116,6 +122,11 @@ class NavMenu extends Component {
                 params.set("recursive", this.state.recursive);
             } else {
                 params.delete('recursive');
+            }
+            if (this.state.duplicates) {
+                params.set("duplicates", this.state.duplicates);
+            } else {
+                params.delete('duplicates');
             }
             return params;
         }, { replace: replace });
@@ -155,6 +166,15 @@ class NavMenu extends Component {
         clearTimeout(this.searchTimeout);
         this.setState({
             recursive: value
+        }, () => {
+            this.updateSearchParams();
+        });
+    }
+
+    onToggleDuplicates(value) {
+        clearTimeout(this.searchTimeout);
+        this.setState({
+            duplicates: value
         }, () => {
             this.updateSearchParams();
         });
@@ -267,6 +287,7 @@ class NavMenu extends Component {
                                     : <></>
                                 }
                                 </Button>
+                                <Flag className="me-1" button name="duplicates" tooltip="Duplicates" value={this.state.duplicates} set="bi-files" unset="bi-files" onChange={this.onToggleDuplicates.bind(this)} disabled={disabled} />
                                 <Flag className="me-1" button name="favorite" tooltip="Favorite" value={this.state.favorite} set="bi-star-fill" unset="bi-star" onChange={this.onToggleFavorite.bind(this)} disabled={disabled} />
                                 <Flag className="me-1" button name="recursive" tooltip="Recursive" value={this.state.recursive} set="bi-bootstrap-reboot" unset="bi-bootstrap-reboot" onChange={this.onToggleRecursive.bind(this)} disabled={disabled} />
                                 <Flag className="me-1" button name="theme" true={"dark"} false={"light"} tooltip="Theme" value={this.props.ui.theme} set="bi-sun-fill" unset="bi-sun" onChange={this.onToggleTheme.bind(this)} />

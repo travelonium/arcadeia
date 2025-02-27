@@ -145,35 +145,59 @@ class Library extends Component {
         const currentProps = this.props;
         const currentState = this.state;
 
+        const excludedProps = ['dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection'];
+        const excludedState = [];
+
         const nextPath = this.getPath(nextProps?.location?.pathname);
-        const nextName = this.getName(nextProps?.location?.pathname);
-        const nextDuplicates = nextProps.searchParams.get("duplicates") === "true";
         const currentPath = this.getPath(currentProps?.location?.pathname);
+
+        const nextName = this.getName(nextProps?.location?.pathname);
         const currentName = this.getName(currentProps?.location?.pathname);
-        const currentDuplicates = currentProps.searchParams.get("duplicates") === "true";
 
-        // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
-        const wasMediaViewerShow = (currentPath != null && nextPath != null) && (currentName == null && nextName != null);
-        const wasMediaViewerHide = (currentPath != null && nextPath != null) && (currentName != null && nextName == null);
+        let shouldUpdate = false;
 
-        // was it a click on the duplicates badge?
-        const wasDuplicates = (currentDuplicates !== nextDuplicates) && (currentPath != null && nextPath != null) && (nextName !== currentName);
+        do {
+            // was it the duplicates flag that triggered the update?
+            const nextDuplicates = nextProps.searchParams.get("duplicates") === "true";
+            const currentDuplicates = currentProps.searchParams.get("duplicates") === "true";
+            if (currentDuplicates !== nextDuplicates) {
+                shouldUpdate = true;
+                break;
+            }
 
-        // was this triggered by a browser back / forward?
-        const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
+            // check if significant differences exist in props or state, excluding specific keys
+            const havePropsChanged = !isEqualExcluding(currentProps, nextProps, ...excludedProps);
+            const hasStateChanged = !isEqualExcluding(currentState, nextState, ...excludedState);
 
-        // check if significant differences exist in props or state, excluding specific keys
-        const havePropsChanged = !isEqualExcluding(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
-        const updatedProps = differenceWith(currentProps, nextProps, 'dispatch', 'ref', 'forwardedRef', 'ui.uploads', 'ui.scrollPosition', 'signalRConnection');
-        const hasStateChanged = !isEqualExcluding(currentState, nextState);
-        const updatedState = differenceWith(currentState, nextState);
+            if (havePropsChanged || hasStateChanged) {
 
-        const shouldUpdate = wasDuplicates || (((!wasMediaViewerShow && !wasMediaViewerHide) || wasBrowserBackOrForward) && (havePropsChanged || hasStateChanged));
+                // was this triggered by a browser back / forward?
+                const wasBrowserBackOrForward = (nextProps?.navigationType === "POP");
+                if (wasBrowserBackOrForward) {
+                    shouldUpdate = true;
+                    break;
+                }
 
-        if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
-        if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
-        if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
-        console.groupEnd();
+                // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
+                const wasMediaViewerShow = (currentPath != null && nextPath != null) && (currentName == null && nextName != null);
+                const wasMediaViewerHide = (currentPath != null && nextPath != null) && (currentName != null && nextName == null);
+                if (!wasMediaViewerShow && !wasMediaViewerHide) {
+                    shouldUpdate = true;
+                    break;
+                }
+            }
+
+        } while (false);
+
+        if (import.meta.env.MODE === 'development') {
+            const updatedProps = differenceWith(currentProps, nextProps, ...excludedProps);
+            const updatedState = differenceWith(currentState, nextState, ...excludedState);
+
+            if (shouldUpdate) console.group(`shouldComponentUpdate(${shouldUpdate})`); else console.groupCollapsed(`shouldComponentUpdate(${shouldUpdate})`);
+            if (!isEmpty(updatedProps)) console.debug("Props: ", updatedProps);
+            if (!isEmpty(updatedState)) console.debug("State: ", updatedState);
+            console.groupEnd();
+        }
 
         return shouldUpdate;
     }
@@ -641,7 +665,7 @@ class Library extends Component {
             this.mediaViewer.current.view([source], 0);
             if (path !== this.pathname) {
                 const url = encodeURI(path + this.props.location.search);
-                this.props.navigate(url, {state: {path: this.path, search: this.props.location.search}});
+                this.props.navigate(url, {state: {path: this.pathname, search: this.props.location.search}});
             }
         } else {
             switch (source.type) {
