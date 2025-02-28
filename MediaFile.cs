@@ -190,8 +190,8 @@ namespace Arcadeia
             FileInfo fileInfo = new(FullPath);
 
             Size = fileInfo.Length;
-            DateCreated = fileInfo.CreationTimeUtc;
-            DateModified = fileInfo.LastWriteTimeUtc;
+            DateCreated = fileInfo.CreationTimeUtc != DateTimeOffset.FromUnixTimeSeconds(0).UtcDateTime ? fileInfo.CreationTimeUtc : null;
+            DateModified = fileInfo.LastWriteTimeUtc != DateTimeOffset.FromUnixTimeSeconds(0).UtcDateTime ? fileInfo.LastWriteTimeUtc : null;
          }
          catch (Exception e)
          {
