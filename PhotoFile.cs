@@ -180,7 +180,7 @@ namespace Arcadeia
             {
                if (DateTime.TryParseExact(value.ToString(), "yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
                {
-                  DateTaken = date != DateTimeOffset.FromUnixTimeSeconds(0).UtcDateTime ? date : null;
+                  DateTaken = date != DateTime.UnixEpoch ? date : null;
                }
             }
          }

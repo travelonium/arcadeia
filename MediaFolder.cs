@@ -70,8 +70,8 @@ namespace Arcadeia
             // Acquire the common directory information.
             DirectoryInfo directoryInfo = new(FullPath);
 
-            DateCreated = directoryInfo.CreationTimeUtc != DateTimeOffset.FromUnixTimeSeconds(0).UtcDateTime ? directoryInfo.CreationTimeUtc : null;
-            DateModified = directoryInfo.LastWriteTimeUtc != DateTimeOffset.FromUnixTimeSeconds(0).UtcDateTime ? directoryInfo.LastWriteTimeUtc : null;
+            DateCreated = directoryInfo.CreationTimeUtc != DateTime.UnixEpoch ? directoryInfo.CreationTimeUtc : null;
+            DateModified = directoryInfo.LastWriteTimeUtc != DateTime.UnixEpoch ? directoryInfo.LastWriteTimeUtc : null;
          }
          catch (Exception e)
          {
