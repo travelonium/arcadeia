@@ -1030,7 +1030,7 @@ class Library extends Component {
                         }
                         <div className="statistics d-none d-md-block ms-auto">
                             <span className="statistics-files">{this.files()}</span>
-                            <span className="statistics-size ms-1">{size(items.reduce((sum, item) => sum + item.size, 0), 2, '(', ')')}</span>
+                            <span className="statistics-size ms-1">{size(items.reduce((sum, item) => sum + (item.size ?? 0), 0), 2, '(', ')')}</span>
                         </div>
                     </Breadcrumb>
                     <div ref={this.gridWrapper} className="grid-wrapper d-flex flex-grow-1 position-relative mx-3">
