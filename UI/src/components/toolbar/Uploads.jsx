@@ -207,7 +207,7 @@ const Uploads = forwardRef((props, ref) => {
                         <UploadListGroup states={["queued"]} uploads={queued}/>
                     </Tab>
                     <Tab id="tab-active" className="flex-column flex-grow-1" eventKey="active" title={<><i className="bi bi-circle-fill text-info pe-2"/>Active</>}>
-                        <UploadListGroup uploads={active}/>
+                        <UploadListGroup states={["active"]} uploads={active}/>
                     </Tab>
                     <Tab id="tab-succeeded" className="flex-column flex-grow-1" eventKey="succeeded" title={<><i className="bi bi-check-circle text-success pe-2"/>Succeeded</>}>
                         <UploadListGroup states={["succeeded"]} uploads={succeeded}/>
