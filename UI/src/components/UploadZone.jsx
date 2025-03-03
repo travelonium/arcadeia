@@ -28,8 +28,8 @@ import Badge from 'react-bootstrap/Badge';
 import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
-import { queueUpload, startUploadThunk, updateUpload, switchUploadState } from '../features/ui/slice';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
+import { queueUpload, startUploadThunk, updateUpload, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
 
 class UploadZone extends Component {
 
@@ -65,15 +65,43 @@ class UploadZone extends Component {
     }
 
     get queued() {
-        return this.props.ui.uploads.queued.filter(item => item.timestamp >= this.state.timestamp && item.state === 'queued');
+        return this.props.ui.uploads.queued.filter(item => item.timestamp >= this.state.timestamp);
     }
 
     get active() {
-        return this.props.ui.uploads.active.filter(item => item.timestamp >= this.state.timestamp && item.state === 'active');
+        return this.props.ui.uploads.active.filter(item => item.timestamp >= this.state.timestamp);
     }
 
     get failed() {
-        return this.props.ui.uploads.failed.filter(item => item.timestamp >= this.state.timestamp && item.state === 'failed');
+        return this.props.ui.uploads.failed.filter(item => item.timestamp >= this.state.timestamp);
+    }
+
+    componentDidMount() {
+        const active = this.props.ui.uploads.active.filter(item => item.timestamp < this.state.timestamp);
+        const queued = this.props.ui.uploads.queued.filter(item => item.timestamp < this.state.timestamp);
+        // go through the list of active uploads and set the stale items to failed
+        active.forEach((item) => {
+            if (item.url) {
+                this.isUploading(item.url, item.path)
+                .then((uploading) => {
+                    if (!uploading) {
+                        const key = item.path + item.url;
+                        // set the item's state to 'failed'
+                        this.props.dispatch(switchUploadState({ key: key, to: 'failed' }));
+                    }
+                });
+            }
+        });
+        // update the timestamps of the queued items to enable them to be processed
+        queued.forEach((item) => {
+            if (item.url) {
+                const key = item.path + item.url;
+                // set the item's state to 'queued' forcing timestamp update and start uploading
+                this.props.dispatch(switchUploadStateThunk({ key: key, to: 'queued' })).then(() => {
+                    this.upload(null, true);
+                });
+            }
+        });
     }
 
     isValidHttpUrl(string) {
@@ -84,6 +112,27 @@ class UploadZone extends Component {
             return false;
         }
         return url.protocol === "http:" || url.protocol === "https:";
+    }
+
+    async isUploading(url, path) {
+        try {
+            const target = new URL("/api/library/upload", window.location.origin);
+            target.searchParams.set('path', path);
+            target.searchParams.set('url', url);
+            const response = await fetch(target.toString(), {
+                method: "HEAD"
+            });
+            if (response.ok) {
+                return true;
+            } else if (response.status === 404) {
+                return false;
+            } else {
+                throw new Error(response.statusText);
+            }
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
     }
 
     renderErrorToast(title, subtitle) {

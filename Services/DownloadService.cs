@@ -19,15 +19,20 @@
  */
 
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Arcadeia.Configuration;
 using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
 
 namespace Arcadeia.Services
 {
    public partial class DownloadService(IOptionsMonitor<Settings> settings, ILogger<DownloadService> logger) : IDownloadService
    {
+      private readonly object _lock = new();
+
+      private HashSet<string> _downloading = [];
+
       private readonly ILogger<DownloadService> _logger = logger;
+
       private readonly IOptionsMonitor<Settings> _settings = settings;
 
       [GeneratedRegex(@"\[download\]\s+([\d\.]+)% of")]
@@ -45,6 +50,7 @@ namespace Arcadeia.Services
       [GeneratedRegex(@"\[download\] .*\/(.+) has already been downloaded")]
       private static partial Regex AlreadyDownloadedRegex();
 
+
       public class FileAlreadyDownloadedException : Exception
       {
          public FileAlreadyDownloadedException() : base() { }
@@ -52,6 +58,14 @@ namespace Arcadeia.Services
          public FileAlreadyDownloadedException(string message) : base(message) { }
 
          public FileAlreadyDownloadedException(string message, Exception innerException) : base(message, innerException) { }
+      }
+
+      public bool Downloading(string url, string path)
+      {
+         lock (_lock)
+         {
+            return _downloading.Contains(path + url);
+         }
       }
 
       public async Task<string?> GetMediaFileNameAsync(string url, string template = "%(title)s.%(ext)s")
@@ -130,6 +144,11 @@ namespace Arcadeia.Services
 
          _logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
+         lock (_lock)
+         {
+            _downloading.Add(path + url);
+         }
+
          process.OutputDataReceived += (sender, e) =>
          {
             try
@@ -205,7 +224,17 @@ namespace Arcadeia.Services
 
             if (!string.IsNullOrEmpty(error)) _logger.LogDebug("{}", error);
 
+            lock (_lock)
+            {
+               _downloading.Remove(path + url);
+            }
+
             return null;
+         }
+
+         lock (_lock)
+         {
+            _downloading.Remove(path + url);
          }
 
          return Path.Combine(path, fileName);

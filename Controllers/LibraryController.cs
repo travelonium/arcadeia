@@ -452,6 +452,22 @@ namespace Arcadeia.Controllers
          }
       }
 
+      [HttpHead]
+      [Route("upload")]
+      public IActionResult Uploading([FromQuery] String url, [FromQuery] string path)
+      {
+         IDownloadService? mediaFileDownloadService = _services.GetService<IDownloadService>();
+
+         if (mediaFileDownloadService == null)
+         {
+            return Problem(title: "Download service is unavailable.");
+         }
+
+         bool downloading = mediaFileDownloadService.Downloading(url, path);
+
+         return downloading ? Ok() : NotFound();
+      }
+
       // GET: /api/library/clear/history
       [HttpGet]
       [Route("clear/history")]
