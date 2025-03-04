@@ -439,7 +439,7 @@ class UploadZone extends Component {
         // are file(s) being dragged or else?
         if (event.dataTransfer.types) {
             for (const type of event.dataTransfer.types) {
-                if ((type === "Files") || (type.match('^text/plain'))) {
+                if ((type === "Files") || (type.match('^text/plain') || type.match('^text/uri-list'))) {
                     dragging = true;
                 }
             }
@@ -460,7 +460,7 @@ class UploadZone extends Component {
             const items = [];
             const dataTransfer = event.dataTransfer;
             for (const item of dataTransfer.items) {
-                if (item.kind === 'string' && item.type.match('^text/plain')) {
+                if (item.kind === 'string' && item.type.match('^text/plain') || item.type.match('^text/uri-list')) {
                     // the item is a URL
                     item.getAsString(async (url) => {
                         const items = []; // only valid and processed inside this block
