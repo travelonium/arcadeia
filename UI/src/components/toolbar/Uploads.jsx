@@ -54,17 +54,17 @@ const Uploads = forwardRef((props, ref) => {
     }));
 
     function onShow() {
-        props.onShow?.()
+        props.onShow?.();
     }
 
     function onHide() {
         setState(false);
-        props.onHide?.()
+        props.onHide?.();
     }
 
     function onRetry(key) {
         dispatch(switchUploadStateThunk(key, 'queued')).then(() => {
-            props.onUpload?.()
+            props.onUpload?.();
         });
     }
 
@@ -160,7 +160,7 @@ const Uploads = forwardRef((props, ref) => {
         )
     }
 
-    const UploadListGroup = ({ uploads, states }) => {
+    const UploadListGroup = ({ uploads, clear, retry }) => {
         if (uploads.length === 0) return <></>;
         else return (
             <>
@@ -175,16 +175,28 @@ const Uploads = forwardRef((props, ref) => {
                 </ListGroup>
                 <Container fluid>
                     <Row className="pt-1">
+                    {
+                        (retry) ?
                         <Col className="d-flex align-items-center">
-                        {
-                            (states) ?
+                            <Button variant="info" className="d-flex flex-grow-1 justify-content-center" onClick={() => {
+                                uploads.forEach(upload => {
+                                    dispatch(switchUploadStateThunk(upload.key, 'queued')).then(() => {
+                                        props.onUpload?.();
+                                    });
+                                });
+                            }}>Retry</Button>
+                        </Col> : <></>
+                    }
+                    {
+                        (clear) ?
+                        <Col className="d-flex align-items-center">
                             <Button variant="danger" className="d-flex flex-grow-1 justify-content-center" onClick={() => {
-                                states.forEach(state => {
+                                clear.forEach(state => {
                                     dispatch(removeUploads({ state: state }))
                                 });
-                            }}>Clear</Button> : <></>
-                        }
-                        </Col>
+                            }}>Clear</Button>
+                        </Col> : <></>
+                    }
                     </Row>
                 </Container>
             </>
@@ -200,20 +212,45 @@ const Uploads = forwardRef((props, ref) => {
             </Modal.Header>
             <Modal.Body className="d-flex flex-column p-0">
                 <Tabs id="uploads-tabs" className="flex-row mb-2 px-2 pt-2" activeKey={tab} onSelect={(tab) => setTab(tab)} variant="tabs" navbar justify>
-                    <Tab id="tab-all" className="flex-column flex-grow-1" eventKey="all" title="All">
-                        <UploadListGroup states={["queued", "succeeded", "failed"]} uploads={all}/>
+                    <Tab id="tab-all" className="flex-column flex-grow-1" eventKey="all" title={
+                        <>
+                            <p className="mb-1">All</p>
+                            <span>{`(${all.length})`}</span>
+                        </>
+                    }>
+                        <UploadListGroup clear={["queued", "succeeded", "failed"]} uploads={all}/>
                     </Tab>
-                    <Tab id="tab-queued" className="flex-column flex-grow-1" eventKey="queued" title={<><i className="bi bi-circle text-secondary pe-2"/>Queued</>}>
-                        <UploadListGroup states={["queued"]} uploads={queued}/>
+                    <Tab id="tab-queued" className="flex-column flex-grow-1" eventKey="queued" title={
+                        <>
+                            <p className="mb-1"><i className="bi bi-circle text-secondary pe-2"/>Queued</p>
+                            <span>{`(${queued.length})`}</span>
+                        </>
+                    }>
+                        <UploadListGroup clear={["queued"]} uploads={queued}/>
                     </Tab>
-                    <Tab id="tab-active" className="flex-column flex-grow-1" eventKey="active" title={<><i className="bi bi-circle-fill text-info pe-2"/>Active</>}>
+                    <Tab id="tab-active" className="flex-column flex-grow-1" eventKey="active" title={
+                        <>
+                            <p className="mb-1"><i className="bi bi-circle-fill text-info pe-2"/>Active</p>
+                            <span>{`(${active.length})`}</span>
+                        </>
+                    }>
                         <UploadListGroup uploads={active}/>
                     </Tab>
-                    <Tab id="tab-succeeded" className="flex-column flex-grow-1" eventKey="succeeded" title={<><i className="bi bi-check-circle text-success pe-2"/>Succeeded</>}>
-                        <UploadListGroup states={["succeeded"]} uploads={succeeded}/>
+                    <Tab id="tab-succeeded" className="flex-column flex-grow-1" eventKey="succeeded" title={
+                        <>
+                            <p className="mb-1"><i className="bi bi-check-circle text-success pe-2"/>Succeeded</p>
+                            <span>{`(${succeeded.length})`}</span>
+                        </>
+                    }>
+                        <UploadListGroup clear={["succeeded"]} uploads={succeeded}/>
                     </Tab>
-                    <Tab id="tab-failed" className="flex-column flex-grow-1" eventKey="failed" title={<><i className="bi bi-check-circle text-danger pe-2"/>Failed</>}>
-                        <UploadListGroup states={["failed"]} uploads={failed}/>
+                    <Tab id="tab-failed" className="flex-column flex-grow-1" eventKey="failed" title={
+                        <>
+                            <p className="mb-1"><i className="bi bi-check-circle text-danger pe-2"/>Failed</p>
+                            <span>{`(${failed.length})`}</span>
+                        </>
+                    }>
+                        <UploadListGroup clear={["failed"]} retry={true} uploads={failed}/>
                     </Tab>
                 </Tabs>
             </Modal.Body>

@@ -15,6 +15,7 @@
         "bin"
     ],
     "cSpell.words": [
+        "arcadeia",
         "Exif",
         "ffprobe",
         "fieldtypes",
@@ -23,13 +24,13 @@
         "journaling",
         "libvpx",
         "Magick",
-        "arcadeia",
         "mjpeg",
         "msgpack",
         "ngram",
         "pdate",
         "pdouble",
         "plong",
+        "retriable",
         "signalr",
         "stopwords",
         "vframes",
