@@ -107,6 +107,14 @@ export const uiSlice = createSlice({
                 });
             }
         },
+        updateUploadProgress: (state, action) => {
+            const { key, value } = action.payload;
+            if (!key) return;
+            state.uploads.progress[key] = {
+                value: value,
+                timestamp: Date.now()
+            };
+        },
         switchUploadState: (state, action) => {
             const { key, to } = action.payload;
             if (!state.uploads.items[key]) return;
@@ -118,10 +126,12 @@ export const uiSlice = createSlice({
         removeUploads: (state, action) => {
             if (action.payload.key) {
                 delete state.uploads.items[action.payload.key];
+                delete state.uploads.progress[action.payload.key];
             } else if (action.payload.state) {
                 Object.entries(state.uploads.items).forEach(([key, value]) => {
                     if (value.state === action.payload.state) {
                         delete state.uploads.items[key];
+                        delete state.uploads.progress[key];
                     }
                 });
             } else throw new Error("Neither key nor state has been supplied to the removeUploads.");
@@ -180,6 +190,7 @@ export const {
     queueUpload,
     startUpload,
     updateUpload,
+    updateUploadProgress,
     switchUploadState,
     removeUploads,
     setSimultaneousUploads,

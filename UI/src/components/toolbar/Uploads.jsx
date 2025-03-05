@@ -43,6 +43,7 @@ const Uploads = forwardRef((props, ref) => {
     const queued = useSelector(selectQueued);
     const failed = useSelector(selectFailed);
     const succeeded = useSelector(selectSucceeded);
+    const progress = useSelector(state => state.ui.uploads.progress);
 
     useImperativeHandle(ref, () => ({
         show() {
@@ -78,7 +79,7 @@ const Uploads = forwardRef((props, ref) => {
         }
     }
 
-    const Upload = ({ upload }) => {
+    const Upload = ({ upload, progress }) => {
         let icon = null;
         let color = null;
         switch (upload.state) {
@@ -132,10 +133,10 @@ const Uploads = forwardRef((props, ref) => {
                                     </Col>
                                 </Row>
                                 {
-                                    (upload.state === 'active' && upload.progress != null) ?
+                                    (upload.state === 'active' && progress != null) ?
                                         <Row>
                                             <Col className="pt-2 gx-0" xs={12}>
-                                                <ProgressBar variant="info" min={0.0} now={upload.progress} max={1.0} animated={false} />
+                                                <ProgressBar variant="info" min={0.0} now={progress.value} max={1.0} animated={false} />
                                             </Col>
                                         </Row>
                                         : <></>
@@ -168,7 +169,7 @@ const Uploads = forwardRef((props, ref) => {
                 {
                     uploads.map((item, index) => {
                         return (
-                            <Upload key={index} upload={item} />
+                            <Upload key={index} upload={item} progress={progress[item.key]} />
                         )
                     })
                 }

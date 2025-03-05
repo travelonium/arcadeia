@@ -29,7 +29,7 @@ import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
-import { queueUpload, startUploadThunk, updateUpload, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
+import { queueUpload, startUploadThunk, updateUpload, updateUploadProgress, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
 
 class UploadZone extends Component {
 
@@ -590,7 +590,7 @@ class UploadZone extends Component {
                 ...(theme !== undefined && { theme }),
                 ...(toastId !== undefined && { render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} /> }),
             };
-            if (!toastId) {
+            if (!toastId || !toast.isActive(toastId)) {
                 this.toasts[key] = toast.info(<ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />, options);
             } else {
                 toast.update(toastId, options);
@@ -601,8 +601,11 @@ class UploadZone extends Component {
             value: {
                 status: title,
                 name: subtitle,
-                progress: progress,
             }
+        }));
+        this.props.dispatch(updateUploadProgress({
+            key: key,
+            value: progress,
         }));
     }
 

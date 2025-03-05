@@ -35,9 +35,16 @@ const initialState = {
                 file: the File object of the upload item when the dropped item is file
                 path: the destination path where the item is to be uploaded to
                 toast: the toast id related to the active upload item,
-                progress: the progress of the active upload item,
                 status: the last updated status of the upload item,
                 timestamp: unix epoch when the item was inserted or changed state
+            }
+        */
+        },
+        progress: {
+        /*
+            [key]: {
+                value: the progress of the active upload item,
+                timestamp: unix epoch when the progress was updated
             }
         */
         },

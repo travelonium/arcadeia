@@ -41,7 +41,7 @@ import searchInitialState from './features/search/initialState';
 const persistConfig = {
     key: 'root',
     blacklist: ['search', 'settings'],
-    version: 6,
+    version: 7,
     storage,
     migrate: createMigrate({
         2: (state) => {
@@ -110,7 +110,20 @@ const persistConfig = {
                     }
                 }
             };
-        }
+        },
+        7: (state) => {
+            if (!state.ui?.uploads) return state;
+            return {
+                ...state,
+                ui: {
+                    ...state.ui,
+                    uploads: {
+                        ...state.ui.uploads,
+                        progress: {}
+                    }
+                }
+            }
+        },
     }, { debug: false })
 };
 
