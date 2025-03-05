@@ -191,8 +191,9 @@ namespace Arcadeia
          services.AddSession(options =>
          {
             options.IdleTimeout = TimeSpan.FromSeconds(Configuration.GetValue<int>("Session:IdleTimeoutSeconds"));
-            options.Cookie.HttpOnly = true;
+            options.Cookie.HttpOnly = false;
             options.Cookie.IsEssential = true;
+            options.Cookie.SameSite = SameSiteMode.Strict;
          });
 
          // Proxies running on loopback addresses (127.0.0.0/8, [::1]), including the standard localhost
@@ -237,6 +238,7 @@ namespace Arcadeia
          app.UseRouting();
 
          app.UseSession();
+         app.UseMiddleware<SessionMiddleware>();
 
          app.UseEndpoints(endpoints =>
          {

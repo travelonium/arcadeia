@@ -41,7 +41,7 @@ class UploadZone extends Component {
         this.uploadTimeout = null;
         this.state = {
             dragging: false,
-            timestamp: Date.now()
+            timestamp: null,
         };
     }
 
@@ -74,31 +74,60 @@ class UploadZone extends Component {
         return this.props.ui.uploads.failed.filter(item => item.timestamp >= this.state.timestamp);
     }
 
-    componentDidMount() {
-        const active = this.props.ui.uploads.active.filter(item => item.timestamp < this.state.timestamp);
-        const queued = this.props.ui.uploads.queued.filter(item => item.timestamp < this.state.timestamp);
-        // go through the list of active uploads and set the stale items to failed
-        active.forEach((item) => {
-            if (item.url) {
-                this.isUploading(item.url, item.path)
-                .then((uploading) => {
-                    if (!uploading) {
-                        const key = item.path + item.url;
-                        // set the item's state to 'failed'
-                        this.props.dispatch(switchUploadState({ key: key, to: 'failed' }));
-                    }
-                });
+    async fetchSessionStartedTimestamp() {
+        try {
+            const response = await fetch("/api/session/started", { credentials: "include" });
+            if (response.ok) {
+                const data = await response.json();
+                return new Date(data.SessionStarted).getTime();
             }
-        });
-        // update the timestamps of the queued items to enable them to be processed
-        queued.forEach((item) => {
-            if (item.url) {
-                const key = item.path + item.url;
-                // set the item's state to 'queued' forcing timestamp update and start uploading
-                this.props.dispatch(switchUploadStateThunk({ key: key, to: 'queued' })).then(() => {
-                    this.upload(null, true);
-                });
-            }
+        } catch (error) {
+            console.error("Error fetching session started timestamp:", error);
+        }
+        console.warn("Couldn't determine the session start timestamp.");
+        return Date.now();
+    };
+
+    async sessionStartedTimestamp() {
+        const cookies = document.cookie.split("; ");
+        const sessionCookie = cookies.find((row) => row.startsWith("SessionStarted="));
+        if (sessionCookie) {
+            const timestamp = decodeURIComponent(sessionCookie.split("=")[1])
+            return new Date(timestamp).getTime();
+        }
+        return await this.fetchSessionStartedTimestamp();
+    }
+
+    async componentDidMount() {
+        const timestamp = await this.sessionStartedTimestamp();
+        this.setState({
+            timestamp: timestamp
+        }, () => {
+            const active = this.props.ui.uploads.active.filter(item => item.timestamp < this.state.timestamp);
+            const queued = this.props.ui.uploads.queued.filter(item => item.timestamp < this.state.timestamp);
+            // go through the list of active uploads and set the stale items to failed
+            active.forEach((item) => {
+                if (item.url) {
+                    this.isUploading(item.url, item.path)
+                        .then((uploading) => {
+                            if (!uploading) {
+                                const key = item.path + item.url;
+                                // set the item's state to 'failed'
+                                this.props.dispatch(switchUploadState({ key: key, to: 'failed' }));
+                            }
+                        });
+                }
+            });
+            // update the timestamps of the queued items to enable them to be processed
+            queued.forEach((item) => {
+                if (item.url) {
+                    const key = item.path + item.url;
+                    // set the item's state to 'queued' forcing timestamp update and start uploading
+                    this.props.dispatch(switchUploadStateThunk({ key: key, to: 'queued' })).then(() => {
+                        this.upload(null, true);
+                    });
+                }
+            });
         });
     }
 
