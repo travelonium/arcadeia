@@ -41,9 +41,7 @@ class UploadZone extends Component {
         this.uploadTimeout = null;
         this.state = {
             dragging: false,
-            timestamp: Object.values(props.ui.uploads.items).reduce((oldest, item) => {
-                return (item.state === 'queued' && item.timestamp < oldest) ? item.timestamp : oldest;
-            }, Date.now())
+            timestamp: Date.now()
         };
     }
 
