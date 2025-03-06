@@ -365,18 +365,18 @@ namespace Arcadeia.Controllers
          if (_settings.CurrentValue.Security.Library.ReadOnly)
          {
             Response.StatusCode = 403;
-            await WriteAsync(Response, "Error: The library is read-only.\n");
+            await WriteAsync(Response, "Failed: The library is read-only.\n");
             return;
          }
 
          if (string.IsNullOrWhiteSpace(url))
          {
-            await WriteAsync(Response, "Error: URL is required.\n");
+            await WriteAsync(Response, "Failed: URL is required.\n");
             return;
          }
 
          if (!IsPathAllowed(path)) {
-            await WriteAsync(Response, "Error: The destination path is inaccessible.\n");
+            await WriteAsync(Response, "Failed: The destination path is inaccessible.\n");
             return;
          }
 
@@ -384,7 +384,7 @@ namespace Arcadeia.Controllers
 
          if (mediaFileDownloadService == null)
          {
-            await WriteAsync(Response, "Error: Download service is unavailable.\n");
+            await WriteAsync(Response, "Failed: Download service is unavailable.\n");
             return;
          }
 
@@ -429,23 +429,23 @@ namespace Arcadeia.Controllers
                }
                else
                {
-                  await WriteAsync(Response, "Error: Failed to process the media file.\n");
+                  await WriteAsync(Response, "Failed: Failed to process the media file.\n");
                }
             }
             else
             {
-               await WriteAsync(Response, "Error: Media file downloading failed.\n");
+               await WriteAsync(Response, "Failed: Media file downloading failed.\n");
             }
          }
          catch (DownloadService.FileAlreadyDownloadedException ex)
          {
-            await WriteAsync(Response, $"Error: {ex.Message}\n");
+            await WriteAsync(Response, $"Failed: {ex.Message}\n");
             _logger.LogError("Failed To Download URL: {}, Because: {}", url, ex.Message);
             _logger.LogDebug("{Exception}", ex.ToString());
          }
          catch (System.Exception ex)
          {
-            await WriteAsync(Response, $"Error: {ex.Message}\n");
+            await WriteAsync(Response, $"Failed: {ex.Message}\n");
             _logger.LogError("Failed To Download URL: {}, Because: {}", url, ex.Message);
             _logger.LogDebug("{Exception}", ex.ToString());
             throw;

@@ -36,6 +36,7 @@ const initialState = {
                 path: the destination path where the item is to be uploaded to
                 toast: the toast id related to the active upload item,
                 status: the last updated status of the upload item,
+                error: the last reported error message,
                 timestamp: unix epoch when the item was inserted or changed state
             }
         */

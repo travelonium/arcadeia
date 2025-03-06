@@ -22,18 +22,17 @@ using System.Diagnostics;
 using Arcadeia.Configuration;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
 
 namespace Arcadeia.Services
 {
    public partial class DownloadService(IOptionsMonitor<Settings> settings, ILogger<DownloadService> logger) : IDownloadService
    {
-      private readonly object _lock = new();
-
-      private HashSet<string> _downloading = [];
-
       private readonly ILogger<DownloadService> _logger = logger;
 
       private readonly IOptionsMonitor<Settings> _settings = settings;
+
+      private readonly ConcurrentDictionary<string, bool> _downloading = new();
 
       [GeneratedRegex(@"\[download\]\s+([\d\.]+)% of")]
       private static partial Regex ProgressRegex();
@@ -50,6 +49,8 @@ namespace Arcadeia.Services
       [GeneratedRegex(@"\[download\] .*\/(.+) has already been downloaded")]
       private static partial Regex AlreadyDownloadedRegex();
 
+      [GeneratedRegex(@"ERROR: \[\w+\]\s+(.+)")]
+      private static partial Regex ErrorRegex();
 
       public class FileAlreadyDownloadedException : Exception
       {
@@ -62,10 +63,7 @@ namespace Arcadeia.Services
 
       public bool Downloading(string url, string path)
       {
-         lock (_lock)
-         {
-            return _downloading.Contains(path + url);
-         }
+         return _downloading.ContainsKey(path + url);
       }
 
       public async Task<string?> GetMediaFileNameAsync(string url, string template = "%(title)s.%(ext)s")
@@ -109,7 +107,6 @@ namespace Arcadeia.Services
       public async Task<string?> DownloadMediaFileAsync(string url, string path, IProgress<string>? progress = null, string template = "%(title)s.%(ext)s", bool overwrite = false)
       {
          if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
-
          if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be null or empty.", nameof(path));
 
          string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path ?? "", $"yt-dlp{Platform.Extension.Executable}");
@@ -142,64 +139,55 @@ namespace Arcadeia.Services
 
          using Process process = new() { StartInfo = processStartInfo };
 
-         _logger.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+         _downloading.TryAdd(path + url, true);
 
-         lock (_lock)
+         string? ProcessOutput(string? data)
          {
-            _downloading.Add(path + url);
+            string? fileName = null;
+
+            if (string.IsNullOrEmpty(data)) return fileName;
+
+            _logger.LogTrace("{}", data);
+
+            Match match = ProgressRegex().Match(data);
+            if (match.Success && double.TryParse(match.Groups[1].Value, out double percentage))
+            {
+               progress?.Report($"Downloading: {percentage / 100.0:0.000}\n");
+            }
+            else if ((match = FileNameRegex().Match(data)).Success)
+            {
+               fileName = match.Groups[1].Value;
+               progress?.Report($"Downloading: {fileName}\n");
+            }
+            else if ((match = MergingFileNameRegex().Match(data)).Success)
+            {
+               fileName = match.Groups[1].Value;
+               progress?.Report($"Merging: {fileName}\n");
+            }
+            else if ((match = MovingFileNameRegex().Match(data)).Success)
+            {
+               fileName = match.Groups[2].Value;
+               progress?.Report($"Moving: {fileName}\n");
+            }
+            else if ((match = ErrorRegex().Match(data)).Success)
+            {
+               string error = match.Groups[1].Value;
+               progress?.Report($"Error: {error}\n");
+            }
+            else if ((match = AlreadyDownloadedRegex().Match(data)).Success)
+            {
+               fileName = match.Groups[1].Value;
+               throw new FileAlreadyDownloadedException("Media file has already been downloaded.");
+            }
+
+            return fileName;
          }
 
          process.OutputDataReceived += (sender, e) =>
          {
             try
             {
-               if (!string.IsNullOrEmpty(e.Data))
-               {
-                  _logger.LogTrace(e.Data);
-
-                  // extract and output the download progress
-                  Match match = ProgressRegex().Match(e.Data);
-                  if (match.Success)
-                  {
-                     if (double.TryParse(match.Groups[1].Value, out double percentage))
-                     {
-                        double value = percentage / 100.0;
-                        progress?.Report($"Downloading: {value:0.000}\n");
-                     }
-                  }
-
-                  // extract and output the destination file name
-                  match = FileNameRegex().Match(e.Data);
-                  if (match.Success)
-                  {
-                     fileName = match.Groups[1].Value;
-                     progress?.Report($"Downloading: {fileName}\n");
-                  }
-
-                  // extract and output the merged file name
-                  match = MergingFileNameRegex().Match(e.Data);
-                  if (match.Success)
-                  {
-                     fileName = match.Groups[1].Value;
-                     progress?.Report($"Merging: {fileName}\n");
-                  }
-
-                  // extract and output the moved file name
-                  match = MovingFileNameRegex().Match(e.Data);
-                  if (match.Success)
-                  {
-                     fileName = match.Groups[2].Value;
-                     progress?.Report($"Moving: {fileName}\n");
-                  }
-
-                  // file already downloaded
-                  match = AlreadyDownloadedRegex().Match(e.Data);
-                  if (match.Success)
-                  {
-                     fileName = match.Groups[1].Value;
-                     throw new FileAlreadyDownloadedException("Media file has already been downloaded.");
-                  }
-               }
+               fileName = ProcessOutput(e.Data) ?? fileName;
             }
             catch (Exception ex)
             {
@@ -215,6 +203,8 @@ namespace Arcadeia.Services
          string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
          await process.WaitForExitAsync().ConfigureAwait(false);
 
+         _downloading.TryRemove(path + url, out _);
+
          // Check if an exception was set and have the captured exception thrown
          if (tcs.Task.IsFaulted) await tcs.Task;
 
@@ -222,19 +212,17 @@ namespace Arcadeia.Services
          {
             _logger.LogError("Failed To Download URL: {Url}, Exist Code: {ExitCode}", url, process.ExitCode);
 
-            if (!string.IsNullOrEmpty(error)) _logger.LogDebug("{}", error);
-
-            lock (_lock)
+            if (!string.IsNullOrEmpty(error))
             {
-               _downloading.Remove(path + url);
+               _logger.LogDebug("{}", error);
+
+               foreach (var line in error.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+               {
+                  ProcessOutput(line);
+               }
             }
 
             return null;
-         }
-
-         lock (_lock)
-         {
-            _downloading.Remove(path + url);
          }
 
          return Path.Combine(path, fileName);

@@ -109,7 +109,7 @@ const Uploads = forwardRef((props, ref) => {
                 <Container fluid>
                     <Row>
                         <Col className={cx("d-flex h4 mb-0 gx-0 pe-3 align-items-center", color)} xs="auto">
-                            <i className={cx("bi", icon)} />
+                            <i className={cx("bi", icon)} title={upload?.error} />
                         </Col>
                         <Col className="d-flex align-items-center gx-0">
                             <Container fluid>

@@ -29,7 +29,7 @@ import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
-import { queueUpload, startUploadThunk, updateUpload, updateUploadProgress, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
+import { queueUpload, startUploadThunk, updateUpload, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
 
 class UploadZone extends Component {
 
@@ -431,6 +431,15 @@ class UploadZone extends Component {
                             result = JSON.parse(v);
                             show = false;
                         } else if (k === 'Error') {
+                            console.warn("Error Uploading:", url, v);
+                            // update the failed upload item's error
+                            this.props.dispatch(updateUpload({
+                                key: key,
+                                value: {
+                                    error: v,
+                                }
+                            }));
+                        } else if (k === 'Failed') {
                             // reject the promise to propagate the error
                             return Promise.reject(new Error(v));
                         }
@@ -598,14 +607,11 @@ class UploadZone extends Component {
         }
         this.props.dispatch(updateUpload({
             key: key,
+            progress: progress,
             value: {
                 status: title,
                 name: subtitle,
-            }
-        }));
-        this.props.dispatch(updateUploadProgress({
-            key: key,
-            value: progress,
+            },
         }));
     }
 

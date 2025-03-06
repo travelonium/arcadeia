@@ -87,6 +87,8 @@ export const uiSlice = createSlice({
                 // update state directly
                 state.uploads.items[key].state = 'active';
                 state.uploads.items[key].timestamp = Date.now();
+                delete state.uploads.items[key].error;
+                delete state.uploads.progress[key];
                 // return the dequeued item through the action payload
                 action.payload = {
                     key: key
@@ -95,16 +97,27 @@ export const uiSlice = createSlice({
             }
         },
         updateUpload: (state, action) => {
-            const { key, value } = action.payload;
+            const { key, value, progress } = action.payload;
+            if (!value && !progress) throw new Error("Either value or progress needs to be supplied.");
             if (key) {
-                // a specific key has been given, update the item
-                if (!state.uploads.items[key]) return;
-                Object.assign(state.uploads.items[key], value);
-            } else {
-                // update all items using the provided value
-                Object.keys(state.uploads.items).forEach((key) => {
+                if (value) {
+                    // a specific key has been given, update the item
+                    if (!state.uploads.items[key]) return;
                     Object.assign(state.uploads.items[key], value);
-                });
+                }
+                if (progress) {
+                    state.uploads.progress[key] = {
+                        value: progress,
+                        timestamp: Date.now()
+                    };
+                }
+            } else {
+                if (value) {
+                    // update all items using the provided value
+                    Object.keys(state.uploads.items).forEach((key) => {
+                        Object.assign(state.uploads.items[key], value);
+                    });
+                }
             }
         },
         updateUploadProgress: (state, action) => {
@@ -117,7 +130,9 @@ export const uiSlice = createSlice({
         },
         switchUploadState: (state, action) => {
             const { key, to } = action.payload;
+            delete state.uploads.progress[key];
             if (!state.uploads.items[key]) return;
+            if (to !== 'failed') delete state.uploads.items[key].error;
             Object.assign(state.uploads.items[key], {
                 state: to,
                 timestamp: Date.now()
