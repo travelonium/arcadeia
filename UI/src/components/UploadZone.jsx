@@ -59,7 +59,7 @@ class UploadZone extends Component {
     }
 
     get all() {
-        return this.props.ui.uploads.all.filter(item => item.timestamp >= this.state.timestamp);
+        return this.props.ui.uploads.all.filter(item => (item.timestamp >= this.state.timestamp) && (['queued', 'active'].includes(item.state)));
     }
 
     get queued() {
