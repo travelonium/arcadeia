@@ -21,6 +21,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 
 const items = (state) => state.ui.uploads.items;
+const progress = (state) => state.ui.uploads.progress;
 
 export const selectAll = createSelector(
     [items], (uploads) => Object.values(uploads).sort((a, b) => b.timestamp - a.timestamp)
@@ -40,4 +41,8 @@ export const selectFailed = createSelector(
 
 export const selectSucceeded = createSelector(
     [selectAll], (uploads) => uploads.filter((item) => item.state === 'succeeded')
+);
+
+export const selectProgress = createSelector(
+    [progress], (progress) => progress
 );

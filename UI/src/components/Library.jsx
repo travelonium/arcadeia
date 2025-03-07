@@ -428,6 +428,8 @@ class Library extends Component {
             "q.op": "AND",
             defType: "edismax",
             qf: "name_ngram^20 description_ngram^10 path_ngram^5",
+            // TODO: Replace qf with the following when parents filtering is properly in place fields are available
+            // qf: "name_ngram^20 description_ngram^10",
             wt: "json",
             sort: this.sort(sort.fields, sort.direction),
             children: {
@@ -467,6 +469,10 @@ class Library extends Component {
                 input.fq.push("path:\"" + path + "\"");
             } else {
                 input.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
+                // TODO: Replace path with the following when parents filtering is properly in place
+                // input.fq.push("{!join from=id to=parents}fullPath:\"" + path + "\"");
+                // input.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
+                // input.fq.push("{!join from=id to=parents}path:\"" + path + "\"");
             }
             if (duplicates) {
                 // currently not implemented.

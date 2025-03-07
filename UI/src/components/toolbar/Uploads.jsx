@@ -28,9 +28,9 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { switchUploadStateThunk, removeUploads } from '../../features/ui/slice';
-import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../../features/ui/selectors';
+import React, { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed, selectProgress } from '../../features/ui/selectors';
 
 const Uploads = forwardRef((props, ref) => {
     const dispatch = useDispatch();
@@ -43,7 +43,7 @@ const Uploads = forwardRef((props, ref) => {
     const queued = useSelector(selectQueued);
     const failed = useSelector(selectFailed);
     const succeeded = useSelector(selectSucceeded);
-    const progress = useSelector(state => state.ui.uploads.progress);
+    const progress = useSelector(selectProgress);
 
     useImperativeHandle(ref, () => ({
         show() {
@@ -79,7 +79,7 @@ const Uploads = forwardRef((props, ref) => {
         }
     }
 
-    const Upload = ({ upload, progress }) => {
+    const Upload = React.memo(({ upload, progress }) => {
         let icon = null;
         let color = null;
         switch (upload.state) {
@@ -159,9 +159,9 @@ const Uploads = forwardRef((props, ref) => {
                 </Container>
             </ListGroup.Item>
         )
-    }
+    });
 
-    const UploadListGroup = ({ uploads, clear, retry }) => {
+    const UploadListGroup = React.memo(({ uploads, clear, retry }) => {
         if (uploads.length === 0) return <></>;
         else return (
             <>
@@ -202,7 +202,7 @@ const Uploads = forwardRef((props, ref) => {
                 </Container>
             </>
         )
-    }
+    });
 
     return (
         <Modal className="uploads" show={state} onShow={onShow} onHide={onHide} backdrop={true} animation={true} size={"lg"} aria-labelledby="contained-modal-title-vcenter" centered>
