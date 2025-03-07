@@ -49,7 +49,7 @@ namespace Arcadeia.Services
       [GeneratedRegex(@"\[download\] .*\/(.+) has already been downloaded")]
       private static partial Regex AlreadyDownloadedRegex();
 
-      [GeneratedRegex(@"ERROR: \[\w+\]\s+(.+)")]
+      [GeneratedRegex(@"ERROR:\s*(?:\[\w+\])?\s*(.+)")]
       private static partial Regex ErrorRegex();
 
       public class FileAlreadyDownloadedException : Exception
@@ -214,8 +214,6 @@ namespace Arcadeia.Services
 
             if (!string.IsNullOrEmpty(error))
             {
-               _logger.LogDebug("{}", error);
-
                foreach (var line in error.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                {
                   ProcessOutput(line);
