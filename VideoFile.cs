@@ -232,32 +232,20 @@ namespace Arcadeia
          logger?.LogTrace("{FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
          process.Start();
-
          Task<string> errorTask = process.StandardError.ReadToEndAsync();
 
-         int totalWaitTime = 0;
-         const int waitInterval = 100;
-
-         do
+         if (!process.WaitForExit(timeout))
          {
-            Thread.Sleep(waitInterval);
-            totalWaitTime += waitInterval;
-         } while (!process.HasExited && totalWaitTime < timeout);
+            logger?.LogWarning("FFmpeg Execution Timeout: {FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
+            process.Kill(true);
+            return null;
+         }
 
-         if (!process.HasExited || process.ExitCode != 0)
+         string error = errorTask.GetAwaiter().GetResult();
+
+         if (process.ExitCode != 0)
          {
-            if (!process.HasExited)
-            {
-               logger?.LogWarning("FFmpeg Execution Timeout: {FileName} {Arguments}\n{Result}",
-                                  process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
-               process.Kill();
-            }
-            else
-            {
-               logger?.LogWarning("FFmpeg Execution Failed: {FileName} {Arguments}\n{Result}",
-                                  process.StartInfo.FileName, process.StartInfo.Arguments, errorTask.Result);
-            }
-
+            logger?.LogWarning("FFmpeg Execution Failed: {FileName} {Arguments}\n{Error}", process.StartInfo.FileName, process.StartInfo.Arguments, error);
             return null;
          }
 
