@@ -26,7 +26,7 @@ const initialState = {
     scrollPosition: {},
     uploads: {
         items: [
-        /*
+            /*
             {
                 state: 'queued' | 'active' | 'failed' | 'succeeded'
                 key: a unique key identifying the upload item in the dictionary
@@ -39,15 +39,15 @@ const initialState = {
                 status: the last updated status of the upload item,
                 error: the last reported error message,
             }
-        */
+            */
         ],
         progress: {
-        /*
+            /*
             [key]: {
                 value: the progress of the active upload item,
                 timestamp: unix epoch when the progress was updated
             }
-        */
+            */
         },
         simultaneous: 4,
         duplicate: true,

@@ -501,6 +501,7 @@ class UploadZone extends Component {
                     item.getAsString(async (url) => {
                         const items = []; // only valid and processed inside this block
                         if (!this.isValidHttpUrl(url)) return;
+                        if (new URL(url).origin === window.location.origin) return; // ignore URLs from the same origin
                         try {
                             const response = await fetch(url);
                             const blob = await response.blob();
