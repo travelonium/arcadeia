@@ -28,8 +28,8 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { switchUploadStateThunk, removeUploads } from '../../features/ui/slice';
-import React, { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed, selectProgress } from '../../features/ui/selectors';
 
 const Uploads = forwardRef((props, ref) => {
@@ -161,6 +161,8 @@ const Uploads = forwardRef((props, ref) => {
         )
     });
 
+    Upload.displayName = "Upload";
+
     const UploadListGroup = React.memo(({ uploads, clear, retry }) => {
         if (uploads.length === 0) return <></>;
         else return (
@@ -204,6 +206,8 @@ const Uploads = forwardRef((props, ref) => {
         )
     });
 
+    UploadListGroup.displayName = "UploadListGroup";
+
     return (
         <Modal className="uploads" show={state} onShow={onShow} onHide={onHide} backdrop={true} animation={true} size={"lg"} aria-labelledby="contained-modal-title-vcenter" centered>
             <Modal.Header className="flex-row align-items-center me-3" closeButton>
@@ -235,7 +239,7 @@ const Uploads = forwardRef((props, ref) => {
                             <span>{`(${active.length})`}</span>
                         </>
                     }>
-                        <UploadListGroup uploads={active}/>
+                        <UploadListGroup clear={["active"]} uploads={active}/>
                     </Tab>
                     <Tab id="tab-succeeded" className="flex-column flex-grow-1" eventKey="succeeded" title={
                         <>
@@ -258,5 +262,7 @@ const Uploads = forwardRef((props, ref) => {
         </Modal>
     );
 });
+
+Uploads.displayName = "Uploads";
 
 export default Uploads;

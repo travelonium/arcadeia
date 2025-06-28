@@ -25,22 +25,22 @@ const initialState = {
     theme: "light",
     scrollPosition: {},
     uploads: {
-        items: {
+        items: [
         /*
-            [key]: {
+            {
                 state: 'queued' | 'active' | 'failed' | 'succeeded'
                 key: a unique key identifying the upload item in the dictionary
                 name: the specified or designated file name of the uploaded item
                 url: the URL of the upload item when the dropped item is a URL
                 file: the File object of the upload item when the dropped item is file
                 path: the destination path where the item is to be uploaded to
+                timestamp: unix epoch when the item was inserted or changed state
                 toast: the toast id related to the active upload item,
                 status: the last updated status of the upload item,
                 error: the last reported error message,
-                timestamp: unix epoch when the item was inserted or changed state
             }
         */
-        },
+        ],
         progress: {
         /*
             [key]: {

@@ -280,7 +280,7 @@ class NavMenu extends Component {
                                     : <></>
                                 }
                                 {
-                                    (failed > 0) ?
+                                    (failed > 0 && active === 0 && queued === 0) ?
                                     <Badge className="position-absolute bottom-left" bg="danger" title="Failed" pill>
                                         {failed}
                                     </Badge>

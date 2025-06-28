@@ -21,9 +21,9 @@
 import axios from 'axios';
 import cx from 'classnames';
 import pb from 'path-browserify';
+import { Component } from 'react';
 import { connect } from "react-redux";
 import { toast } from 'react-toastify';
-import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
 import ProgressToast from './ProgressToast';
 import { extract, withRouter } from '../utils';

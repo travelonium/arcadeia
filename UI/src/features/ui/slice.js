@@ -54,9 +54,11 @@ export const uiSlice = createSlice({
             }
         },
         queueUpload: (state, action) => {
+            let item = {};
             const { key, value } = action.payload;
-            const item = state.uploads.items[key];
-            if (item) {
+            const index = state.uploads.items.findIndex(item => item.key === key);
+            if (index !== -1) {
+                item = state.uploads.items[index];
                 if (item.state === 'active') {
                     console.log("Already Active:", item.url ?? item.name);
                     return;
@@ -69,53 +71,92 @@ export const uiSlice = createSlice({
                     console.log("Already Uploaded:", item.url ?? item.name);
                     return;
                 }
+                // remove the item from the array
+                state.uploads.items.splice(index, 1);
             }
-            state.uploads.items[key] = {
-                ...value,
+            Object.assign(item, value, {
                 key: key,
                 state: 'queued',
-                timestamp: Date.now(),
+                timestamp: Date.now()
+            });
+            // binary search for the new insertion index
+            let low = 0;
+            let high = state.uploads.items.length;
+            while (low < high) {
+                const mid = (low + high) >> 1;
+                if (state.uploads.items[mid].timestamp > item.timestamp) {
+                    low = mid + 1;
+                } else {
+                    high = mid;
+                }
             }
-            console.debug("Queued:", value.url ?? value.name);
+            // insert the item at the found index
+            state.uploads.items.splice(low, 0, item);
+            console.debug("Queued:", item.url ?? item.name);
         },
         startUpload: (state, action) => {
             // find the key of the oldest queued item
-            const key = Object.keys(state.uploads.items)
-                .filter((k) => state.uploads.items[k].state === 'queued')
-                .reduce((oldest, k) => !oldest || state.uploads.items[k].timestamp < state.uploads.items[oldest].timestamp ? k : oldest, null);
-            if (key) {
-                // update state directly
-                state.uploads.items[key].state = 'active';
-                state.uploads.items[key].timestamp = Date.now();
-                delete state.uploads.items[key].error;
+            let index = null;
+            for (let i = state.uploads.items.length - 1; i >= 0; i--) {
+                const item = state.uploads.items[i];
+                if (item.state === 'queued') {
+                    index = i;
+                    break;
+                }
+            }
+            if (index !== null) {
+                const key = state.uploads.items[index].key;
+                let item = {
+                    ...state.uploads.items[index],
+                    state: 'active',
+                    timestamp: Date.now()
+                }
+                delete item.error;
                 delete state.uploads.progress[key];
+                // remove the item from the array
+                state.uploads.items.splice(index, 1);
+                // binary search for the new insertion index
+                let low = 0;
+                let high = state.uploads.items.length;
+                while (low < high) {
+                    const mid = (low + high) >> 1;
+                    if (state.uploads.items[mid].timestamp > item.timestamp) {
+                        low = mid + 1;
+                    } else {
+                        high = mid;
+                    }
+                }
+                // insert the item at the found index
+                state.uploads.items.splice(low, 0, item);
                 // return the dequeued item through the action payload
                 action.payload = {
                     key: key
                 };
-                console.debug("Dequeued:", state.uploads.items[key]?.url ?? pb.join(state.uploads.items[key]?.path, state.uploads.items[key]?.file?.webkitRelativePath, state.uploads.items[key]?.file?.name));
+                console.debug("Dequeued:", item.url ?? pb.join(item.path, item.file?.webkitRelativePath, item.file?.name));
             }
         },
         updateUpload: (state, action) => {
             const { key, value, progress } = action.payload;
             if (!value && !progress) throw new Error("Either value or progress needs to be supplied.");
             if (key) {
-                if (value) {
-                    // a specific key has been given, update the item
-                    if (!state.uploads.items[key]) return;
-                    Object.assign(state.uploads.items[key], value);
-                }
-                if (progress) {
-                    state.uploads.progress[key] = {
-                        value: progress,
-                        timestamp: Date.now()
-                    };
+                const index = state.uploads.items.findIndex(item => item.key === key);
+                if (index !== -1) {
+                    if (value) {
+                        // a specific key has been given, update the item
+                        Object.assign(state.uploads.items[index], value);
+                    }
+                    if (progress) {
+                        state.uploads.progress[key] = {
+                            value: progress,
+                            timestamp: Date.now()
+                        };
+                    }
                 }
             } else {
                 if (value) {
                     // update all items using the provided value
-                    Object.keys(state.uploads.items).forEach((key) => {
-                        Object.assign(state.uploads.items[key], value);
+                    state.uploads.items.forEach((item, index) => {
+                        Object.assign(state.uploads.items[index], value);
                     });
                 }
             }
@@ -131,23 +172,42 @@ export const uiSlice = createSlice({
         switchUploadState: (state, action) => {
             const { key, to } = action.payload;
             delete state.uploads.progress[key];
-            if (!state.uploads.items[key]) return;
-            if (to !== 'failed') delete state.uploads.items[key].error;
-            Object.assign(state.uploads.items[key], {
-                state: to,
-                timestamp: Date.now()
-            });
+            const index = state.uploads.items.findIndex(item => item.key === key);
+            if (index !== -1) {
+                let item = {
+                    ...state.uploads.items[index],
+                    state: to,
+                    timestamp: Date.now()
+                };
+                if (to !== 'failed') delete item.error;
+                // remove the item from the array
+                state.uploads.items.splice(index, 1);
+                // binary search for the new insertion index
+                let low = 0;
+                let high = state.uploads.items.length;
+                while (low < high) {
+                    const mid = (low + high) >> 1;
+                    if (state.uploads.items[mid].timestamp > item.timestamp) {
+                        low = mid + 1;
+                    } else {
+                        high = mid;
+                    }
+                }
+                // insert the item at the found index
+                state.uploads.items.splice(low, 0, item);
+            }
         },
         removeUploads: (state, action) => {
             if (action.payload.key) {
-                delete state.uploads.items[action.payload.key];
-                delete state.uploads.progress[action.payload.key];
+                const key = action.payload.key;
+                const index = state.uploads.items.findIndex(item => item.key === key);
+                if (index !== -1) state.uploads.items.splice(index, 1);
+                delete state.uploads.progress[key];
             } else if (action.payload.state) {
-                Object.entries(state.uploads.items).forEach(([key, value]) => {
-                    if (value.state === action.payload.state) {
-                        delete state.uploads.items[key];
-                        delete state.uploads.progress[key];
-                    }
+                state.uploads.items = state.uploads.items.filter(item => {
+                    const shouldKeep = item.state !== action.payload.state;
+                    if (!shouldKeep) delete state.uploads.progress[item.key];
+                    return shouldKeep;
                 });
             } else throw new Error("Neither key nor state has been supplied to the removeUploads.");
         },
@@ -182,7 +242,13 @@ export const startUploadThunk = () => (dispatch, getState) => {
         }
         setTimeout(() => {
             const updatedState = getState();
-            resolve({ key: key, item: updatedState.ui.uploads.items[key] });
+            const index = updatedState.ui.uploads.items.findIndex(item => item.key === key);
+            if (index === -1) {
+                resolve({ key: key, item: null });
+                return;
+            }
+            const item = updatedState.ui.uploads.items[index];
+            resolve({ key: key, item: item });
         }, 0);
     });
 };

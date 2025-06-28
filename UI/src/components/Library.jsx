@@ -36,7 +36,7 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { setScrollPosition, updateUpload } from '../features/ui/slice';
+import { setScrollPosition } from '../features/ui/slice';
 import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag } from '../utils';
 
 class Library extends Component {

@@ -24,25 +24,43 @@ const items = (state) => state.ui.uploads.items;
 const progress = (state) => state.ui.uploads.progress;
 
 export const selectAll = createSelector(
-    [items], (uploads) => Object.values(uploads).sort((a, b) => b.timestamp - a.timestamp)
+    [items], (uploads) => {
+        console.debug('selectAll()');
+        return uploads;
+    }
 );
 
 export const selectQueued = createSelector(
-    [selectAll], (uploads) => uploads.filter((item) => item.state === 'queued')
+    [selectAll], (uploads) => {
+        console.debug('selectQueued()');
+        return uploads.filter((item) => item.state === 'queued');
+    }
 );
 
 export const selectActive = createSelector(
-    [selectAll], (uploads) => uploads.filter((item) => item.state === 'active')
+    [selectAll], (uploads) => {
+        console.debug('selectActive()');
+        return uploads.filter((item) => item.state === 'active');
+    }
 );
 
 export const selectFailed = createSelector(
-    [selectAll], (uploads) => uploads.filter((item) => item.state === 'failed')
+    [selectAll], (uploads) => {
+        console.debug('selectFailed()');
+        return uploads.filter((item) => item.state === 'failed');
+    }
 );
 
 export const selectSucceeded = createSelector(
-    [selectAll], (uploads) => uploads.filter((item) => item.state === 'succeeded')
+    [selectAll], (uploads) => {
+        console.debug('selectSucceeded()');
+        return uploads.filter((item) => item.state === 'succeeded');
+    }
 );
 
 export const selectProgress = createSelector(
-    [progress], (progress) => progress
+    [progress], (progress) => {
+        console.debug('selectProgress()');
+        return progress;
+    }
 );
