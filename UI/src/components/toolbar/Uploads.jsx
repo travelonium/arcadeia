@@ -25,6 +25,8 @@ import Tabs from 'react-bootstrap/Tabs';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { FixedSizeList as List } from 'react-window';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
@@ -79,7 +81,7 @@ const Uploads = forwardRef((props, ref) => {
         }
     }
 
-    const Upload = React.memo(({ upload, progress }) => {
+    const Upload = React.memo(({ upload, progress, style }) => {
         let icon = null;
         let color = null;
         switch (upload.state) {
@@ -105,9 +107,9 @@ const Uploads = forwardRef((props, ref) => {
         }
 
         return (
-            <ListGroup.Item key={upload.key}>
-                <Container fluid>
-                    <Row>
+            <ListGroup.Item key={upload.key} className="d-flex px-4" style={style}>
+                <Container className="d-flex flex-grow-1" fluid>
+                    <Row className="flex-grow-1 align-items-center">
                         <Col className={cx("d-flex h4 mb-0 gx-0 pe-3 align-items-center", color)} xs="auto">
                             <i className={cx("bi", icon)} title={upload?.error} />
                         </Col>
@@ -168,15 +170,24 @@ const Uploads = forwardRef((props, ref) => {
         else return (
             <>
                 <ListGroup className="flex-grow-1" variant="flush">
-                {
-                    uploads.map((item, index) => {
+                    <AutoSizer>
+                    {({ height, width }) => {
                         return (
-                            <Upload key={index} upload={item} progress={progress[item.key]} />
-                        )
-                    })
-                }
+                            <List
+                                height={height}
+                                width={width}
+                                itemCount={uploads.length}
+                                itemSize={100}
+                            >
+                                {({ index, style }) => (
+                                    <Upload upload={uploads[index]} progress={progress[uploads[index].key]} style={style} />
+                                )}
+                            </List>
+                        );
+                    }}
+                    </AutoSizer>
                 </ListGroup>
-                <Container fluid>
+                <Container className="mt-2" fluid>
                     <Row className="pt-1">
                     {
                         (retry) ?
@@ -203,7 +214,7 @@ const Uploads = forwardRef((props, ref) => {
                     </Row>
                 </Container>
             </>
-        )
+        );
     });
 
     UploadListGroup.displayName = "UploadListGroup";

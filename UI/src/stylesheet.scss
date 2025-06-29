@@ -348,8 +348,6 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
             flex-direction: column;
             flex-grow: 1;
             overflow: auto;
-            padding-left: .5rem;
-            padding-right: .5rem;
             padding-bottom: 1.5rem;
 
             .tab-pane {
