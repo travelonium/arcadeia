@@ -21,6 +21,7 @@
 import cx from 'classnames';
 import pb from 'path-browserify';
 import Tab from 'react-bootstrap/Tab';
+import { shorten } from '../../utils';
 import Tabs from 'react-bootstrap/Tabs';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
@@ -109,8 +110,8 @@ const Uploads = forwardRef((props, ref) => {
         return (
             <ListGroup.Item key={upload.key} className="d-flex px-4" style={style}>
                 <Container className="d-flex flex-grow-1" fluid>
-                    <Row className="flex-grow-1 align-items-center">
-                        <Col className={cx("d-flex h4 mb-0 gx-0 pe-3 align-items-center", color)} xs="auto">
+                    <Row className="flex-grow-1 flex-nowrap align-items-center">
+                        <Col className={cx("d-flex h4 mb-0 ps-0 align-items-center", color)} xs="auto">
                             <i className={cx("bi", icon)} title={upload?.error} />
                         </Col>
                         <Col className="d-flex align-items-center gx-0">
@@ -119,14 +120,14 @@ const Uploads = forwardRef((props, ref) => {
                                     <Col className="gx-0 pb-1" xs={12}>
                                     {
                                         (upload.state === 'succeeded') ?
-                                            <a href={pb.join(upload.path, upload.name)} className="text-decoration-none text-body" onClick={() => onOpen(upload.path, upload.name)}><strong>{upload.name ?? upload.url}</strong></a> :
-                                            <strong>{upload.name ?? upload.url}</strong>
+                                            <a href={pb.join(upload.path, upload.name)} className="text-decoration-none text-body" onClick={() => onOpen(upload.path, upload.name)}><strong>{shorten(upload.name ?? upload.url, 120)}</strong></a>
+                                            : <strong>{shorten(upload.name ?? upload.url, 120)}</strong>
                                     }
                                     </Col>
                                     <Col className="gx-0 small text-muted" xs={12}>
                                     {
                                         (upload.url) ?
-                                            <a href={upload.url} className="text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{upload.url}</a>
+                                            <a href={upload.url} className="text-truncate d-inline-block text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{shorten(upload.url, 60)}</a>
                                             : <></>
                                     }
                                     {
@@ -146,16 +147,26 @@ const Uploads = forwardRef((props, ref) => {
                             </Container>
                         </Col>
                         <Col className="d-flex align-items-center gx-0" xs="auto">
-                        {
-                            (upload.url && upload.state === 'failed') ?
-                                <Button variant="outline-info" size="sm" onClick={() => onRetry(upload.key)}>Retry</Button>
+                            <Container className="justify-content-center pe-0" fluid>
+                            {
+                                (upload.url && upload.state === 'failed') ?
+                                <Row className="flex-grow-1 mb-2">
+                                    <Col className="d-flex flex-grow-1 justify-content-center" xs="auto">
+                                        <Button className="flex-grow-1" variant="outline-info" size="sm" onClick={() => onRetry(upload.key)}>Retry</Button>
+                                    </Col>
+                                </Row>
                                 : <></>
-                        }
-                        {
-                            (upload.state === 'queued' || upload.state === 'succeeded' || upload.state === 'failed') ?
-                                <Button variant="outline-danger ms-2" size="sm" onClick={() => dispatch(removeUploads({ key: upload.key }))}>Remove</Button>
+                            }
+                            {
+                                (upload.state === 'queued' || upload.state === 'succeeded' || upload.state === 'failed') ?
+                                <Row className="flex-grow-1">
+                                    <Col className="d-flex flex-grow-1 justify-content-center" xs="auto">
+                                        <Button className="flex-grow-1" variant="outline-danger" size="sm" onClick={() => dispatch(removeUploads({ key: upload.key }))}>Remove</Button>
+                                    </Col>
+                                </Row>
                                 : <></>
-                        }
+                            }
+                            </Container>
                         </Col>
                     </Row>
                 </Container>
@@ -177,7 +188,7 @@ const Uploads = forwardRef((props, ref) => {
                                 height={height}
                                 width={width}
                                 itemCount={uploads.length}
-                                itemSize={100}
+                                itemSize={90}
                             >
                                 {({ index, style }) => (
                                     <Upload upload={uploads[index]} progress={progress[uploads[index].key]} style={style} />
@@ -187,7 +198,7 @@ const Uploads = forwardRef((props, ref) => {
                     }}
                     </AutoSizer>
                 </ListGroup>
-                <Container className="mt-2" fluid>
+                <Container className="mt-2 px-4" fluid>
                     <Row className="pt-1">
                     {
                         (retry) ?
