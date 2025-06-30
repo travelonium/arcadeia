@@ -27,17 +27,18 @@ LABEL org.opencontainers.image.architecture=$TARGETARCH
 RUN dpkg --print-architecture;
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y curl \
-                       xz-utils \
-                       sqlite3 \
-                       net-tools \
-                       iputils-ping \
-                       cifs-utils \
-                       nfs-common \
-                       python3-full \
-                       python3-pip \
-                       ca-certificates \
-                       software-properties-common; \
+    apt-get install -y --no-install-recommends \
+                    curl \
+                    xz-utils \
+                    sqlite3 \
+                    net-tools \
+                    iputils-ping \
+                    cifs-utils \
+                    nfs-common \
+                    python3-full \
+                    python3-pip \
+                    ca-certificates \
+                    software-properties-common; \
     curl -SL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$(dpkg --print-architecture)-static.tar.xz" -o /tmp/ffmpeg-release.tar.xz; \
     tar -xvf /tmp/ffmpeg-release.tar.xz -C /tmp/; \
     cd /tmp/$(ls -l /tmp/ | grep ^d | grep 'ffmpeg-' | awk '{print $9}' | head -n 1); \
