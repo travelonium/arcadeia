@@ -20,6 +20,7 @@
 
 import { toast } from 'react-toastify';
 import Mounts from './settings/Mounts';
+import Logging from './settings/Logging';
 import Scanner from './settings/Scanner';
 import { Nav, Tab } from 'react-bootstrap';
 import Transcoding from './settings/Transcoding';
@@ -95,6 +96,9 @@ export default function Settings() {
                                 <Nav.Item>
                                     <Nav.Link eventKey="transcoding"><i className="bi bi-arrow-repeat me-3"></i>Transcoding</Nav.Link>
                                 </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="logging"><i className="bi bi-file-earmark-text me-3"></i>Logging</Nav.Link>
+                                </Nav.Item>
                             </Nav>
                         </Col>
                         <Col className="content" sm={9}>
@@ -107,6 +111,9 @@ export default function Settings() {
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="transcoding">
                                     {activeKey === 'transcoding' && <Transcoding />}
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="logging">
+                                    {activeKey === 'logging' && <Logging />}
                                 </Tab.Pane>
                             </Tab.Content>
                         </Col>

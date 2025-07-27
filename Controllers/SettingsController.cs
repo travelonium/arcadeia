@@ -56,7 +56,8 @@ namespace Arcadeia.Controllers
          "Solr",
          "Scanner",
          "Mounts",
-         "Security"
+         "Security",
+         "Logging"
       ];
       public SettingsController(IConfiguration configuration,
                                               IScannerService scannerService,
