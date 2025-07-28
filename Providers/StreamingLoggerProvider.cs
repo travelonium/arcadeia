@@ -24,17 +24,30 @@ namespace Arcadeia.Providers
 {
    public class StreamingLoggerProvider : ILoggerProvider
    {
-      private readonly ConcurrentQueue<string> _logQueue = new();
+      private const int MaxLogs = 500;
+      private readonly ConcurrentQueue<string> queue = new();
 
       public event Action<string>? OnLog;
 
-      public ILogger CreateLogger(string categoryName)
+      public ILogger CreateLogger(string category)
       {
-         return new StreamingLogger(categoryName, (msg) =>
+         return new StreamingLogger(category, (message) =>
          {
-            _logQueue.Enqueue(msg);
-            OnLog?.Invoke(msg);
+            queue.Enqueue(message);
+
+            // Enforce max log count
+            while (queue.Count > MaxLogs)
+            {
+               queue.TryDequeue(out _);
+            }
+
+            OnLog?.Invoke(message);
          });
+      }
+
+      public IEnumerable<string> GetRecentMessages()
+      {
+         return [.. queue];
       }
 
       public void Dispose()
@@ -42,20 +55,20 @@ namespace Arcadeia.Providers
          GC.SuppressFinalize(this);
       }
 
-      private class StreamingLogger(string categoryName, Action<string> onLog) : ILogger
+      private class StreamingLogger(string category, Action<string> onLog) : ILogger
       {
-         private readonly string _categoryName = categoryName;
-         private readonly Action<string> _onLog = onLog;
+         private readonly string category = category;
+         private readonly Action<string> onLog = onLog;
 
          IDisposable ILogger.BeginScope<TState>(TState state) => null!;
 
          public bool IsEnabled(LogLevel logLevel) => true;
 
-         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+         public void Log<TState>(LogLevel level, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
          {
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            string message = $"[{timestamp}] {_categoryName} [{logLevel}] {formatter(state, exception)}";
-            _onLog(message);
+            string message = $"[{timestamp}] {category} [{level}] {formatter(state, exception)}";
+            onLog(message);
          }
       }
    }

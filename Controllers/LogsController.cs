@@ -39,16 +39,27 @@ namespace Arcadeia.Controllers
          await response.Body.FlushAsync();
       }
 
+      private static async Task LogAsync(HttpResponse response, string message)
+      {
+         await WriteAsync(response, $"data: {message}\n\n");
+      }
+
       // GET: /api/logs
       [HttpGet]
       public async Task Get()
       {
          Response.ContentType = "text/event-stream";
 
-         var completion = new TaskCompletionSource();
-         provider.OnLog += async (log) =>
+         // Send the last 500 logs first
+         foreach (var message in provider.GetRecentMessages())
          {
-            await WriteAsync(Response, $"data: {log}\n\n");
+            await LogAsync(Response, message);
+         }
+
+         var completion = new TaskCompletionSource();
+         provider.OnLog += async (message) =>
+         {
+            await LogAsync(Response, message);
          };
 
          await completion.Task;
