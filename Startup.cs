@@ -180,6 +180,9 @@ namespace Arcadeia
          services.AddSingleton<IDownloadService, DownloadService>();
          services.AddHostedService(provider => provider.GetRequiredService<IDownloadService>());
 
+         // Instantiate the Log Streaming Service
+         services.AddSingleton(Program.LogStreamProvider);
+
          // In production, the React files will be served from this directory
          services.AddSpaStaticFiles(configuration =>
          {

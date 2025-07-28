@@ -18,6 +18,7 @@
  *
  */
 
+using Arcadeia.Providers;
 using Arcadeia.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
@@ -27,6 +28,8 @@ namespace Arcadeia
 {
    public class Program
    {
+      public static StreamingLoggerProvider LogStreamProvider { get; } = new();
+
       public static void Main(string[] args)
       {
          CreateHostBuilder(args).Build().Run();
@@ -37,9 +40,10 @@ namespace Arcadeia
               .ConfigureLogging(logging =>
               {
                  logging.ClearProviders();
+                 logging.AddProvider(LogStreamProvider);
                  logging.AddConsole(options =>
                  {
-                     options.FormatterName = ConsoleFormatterNames.Simple;
+                    options.FormatterName = ConsoleFormatterNames.Simple;
                  });
               })
               .ConfigureAppConfiguration((context, builder) =>

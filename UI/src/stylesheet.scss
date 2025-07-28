@@ -422,6 +422,16 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
             border: $btn-border-width solid transparent;
         }
     }
+
+    .logging {
+        .recent-logs {
+            .card-body {
+                overflow-y: auto;
+                max-height: 500px;
+                font-size: small;
+            }
+        }
+    }
 }
 
 .upload-zone {
