@@ -41,7 +41,11 @@ namespace Arcadeia.Controllers
 
       private static async Task LogAsync(HttpResponse response, string message)
       {
-         await WriteAsync(response, $"data: {message}\n\n");
+         foreach (var line in message.Split('\n'))
+         {
+            await WriteAsync(response, $"data: {line.TrimEnd('\r')}\n");
+         }
+         await WriteAsync(response, "\n");
       }
 
       // GET: /api/logs

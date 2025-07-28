@@ -429,6 +429,10 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 overflow-y: auto;
                 max-height: 500px;
                 font-size: small;
+
+                .list-group .list-group-item {
+                    white-space: pre-wrap;
+                }
             }
         }
     }

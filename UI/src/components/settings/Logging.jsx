@@ -163,7 +163,7 @@ export default function Logging() {
                                         }
                                         {
                                             logs.map((log, index) => {
-                                                const match = log.match(/^\[(.*?)\]\s+(\S+)\s+\[(.*?)\]\s+(.*)$/);
+                                                const match = log.match(/^\[(.*?)\]\s+(\S+)\s+\[(.*?)\]\s+([\s\S]*)$/);
                                                 const [_, timestamp, category, level, message] = match || [];
 
                                                 return (
