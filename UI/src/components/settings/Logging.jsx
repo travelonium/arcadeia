@@ -48,7 +48,7 @@ export default function Logging() {
         setLogLevel(settings?.Logging?.LogLevel);
         const eventSource = new EventSource("/api/logs");
         eventSource.onmessage = (event) => {
-            setLogs((prevLogs) => [...prevLogs.slice(-500), event.data]); // keep only the last 500 entries
+            setLogs((prevLogs) => [...prevLogs, event.data]);
             console.debug(event.data);
         };
         eventSource.onerror = (error) => {
