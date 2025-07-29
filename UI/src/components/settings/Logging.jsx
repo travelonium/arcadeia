@@ -46,18 +46,41 @@ export default function Logging() {
 
     useEffect(() => {
         setLogLevel(settings?.Logging?.LogLevel);
-        const eventSource = new EventSource("/api/logs");
-        eventSource.onmessage = (event) => {
-            setLogs((prevLogs) => [...prevLogs, event.data]);
-            console.debug(event.data);
+        let eventSource = null;
+        let retryTimeout = null;
+        let unmounted = false;
+
+        const connect = () => {
+            if (unmounted) return;
+
+            eventSource = new EventSource("/api/logs");
+
+            eventSource.onmessage = (event) => {
+                setLogs((prevLogs) => [...prevLogs, event.data]);
+                console.debug(event.data);
+            };
+
+            eventSource.onerror = (error) => {
+                console.error("SSE error", error);
+
+                // ReadyState 2 means CLOSED
+                if (eventSource?.readyState === EventSource.CLOSED && !unmounted) {
+                    console.warn("SSE connection closed. Reconnecting in 3s...");
+
+                    eventSource.close();
+                    retryTimeout = setTimeout(connect, 3000); // retry after 3s
+                }
+            };
         };
-        eventSource.onerror = (error) => {
-            console.error(error);
-            eventSource.close();
-        };
+
+        connect(); // initial connection
+
         return () => {
-            eventSource.close();
+            unmounted = true;
+            if (eventSource) eventSource.close();
+            if (retryTimeout) clearTimeout(retryTimeout);
         };
+
     }, [settings]);
 
     useEffect(() => {
@@ -168,18 +191,18 @@ export default function Logging() {
 
                                                 return (
                                                     <ListGroup.Item key={index}>
-                                                    {
-                                                        match ? (
-                                                            <>
-                                                                <Badge bg="secondary" className="me-2 align-middle">{timestamp}</Badge>
-                                                                <Badge bg="primary" className="me-2 align-middle">{category}</Badge>
-                                                                <Badge bg={getBadgeVariant(level)} className="me-2 align-middle">{level}</Badge>
-                                                                <span className="align-middle">{message}</span>
-                                                            </>
-                                                        ) : (
-                                                            log // fallback for logs that don't match the expected format
-                                                        )
-                                                    }
+                                                        {
+                                                            match ? (
+                                                                <>
+                                                                    <Badge bg="secondary" className="me-2 align-middle">{timestamp}</Badge>
+                                                                    <Badge bg="primary" className="me-2 align-middle">{category}</Badge>
+                                                                    <Badge bg={getBadgeVariant(level)} className="me-2 align-middle">{level}</Badge>
+                                                                    <span className="align-middle">{message}</span>
+                                                                </>
+                                                            ) : (
+                                                                log // fallback for logs that don't match the expected format
+                                                            )
+                                                        }
                                                     </ListGroup.Item>
                                                 );
                                             })}
