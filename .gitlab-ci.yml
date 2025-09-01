@@ -119,6 +119,7 @@ test:
       - restart
       - logs
       - exec
+      - yt-dlp-updater
       - docker-compose.yml
       - docker-compose-test.yml
       - docker-compose-debug.yml
