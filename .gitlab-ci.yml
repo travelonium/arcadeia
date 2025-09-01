@@ -43,13 +43,13 @@ build:arcadeia:
   stage: build
   script:
     - dotnet publish -r osx-x64 ./Arcadeia.csproj --configuration Release -o ./bin/osx-x64;
-    - cp -R start stop restart logs exec docker-compose.yml docker-compose-local.yml Apache ./bin/osx-x64/
+    - cp -R start stop restart logs exec yt-dlp-updater docker-compose.yml docker-compose-local.yml Apache ./bin/osx-x64/
     - dotnet publish -r osx-arm64 ./Arcadeia.csproj --configuration Release -o ./bin/osx-arm64;
-    - cp -R start stop restart logs exec docker-compose.yml docker-compose-local.yml Apache ./bin/osx-arm64/
+    - cp -R start stop restart logs exec yt-dlp-updater docker-compose.yml docker-compose-local.yml Apache ./bin/osx-arm64/
     - dotnet publish -r linux-x64 ./Arcadeia.csproj --configuration Release -o ./bin/linux-x64;
-    - cp -R start stop restart logs exec docker-compose.yml docker-compose-local.yml Apache ./bin/linux-x64/
+    - cp -R start stop restart logs exec yt-dlp-updater docker-compose.yml docker-compose-local.yml Apache ./bin/linux-x64/
     - dotnet publish -r linux-arm64 ./Arcadeia.csproj --configuration Release -o ./bin/linux-arm64;
-    - cp -R start stop restart logs exec docker-compose.yml docker-compose-local.yml Apache ./bin/linux-arm64/
+    - cp -R start stop restart logs exec yt-dlp-updater docker-compose.yml docker-compose-local.yml Apache ./bin/linux-arm64/
     - rm -rf ./bin/Release ./bin/osx-x64/Site ./bin/osx-arm64/Site ./bin/linux-x64/Site ./bin/linux-arm64/Site
   artifacts:
     paths:
