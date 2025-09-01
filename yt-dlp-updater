@@ -1,0 +1,456 @@
+#!/bin/bash
+
+# yt-dlp Auto Updater Script
+# Downloads and extracts the latest yt-dlp release for the current platform
+
+set -e  # Exit on any error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Global variables
+GITHUB_API_URL="https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
+PLATFORM=""
+ASSET_URL=""
+ASSET_NAME=""
+BACKUP_FILES=()
+
+# Function to print colored output
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to check dependencies
+check_dependencies() {
+    local missing_deps=()
+
+    if ! command_exists curl && ! command_exists wget; then
+        missing_deps+=("curl or wget")
+    fi
+
+    if ! command_exists jq; then
+        missing_deps+=("jq")
+    fi
+
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        print_error "Missing required dependencies: ${missing_deps[*]}"
+        print_info "Please install the missing dependencies:"
+        print_info "  Ubuntu/Debian: sudo apt update && sudo apt install curl jq"
+        print_info "  CentOS/RHEL: sudo yum install curl jq"
+        print_info "  Fedora: sudo dnf install curl jq"
+        print_info "  macOS: brew install curl jq"
+        exit 1
+    fi
+}
+
+# Function to detect platform
+detect_platform() {
+    local os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local arch=$(uname -m | tr '[:upper:]' '[:lower:]')
+
+    case "$os" in
+        linux)
+            case "$arch" in
+                x86_64|amd64)
+                    PLATFORM="linux"
+                    ;;
+                aarch64|arm64)
+                    PLATFORM="linux_aarch64"
+                    ;;
+                armv7l|armv6l)
+                    PLATFORM="linux_armv7l"
+                    ;;
+                *)
+                    PLATFORM="linux"
+                    ;;
+            esac
+            ;;
+        darwin)
+            PLATFORM="macos"
+            ;;
+        mingw*|msys*|cygwin*)
+            PLATFORM="win"
+            ;;
+        *)
+            print_error "Unsupported operating system: $os"
+            exit 1
+            ;;
+    esac
+
+    print_info "Detected platform: $PLATFORM"
+}
+
+# Function to download using curl or wget
+download_file() {
+    local url="$1"
+    local output="$2"
+
+    print_info "Downloading $output..."
+
+    if command_exists curl; then
+        curl -L --progress-bar "$url" -o "$output"
+    elif command_exists wget; then
+        wget --progress=bar:force "$url" -O "$output"
+    else
+        print_error "Neither curl nor wget is available"
+        return 1
+    fi
+}
+
+# Function to get latest release info
+get_latest_release() {
+    print_info "Fetching latest release information..."
+
+    local temp_file=$(mktemp)
+
+    if ! download_file "$GITHUB_API_URL" "$temp_file"; then
+        print_error "Failed to fetch release information"
+        rm -f "$temp_file"
+        exit 1
+    fi
+
+    # Parse JSON to get tag name
+    local version=$(jq -r '.tag_name' "$temp_file")
+    if [[ "$version" == "null" || -z "$version" ]]; then
+        print_error "Could not parse version from API response"
+        rm -f "$temp_file"
+        exit 1
+    fi
+
+    print_info "Latest version: $version"
+
+    # Find matching asset based on platform
+    find_matching_asset "$temp_file"
+
+    rm -f "$temp_file"
+}
+
+# Function to find matching asset for platform
+find_matching_asset() {
+    local json_file="$1"
+
+    # Define patterns for different platforms
+    case "$PLATFORM" in
+        win)
+            local patterns=("win.zip" "windows.zip")
+            ;;
+        macos)
+            local patterns=("macos.zip" "darwin.zip" "osx.zip")
+            ;;
+        linux)
+            local patterns=("linux.tar.gz")
+            ;;
+        linux_aarch64)
+            local patterns=("linux_aarch64.tar.gz" "aarch64.tar.gz")
+            ;;
+        linux_armv7l)
+            local patterns=("linux_armv7l.tar.gz" "armv7l.tar.gz")
+            ;;
+    esac
+
+    # Get all asset names and URLs
+    local assets_info=$(jq -r '.assets[] | "\(.name)|\(.browser_download_url)"' "$json_file")
+
+    # Try to find exact match first
+    for pattern in "${patterns[@]}"; do
+        while IFS='|' read -r name url; do
+            local name_lower=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+            if [[ "$name_lower" == *"${pattern}"* ]]; then
+                ASSET_NAME="$name"
+                ASSET_URL="$url"
+                print_info "Found matching asset: $ASSET_NAME"
+                return 0
+            fi
+        done <<< "$assets_info"
+    done
+
+    # Fallback for Linux platforms
+    if [[ "$PLATFORM" == linux* ]]; then
+        while IFS='|' read -r name url; do
+            local name_lower=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+            if [[ "$name_lower" == *"linux"* && "$name_lower" == *".tar.gz" ]]; then
+                ASSET_NAME="$name"
+                ASSET_URL="$url"
+                print_warning "Using fallback asset: $ASSET_NAME"
+                return 0
+            fi
+        done <<< "$assets_info"
+    fi
+
+    print_error "No matching asset found for platform: $PLATFORM"
+    print_info "Available assets:"
+    echo "$assets_info" | cut -d'|' -f1
+    exit 1
+}
+
+# Function to backup existing files
+backup_existing_files() {
+    local files_to_backup=("yt-dlp" "yt-dlp.exe" "yt_dlp")
+
+    for file in "${files_to_backup[@]}"; do
+        if [[ -f "$file" ]]; then
+            local backup_name="${file}.backup"
+            if cp "$file" "$backup_name" 2>/dev/null; then
+                BACKUP_FILES+=("$file:$backup_name")
+                print_info "Backed up $file to $backup_name"
+            else
+                print_warning "Could not backup $file"
+            fi
+        fi
+    done
+}
+
+# Function to restore backup files
+restore_backup() {
+    if [[ ${#BACKUP_FILES[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    print_info "Restoring backup files..."
+    for backup_pair in "${BACKUP_FILES[@]}"; do
+        IFS=':' read -r original backup <<< "$backup_pair"
+        if [[ -f "$backup" ]]; then
+            if mv "$backup" "$original" 2>/dev/null; then
+                print_info "Restored $original"
+            else
+                print_error "Could not restore $original"
+            fi
+        fi
+    done
+}
+
+# Function to cleanup backup files
+cleanup_backup() {
+    for backup_pair in "${BACKUP_FILES[@]}"; do
+        IFS=':' read -r original backup <<< "$backup_pair"
+        if [[ -f "$backup" ]]; then
+            rm -f "$backup" 2>/dev/null
+        fi
+    done
+}
+
+# Function to extract archive
+extract_archive() {
+    local filename="$1"
+
+    print_info "Extracting $filename..."
+
+    local filename_lower=$(echo "$filename" | tr '[:upper:]' '[:lower:]')
+    case "$filename_lower" in
+        *.zip)
+            if command_exists unzip; then
+                if unzip -o "$filename"; then
+                    print_success "Extraction complete!"
+                else
+                    print_error "Failed to extract ZIP file"
+                    return 1
+                fi
+            else
+                print_error "unzip command not found. Please install unzip."
+                return 1
+            fi
+            ;;
+        *.tar.gz)
+            if tar -xzf "$filename"; then
+                print_success "Extraction complete!"
+            else
+                print_error "Failed to extract tar.gz file"
+                return 1
+            fi
+            ;;
+        *)
+            print_error "Unsupported archive format: $filename"
+            return 1
+            ;;
+    esac
+
+    # Find and rename the executable, clean up all variants
+    local executable_found=false
+    local temp_executable=""
+    local all_executables=()
+
+    if [[ "$PLATFORM" == "win" ]]; then
+        # Collect all Windows executables
+        for file in yt-dlp.exe yt-dlp_*.exe yt_dlp.exe yt_dlp_*.exe; do
+            if [[ -f "$file" ]]; then
+                all_executables+=("$file")
+                if [[ "$file" != "yt-dlp.exe" && -z "$temp_executable" ]]; then
+                    temp_executable="$file"
+                fi
+                executable_found=true
+            fi
+        done
+
+        # Rename if we found a different executable
+        if [[ -n "$temp_executable" ]]; then
+            # Remove existing yt-dlp.exe if it exists (we have it backed up)
+            [[ -f "yt-dlp.exe" ]] && rm -f "yt-dlp.exe"
+            mv "$temp_executable" "yt-dlp.exe"
+            print_info "Renamed $temp_executable to yt-dlp.exe"
+
+            # Clean up any other executables
+            for file in "${all_executables[@]}"; do
+                if [[ -f "$file" && "$file" != "yt-dlp.exe" ]]; then
+                    rm -f "$file"
+                    print_info "Cleaned up $file"
+                fi
+            done
+        fi
+
+    else
+        # Collect all Unix executables
+        for file in yt-dlp yt-dlp_* yt_dlp yt_dlp_*; do
+            if [[ -f "$file" && ! -d "$file" ]]; then
+                all_executables+=("$file")
+                if [[ "$file" != "yt-dlp" && -z "$temp_executable" ]]; then
+                    temp_executable="$file"
+                fi
+                executable_found=true
+            fi
+        done
+
+        # Rename if we found a different executable
+        if [[ -n "$temp_executable" ]]; then
+            # Remove existing yt-dlp if it exists (we have it backed up)
+            [[ -f "yt-dlp" ]] && rm -f "yt-dlp"
+            mv "$temp_executable" "yt-dlp"
+            print_info "Renamed $temp_executable to yt-dlp"
+
+            # Clean up any other executables
+            for file in "${all_executables[@]}"; do
+                if [[ -f "$file" && "$file" != "yt-dlp" ]]; then
+                    rm -f "$file"
+                    print_info "Cleaned up $file"
+                fi
+            done
+        fi
+
+        # Make yt-dlp executable
+        if [[ -f "yt-dlp" ]]; then
+            chmod +x "yt-dlp"
+            print_info "Made yt-dlp executable"
+        fi
+    fi
+
+    if [[ "$executable_found" == false ]]; then
+        print_error "Could not find yt-dlp executable after extraction"
+        print_info "Contents of current directory:"
+        ls -la
+        return 1
+    fi
+
+    # Clean up the archive
+    rm -f "$filename"
+    print_info "Cleaned up $filename"
+
+    return 0
+}
+
+# Function to verify installation
+verify_installation() {
+    local yt_dlp_cmd=""
+
+    if [[ "$PLATFORM" == "win" ]]; then
+        yt_dlp_cmd="./yt-dlp.exe"
+    else
+        yt_dlp_cmd="./yt-dlp"
+    fi
+
+    if [[ -f "${yt_dlp_cmd#./}" ]]; then
+        print_success "Installation verified!"
+
+        # Try to get version
+        if timeout 10s "$yt_dlp_cmd" --version 2>/dev/null; then
+            return 0
+        else
+            print_warning "Could not verify version, but file exists"
+        fi
+    else
+        print_error "Installation verification failed - yt-dlp not found"
+        return 1
+    fi
+}
+
+# Function to handle cleanup on exit
+cleanup_on_exit() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        print_error "Update failed!"
+        restore_backup
+    else
+        cleanup_backup
+    fi
+}
+
+# Main function
+main() {
+    echo "yt-dlp Auto Updater"
+    echo "==================="
+
+    # Set up cleanup trap
+    trap cleanup_on_exit EXIT
+
+    # Check dependencies
+    check_dependencies
+
+    # Detect platform
+    detect_platform
+
+    # Get latest release
+    get_latest_release
+
+    if [[ -z "$ASSET_URL" || -z "$ASSET_NAME" ]]; then
+        print_error "Could not determine download URL"
+        exit 1
+    fi
+
+    # Backup existing files
+    backup_existing_files
+
+    # Download the asset
+    if ! download_file "$ASSET_URL" "$ASSET_NAME"; then
+        print_error "Download failed"
+        exit 1
+    fi
+
+    # Extract the archive
+    if ! extract_archive "$ASSET_NAME"; then
+        print_error "Extraction failed"
+        exit 1
+    fi
+
+    # Verify installation
+    if verify_installation; then
+        print_success "✅ Successfully updated yt-dlp!"
+        print_info "The new version has been installed in the current directory."
+    else
+        exit 1
+    fi
+}
+
+# Handle Ctrl+C gracefully
+trap 'echo -e "\n\nUpdate cancelled by user."; exit 1' INT
+
+# Run main function
+main "$@"
