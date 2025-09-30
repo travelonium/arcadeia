@@ -608,59 +608,62 @@ namespace Arcadeia.Services
             if (total == 0)
             {
                _logger.LogInformation("No Orphaned Thumbnails Found.");
+
                return;
             }
-
-            // Use SemaphoreSlim to control concurrency
-            var semaphore = new SemaphoreSlim(_settings.CurrentValue.ParallelScannerTasks);
-            var tasks = new List<Task>();
-
-            foreach (var thumbnailId in orphanedIds)
+            else
             {
-               cancellationToken.ThrowIfCancellationRequested();
+               // Use SemaphoreSlim to control concurrency
+                  var semaphore = new SemaphoreSlim(_settings.CurrentValue.ParallelScannerTasks);
+               var tasks = new List<Task>();
 
-               await semaphore.WaitAsync(cancellationToken);
-
-               var task = Task.Run(async () =>
+               foreach (var thumbnailId in orphanedIds)
                {
-                  try
+                  cancellationToken.ThrowIfCancellationRequested();
+
+                  await semaphore.WaitAsync(cancellationToken);
+
+                  var task = Task.Run(async () =>
                   {
-                     int currentIndex = Interlocked.Increment(ref index);
-
-                     // Inform the client(s) of the current progress
-                     await _notificationService.ShowUpdateProgressAsync(uuid, "Cleaning Up Thumbnails Database", thumbnailId, currentIndex, total);
-
-                     cancellationToken.ThrowIfCancellationRequested();
-
                      try
                      {
-                        _logger.LogDebug("Deleting Orphaned Thumbnail {} / {}: {}", currentIndex + 1, total, thumbnailId);
+                        int currentIndex = Interlocked.Increment(ref index);
 
-                        // Delete the orphaned thumbnail entry
-                        int deleted = thumbnailsDatabase.DeleteThumbnails(thumbnailId);
+                        // Inform the client(s) of the current progress
+                        await _notificationService.ShowUpdateProgressAsync(uuid, "Cleaning Up Thumbnails Database", thumbnailId, currentIndex, total);
 
-                        if (deleted > 0)
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        try
                         {
-                           _logger.LogInformation("Orphaned Thumbnail Removed: {}", thumbnailId);
+                           _logger.LogDebug("Deleting Orphaned Thumbnail {} / {}: {}", currentIndex + 1, total, thumbnailId);
+
+                           // Delete the orphaned thumbnail entry
+                           int deleted = thumbnailsDatabase.DeleteThumbnails(thumbnailId);
+
+                           if (deleted > 0)
+                           {
+                              _logger.LogInformation("Orphaned Thumbnail Removed: {}", thumbnailId);
+                           }
+                        }
+                        catch (Exception e)
+                        {
+                           _logger.LogWarning("Failed To Delete Thumbnail: {}, Because: {}", thumbnailId, e.Message);
+                           _logger.LogDebug("{}", e.ToString());
                         }
                      }
-                     catch (Exception e)
+                     finally
                      {
-                        _logger.LogWarning("Failed To Delete Thumbnail: {}, Because: {}", thumbnailId, e.Message);
-                        _logger.LogDebug("{}", e.ToString());
+                        semaphore.Release();
                      }
-                  }
-                  finally
-                  {
-                     semaphore.Release();
-                  }
-               }, CancellationToken.None);
+                  }, CancellationToken.None);
 
-               tasks.Add(task);
+                  tasks.Add(task);
+               }
+
+               // Wait for all tasks to complete
+               await Task.WhenAll(tasks);
             }
-
-            // Wait for all tasks to complete
-            await Task.WhenAll(tasks);
 
             cancellationToken.ThrowIfCancellationRequested();
 
