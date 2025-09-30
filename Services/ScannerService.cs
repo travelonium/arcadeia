@@ -608,8 +608,6 @@ namespace Arcadeia.Services
             if (total == 0)
             {
                _logger.LogInformation("No Orphaned Thumbnails Found.");
-
-               return;
             }
             else
             {
