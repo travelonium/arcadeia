@@ -16,21 +16,23 @@
     <SpaProxyServerUrl>http://localhost:5173</SpaProxyServerUrl>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="8.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="8.0.8" />
-    <PackageReference Include="SolrNet" Version="1.1.2" />
-    <PackageReference Include="SolrNet.Microsoft.DependencyInjection" Version="1.1.2" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.0.0" />
-    <PackageReference Include="Magick.NET.SystemDrawing" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="8.0.8" />
-    <PackageReference Include="System.IO.Hashing" Version="9.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="8.0.20" />
+    <PackageReference Include="SolrNet" Version="1.2.1" />
+    <PackageReference Include="SolrNet.Microsoft.DependencyInjection" Version="1.2.1" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.8.2" />
+    <PackageReference Include="Magick.NET.SystemDrawing" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="8.0.20" />
+    <PackageReference Include="System.IO.Hashing" Version="9.0.9" />
   </ItemGroup>
 
   <ItemGroup>

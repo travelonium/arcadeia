@@ -190,6 +190,20 @@ namespace Arcadeia.Services
             _logger.LogInformation("Startup Update Queued.");
          }
 
+         // Start the startup cleanup task if necessary.
+         if (_settings.CurrentValue.StartupCleanup)
+         {
+            // Queue the startup cleanup task.
+            _taskQueue.Queue("Startup Cleanup", cancellationToken =>
+            {
+               string uuid = System.Guid.NewGuid().ToString();
+
+               return Task.Run(() => CleanupAsync(uuid, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            });
+
+            _logger.LogInformation("Startup Cleanup Queued.");
+         }
+
          // Start the background task processor.
          _backgroundTaskProcessor = Task.Run(async () => await BackgroundTaskProcessorAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
 
@@ -549,6 +563,131 @@ namespace Arcadeia.Services
          Updating = false;
          var ts = watch.Elapsed;
          _logger.LogInformation("Startup Update {} After {} Days, {} Hours, {} Minutes, {} Seconds.",
+                                cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished",
+                                ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
+      }
+
+      public async Task CleanupAsync(string uuid, CancellationToken cancellationToken)
+      {
+         var watch = new Stopwatch();
+
+         _logger.LogInformation("Thumbnails Database Cleanup Started.");
+
+         watch.Start();
+
+         // Consume the scoped Solr Index Service
+         using var scope = _services.CreateScope();
+         var solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+         var thumbnailsDatabase = scope.ServiceProvider.GetRequiredService<IThumbnailsDatabase>();
+
+         try
+         {
+            _logger.LogInformation("Retrieving All Media Containers From Solr...");
+
+            // Get all media containers from Solr
+            var documents = solrIndexService.Get(SolrQuery.All);
+            var solrIds = new HashSet<string>(documents.Select(d => d.Id).Where(id => !string.IsNullOrEmpty(id))!);
+
+            _logger.LogInformation("Found {} Media Containers in Solr.", solrIds.Count);
+
+            _logger.LogInformation("Retrieving All Thumbnail IDs From Database...");
+
+            // Get all IDs from the ThumbnailsDatabase
+            var thumbnailIds = thumbnailsDatabase.GetIds();
+
+            _logger.LogInformation("Found {} Thumbnail Entries in Database.", thumbnailIds.Count);
+
+            // Find orphaned thumbnails (exist in database but not in Solr)
+            var orphanedIds = thumbnailIds.Where(id => !solrIds.Contains(id)).ToList();
+
+            int total = orphanedIds.Count;
+            int index = -1;
+
+            _logger.LogInformation("Found {} Orphaned Thumbnail Entries To Remove.", total);
+
+            if (total == 0)
+            {
+               _logger.LogInformation("No Orphaned Thumbnails Found.");
+               return;
+            }
+
+            // Use SemaphoreSlim to control concurrency
+            var semaphore = new SemaphoreSlim(_settings.CurrentValue.ParallelScannerTasks);
+            var tasks = new List<Task>();
+
+            foreach (var thumbnailId in orphanedIds)
+            {
+               cancellationToken.ThrowIfCancellationRequested();
+
+               await semaphore.WaitAsync(cancellationToken);
+
+               var task = Task.Run(async () =>
+               {
+                  try
+                  {
+                     int currentIndex = Interlocked.Increment(ref index);
+
+                     // Inform the client(s) of the current progress
+                     await _notificationService.ShowUpdateProgressAsync(uuid, "Cleaning Up Thumbnails Database", thumbnailId, currentIndex, total);
+
+                     cancellationToken.ThrowIfCancellationRequested();
+
+                     try
+                     {
+                        _logger.LogDebug("Deleting Orphaned Thumbnail {} / {}: {}", currentIndex + 1, total, thumbnailId);
+
+                        // Delete the orphaned thumbnail entry
+                        int deleted = thumbnailsDatabase.DeleteThumbnails(thumbnailId);
+
+                        if (deleted > 0)
+                        {
+                           _logger.LogInformation("Orphaned Thumbnail Removed: {}", thumbnailId);
+                        }
+                     }
+                     catch (Exception e)
+                     {
+                        _logger.LogWarning("Failed To Delete Thumbnail: {}, Because: {}", thumbnailId, e.Message);
+                        _logger.LogDebug("{}", e.ToString());
+                     }
+                  }
+                  finally
+                  {
+                     semaphore.Release();
+                  }
+               }, CancellationToken.None);
+
+               tasks.Add(task);
+            }
+
+            // Wait for all tasks to complete
+            await Task.WhenAll(tasks);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            _logger.LogInformation("Vacuuming Thumbnails Database...");
+
+            thumbnailsDatabase.Vacuum();
+         }
+         catch (OperationCanceledException)
+         {
+            _logger.LogInformation("Cleanup Was Cancelled.");
+
+            // Inform the client(s) of the cancellation
+            await _notificationService.UpdateCancelledAsync(uuid, "Thumbnails Database Cleanup Cancelled");
+         }
+         catch (Exception e)
+         {
+            _logger.LogError("Unexpected Error While Cleaning Up: {}", e.Message);
+            _logger.LogDebug("{}", e.ToString());
+         }
+
+         watch.Stop();
+
+         // Inform the client(s) of the need to refresh
+         await _notificationService.RefreshAsync("/");
+
+         var ts = watch.Elapsed;
+         _logger.LogInformation("Thumbnails Database Cleanup {} After {} Days, {} Hours, {} Minutes, {} Seconds.",
                                 cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished",
                                 ts.Days, ts.Hours, ts.Minutes, ts.Seconds);
       }

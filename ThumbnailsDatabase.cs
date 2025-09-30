@@ -1,21 +1,21 @@
-/* 
+/*
  *  Copyright © 2024 Travelonium AB
- *  
+ *
  *  This file is part of Arcadeia.
- *  
+ *
  *  Arcadeia is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published
  *  by the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  Arcadeia is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with Arcadeia. If not, see <https://www.gnu.org/licenses/>.
- *  
+ *
  */
 
 using Arcadeia.Configuration;
@@ -115,6 +115,11 @@ namespace Arcadeia
       public bool Exists(string id)
       {
          return RowExists("Thumbnails", "ID", id);
+      }
+
+      public List<string> GetIds()
+      {
+         return GetRows("Thumbnails");
       }
 
       public void SetThumbnail(string id, int index, ref byte[] data)
@@ -534,6 +539,37 @@ namespace Arcadeia
          }
 
          return columns;
+      }
+
+      /// <summary>
+      /// Retrieves all the row IDs from a given table.
+      /// </summary>
+      /// <param name="table">The table name.</param>
+      /// <returns>A list of row IDs.</returns>
+      private List<string> GetRows(string table)
+      {
+         List<string> rows = [];
+         string sql = "SELECT ID FROM " + table;
+
+         using (SqliteConnection connection = new(ConnectionString))
+         {
+            connection.Open();
+
+            using SqliteCommand command = new(sql, connection);
+            using SqliteDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+               var id = reader["ID"];
+
+               if (id != null)
+               {
+                  rows.Add(id.ToString()!);
+               }
+            }
+         }
+
+         return rows;
       }
 
       /// <summary>

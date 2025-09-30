@@ -22,7 +22,7 @@ import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import ToggleButton from 'react-bootstrap/ToggleButton';
@@ -37,6 +37,7 @@ export default function Scanner() {
 
     const [startupScan, setStartupScan] = useState(null);
     const [startupUpdate, setStartupUpdate] = useState(null);
+    const [startupCleanup, setStartupCleanup] = useState(null);
     const [forceGenerateMissingThumbnails, setForceGenerateMissingThumbnails] = useState(null);
     const [periodicScanIntervalMilliseconds, setPeriodicScanIntervalMilliseconds] = useState(null);
     const [parallelScannerTasks, setParallelScannerTasks] = useState(null);
@@ -44,6 +45,7 @@ export default function Scanner() {
     useEffect(() => {
         setStartupScan(settings?.Scanner?.StartupScan);
         setStartupUpdate(settings?.Scanner?.StartupUpdate);
+        setStartupCleanup(settings?.Scanner?.StartupCleanup);
         setForceGenerateMissingThumbnails(settings?.Scanner?.ForceGenerateMissingThumbnails);
         setPeriodicScanIntervalMilliseconds(settings?.Scanner?.PeriodicScanIntervalMilliseconds);
         setParallelScannerTasks(settings?.Scanner?.ParallelScannerTasks);
@@ -59,6 +61,11 @@ export default function Scanner() {
             case 'StartupUpdate':
                 setStartupUpdate(value);
                 dispatch(writeSettings({ Scanner: { StartupUpdate: value } }));
+                break;
+
+            case 'StartupCleanup':
+                setStartupCleanup(value);
+                dispatch(writeSettings({ Scanner: { StartupCleanup: value } }));
                 break;
 
             case 'ForceGenerateMissingThumbnails':
@@ -133,6 +140,29 @@ export default function Scanner() {
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
                                         Go through the library and update modified items and remove the deleted ones at startup or manually.
+                                    </Card.Text>
+                                </Card.Body>
+                            </Card>
+                        </Row>
+
+                        <Row className="startup-cleanup align-items-center mb-3">
+                            <Card className="px-0">
+                                <Card.Header className="pe-2">
+                                    <Row className="align-items-center">
+                                        <Col><b>Startup Cleanup</b></Col>
+                                        <Col xs="auto">
+                                            <Button className="shadow-none me-2" variant="outline-info" size="sm" disabled>Start Now</Button>
+                                            <ToggleButtonGroup name="startup-cleanup" value={startupCleanup ? 1 : 0} onChange={(value) => onChange('StartupCleanup', value > 0)}>
+                                                <ToggleButton type="radio" size="sm" id="startup-cleanup-off" variant="outline-secondary" name="radio" value={0} disabled={startupScan == null || readOnly}>OFF</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="startup-cleanup-on" variant="outline-info" name="radio" value={1} disabled={startupScan == null || readOnly}>ON</ToggleButton>
+                                            </ToggleButtonGroup>
+                                        </Col>
+                                    </Row>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Card.Text className="d-flex align-items-center">
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
+                                        Go through the library and delete orphaned thumbnails at startup or manually.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
