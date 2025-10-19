@@ -97,6 +97,7 @@ class NavMenu extends Component {
             query: this.query,
             favorite: this.favorite ?? false,
             recursive: this.recursive ?? false,
+            duplicates: this.duplicates ?? false,
         });
     }
 

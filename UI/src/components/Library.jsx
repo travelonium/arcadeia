@@ -449,13 +449,6 @@ class Library extends Component {
         };
         if (duplicates && name) {
             input.fq.push("fullPath:\"" + path + name + "\"");
-            /* i think that finding duplicates in the entire library is more useful than narrowing it down
-            if (recursive) {
-                input.duplicates.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
-            } else {
-                input.duplicates.fq.push("path:\"" + path + "\"");
-            }
-            */
         } else {
             if (favorite) {
                 input.fq.push("flags:Favorite");
@@ -465,17 +458,25 @@ class Library extends Component {
             } else {
                 input.fq.push("-flags:Deleted");
             }
-            if (!recursive || !searching) {
-                input.fq.push("path:\"" + path + "\"");
-            } else {
+            // use recursive path filtering if:
+            // - recursive flag is true AND (searching OR duplicates mode)
+            if (recursive && (searching || duplicates)) {
                 input.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
                 // TODO: Replace path with the following when parents filtering is properly in place
                 // input.fq.push("{!join from=id to=parents}fullPath:\"" + path + "\"");
                 // input.fq.push("path:" + path.replace(/([+\-!(){}[\]^"~*?:\\/ ])/g, "\\$1") + "*");
                 // input.fq.push("{!join from=id to=parents}path:\"" + path + "\"");
+            } else {
+                input.fq.push("path:\"" + path + "\"");
             }
             if (duplicates) {
-                // currently not implemented.
+                // filter to only include items that have a checksum (required for duplicate detection)
+                input.fq.push("checksum:[* TO *]");
+                // use grouping to find documents that share checksums
+                input.group = true;
+                input['group.field'] = 'checksum';
+                input['group.limit'] = rows; // number of docs to return per group
+                input['group.ngroups'] = true;
             }
         }
         this.controller.abort();
@@ -517,35 +518,45 @@ class Library extends Component {
                 return response.json();
             })
             .then((result) => {
-                const numFound = result?.response?.numFound ?? 0;
-                let docs = (result?.response?.docs ?? []);
-                // helper function to process duplicate documents
-                const flatten = (doc) => {
-                    const duplicates = doc?.duplicates?.numFound ?? 0;
-                    doc.children = doc?.children?.docs ?? [];
-                    return [
-                        ...[doc, ...(doc?.duplicates?.docs ?? [])].map((item) => {
-                            item.duplicates = duplicates;
-                            return item;
-                        })
-                    ];
-                };
-                if (duplicates) {
-                    docs = docs.flatMap(flatten);
+                let numFound;
+                let docs;
 
-                    if (!this.name) {
-                        // remove items with no duplicates and deduplicate by id
-                        docs = docs.filter((doc, index, self) =>
-                            doc?.duplicates > 0 &&
-                            index === self.findIndex((item) => item.id === doc.id)
-                        );
-                    }
-                } else {
-                    docs = docs.map((doc) => {
-                        doc.duplicates = doc?.duplicates?.numFound ?? 0;
-                        doc.children = doc?.children?.docs ?? [];
-                        return doc;
+                // handle grouped response for duplicates mode
+                if (duplicates && !name && result?.grouped?.checksum) {
+                    const groups = result.grouped.checksum.groups ?? [];
+                    // filter groups that have more than 1 document (i.e., actual duplicates)
+                    const duplicateGroups = groups.filter(group => group.doclist.numFound > 1);
+                    numFound = duplicateGroups.length;
+                    // flatten all documents from all groups
+                    docs = duplicateGroups.flatMap(group => {
+                        const groupDocs = group.doclist.docs ?? [];
+                        return groupDocs.map(doc => {
+                            doc.duplicates = group.doclist.numFound - 1; // count of other duplicates
+                            doc.children = doc?.children?.docs ?? [];
+                            return doc;
+                        });
                     });
+                } else {
+                    numFound = result?.response?.numFound ?? 0;
+                    docs = (result?.response?.docs ?? []);
+                    if (duplicates && name) {
+                        docs = docs.flatMap(doc => {
+                            const duplicates = doc?.duplicates?.numFound ?? 0;
+                            doc.children = doc?.children?.docs ?? [];
+                            return [
+                                ...[doc, ...(doc?.duplicates?.docs ?? [])].map((item) => {
+                                    item.duplicates = duplicates;
+                                    return item;
+                                })
+                            ];
+                        });
+                    } else {
+                        docs = docs.map((doc) => {
+                            doc.duplicates = doc?.duplicates?.numFound ?? 0;
+                            doc.children = doc?.children?.docs ?? [];
+                            return doc;
+                        });
+                    }
                 }
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
