@@ -472,11 +472,8 @@ class Library extends Component {
             if (duplicates) {
                 // filter to only include items that have a checksum (required for duplicate detection)
                 input.fq.push("checksum:[* TO *]");
-                // use grouping to find documents that share checksums
-                input.group = true;
-                input['group.field'] = 'checksum';
-                input['group.limit'] = rows; // number of docs to return per group
-                input['group.ngroups'] = true;
+                // note: we fetch all documents and filter client-side to avoid memory issues
+                // the duplicates subquery will be used to identify which items have duplicates
             }
         }
         this.controller.abort();
@@ -521,42 +518,37 @@ class Library extends Component {
                 let numFound;
                 let docs;
 
-                // handle grouped response for duplicates mode
-                if (duplicates && !name && result?.grouped?.checksum) {
-                    const groups = result.grouped.checksum.groups ?? [];
-                    // filter groups that have more than 1 document (i.e., actual duplicates)
-                    const duplicateGroups = groups.filter(group => group.doclist.numFound > 1);
-                    numFound = duplicateGroups.length;
-                    // flatten all documents from all groups
-                    docs = duplicateGroups.flatMap(group => {
-                        const groupDocs = group.doclist.docs ?? [];
-                        return groupDocs.map(doc => {
-                            doc.duplicates = group.doclist.numFound - 1; // count of other duplicates
-                            doc.children = doc?.children?.docs ?? [];
-                            return doc;
-                        });
+                numFound = result?.response?.numFound ?? 0;
+                docs = (result?.response?.docs ?? []);
+
+                if (duplicates && name) {
+                    // when viewing duplicates of a specific file, show the file and all its duplicates
+                    docs = docs.flatMap(doc => {
+                        const duplicates = doc?.duplicates?.numFound ?? 0;
+                        doc.children = doc?.children?.docs ?? [];
+                        return [
+                            ...[doc, ...(doc?.duplicates?.docs ?? [])].map((item) => {
+                                item.duplicates = duplicates;
+                                return item;
+                            })
+                        ];
                     });
+                } else if (duplicates && !name) {
+                    // when in duplicates mode without a specific file:
+                    // 1. process all documents to add duplicate counts
+                    // 2. filter to only show documents that have duplicates (numFound > 0)
+                    docs = docs.map((doc) => {
+                        doc.duplicates = doc?.duplicates?.numFound ?? 0;
+                        doc.children = doc?.children?.docs ?? [];
+                        return doc;
+                    }).filter(doc => doc.duplicates > 0);
                 } else {
-                    numFound = result?.response?.numFound ?? 0;
-                    docs = (result?.response?.docs ?? []);
-                    if (duplicates && name) {
-                        docs = docs.flatMap(doc => {
-                            const duplicates = doc?.duplicates?.numFound ?? 0;
-                            doc.children = doc?.children?.docs ?? [];
-                            return [
-                                ...[doc, ...(doc?.duplicates?.docs ?? [])].map((item) => {
-                                    item.duplicates = duplicates;
-                                    return item;
-                                })
-                            ];
-                        });
-                    } else {
-                        docs = docs.map((doc) => {
-                            doc.duplicates = doc?.duplicates?.numFound ?? 0;
-                            doc.children = doc?.children?.docs ?? [];
-                            return doc;
-                        });
-                    }
+                    // normal mode: just add duplicate counts
+                    docs = docs.map((doc) => {
+                        doc.duplicates = doc?.duplicates?.numFound ?? 0;
+                        doc.children = doc?.children?.docs ?? [];
+                        return doc;
+                    });
                 }
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
