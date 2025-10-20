@@ -567,17 +567,6 @@ class Library extends Component {
                         // within same checksum group, sort by name
                         return (a.name || '').localeCompare(b.name || '');
                     });
-
-                    // debug: check for duplicate IDs
-                    if (/*import.meta.env.MODE === 'development'*/true) {
-                        const ids = finalItems.map(item => item.id);
-                        const uniqueIds = new Set(ids);
-                        if (ids.length !== uniqueIds.size) {
-                            console.error(`Duplicate IDs found! Total: ${ids.length}, Unique: ${uniqueIds.size}`);
-                        } else {
-                            console.debug(`All IDs are unique: ${ids.length} items`);
-                        }
-                    }
                 }
 
                 this.setState(
