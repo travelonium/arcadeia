@@ -535,13 +535,27 @@ class Library extends Component {
                     });
                 } else if (duplicates && !name) {
                     // when in duplicates mode without a specific file:
-                    // 1. process all documents to add duplicate counts
+                    // 1. process all documents to add duplicate counts and preserve original order
                     // 2. filter to only show documents that have duplicates (numFound > 0)
-                    docs = docs.map((doc) => {
+                    // 3. sort by checksum to group duplicates together (preserves solr sort order within groups)
+                    docs = docs.map((doc, index) => {
                         doc.duplicates = doc?.duplicates?.numFound ?? 0;
                         doc.children = doc?.children?.docs ?? [];
+                        doc._originalIndex = index; // preserve original solr order
                         return doc;
-                    }).filter(doc => doc.duplicates > 0);
+                    })
+                    .filter(doc => doc.duplicates > 0)
+                    .sort((a, b) => {
+                        // first sort by checksum to group duplicates together
+                        const checksumCompare = (a.checksum || '').localeCompare(b.checksum || '');
+                        if (checksumCompare !== 0) return checksumCompare;
+                        // preserve original solr sort order within each checksum group
+                        return a._originalIndex - b._originalIndex;
+                    })
+                    .map(doc => {
+                        delete doc._originalIndex; // clean up temporary property
+                        return doc;
+                    });
                 } else {
                     // normal mode: just add duplicate counts
                     docs = docs.map((doc) => {
