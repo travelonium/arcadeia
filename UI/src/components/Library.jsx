@@ -181,7 +181,15 @@ class Library extends Component {
                 // was it the onMediaViewerShow or onMediaViewerHide that caused the update?
                 const wasMediaViewerShow = (currentPath != null && nextPath != null) && (currentName == null && nextName != null);
                 const wasMediaViewerHide = (currentPath != null && nextPath != null) && (currentName != null && nextName == null);
+
+                // if showing a file in duplicates mode, we need to reload the library
+                const isShowingDuplicates = nextDuplicates && nextName != null;
+
                 if (!wasMediaViewerShow && !wasMediaViewerHide) {
+                    shouldUpdate = true;
+                    break;
+                } else if (isShowingDuplicates) {
+                    // exception: allow update when showing duplicates of a specific file
                     shouldUpdate = true;
                     break;
                 }
@@ -205,9 +213,13 @@ class Library extends Component {
     componentDidUpdate(prevProps) {
         console.debug("componentDidUpdate()");
         const currentName = this.name;
+        const prevDuplicates = prevProps.searchParams.get("duplicates") === "true";
+        const currentDuplicates = this.duplicates;
+
         if (this.state.items == null ||
             !isEqualExcluding(prevProps.location, this.props.location, 'key') ||
-            !isEqual(prevProps.search, this.props.search)) {
+            !isEqual(prevProps.search, this.props.search) ||
+            prevDuplicates !== currentDuplicates) {
             if (currentName && this.duplicates) {
                 this.refresh();
             } else if (currentName && this.state.items != null) {
