@@ -537,25 +537,14 @@ class Library extends Component {
                     // when in duplicates mode without a specific file:
                     // 1. process all documents to add duplicate counts and preserve original order
                     // 2. filter to only show documents that have duplicates (numFound > 0)
-                    // 3. sort by checksum to group duplicates together (preserves solr sort order within groups)
+                    // note: sorting by checksum will happen after all batches are fetched
                     docs = docs.map((doc, index) => {
                         doc.duplicates = doc?.duplicates?.numFound ?? 0;
                         doc.children = doc?.children?.docs ?? [];
-                        doc._originalIndex = index; // preserve original solr order
+                        doc._originalIndex = start + index; // preserve global solr order across batches
                         return doc;
                     })
-                    .filter(doc => doc.duplicates > 0)
-                    .sort((a, b) => {
-                        // first sort by checksum to group duplicates together
-                        const checksumCompare = (a.checksum || '').localeCompare(b.checksum || '');
-                        if (checksumCompare !== 0) return checksumCompare;
-                        // preserve original solr sort order within each checksum group
-                        return a._originalIndex - b._originalIndex;
-                    })
-                    .map(doc => {
-                        delete doc._originalIndex; // clean up temporary property
-                        return doc;
-                    });
+                    .filter(doc => doc.duplicates > 0);
                 } else {
                     // normal mode: just add duplicate counts
                     docs = docs.map((doc) => {
@@ -566,11 +555,28 @@ class Library extends Component {
                 }
                 const more = numFound > (rows + start);
                 this.items = this.items.concat(docs);
+
+                // when all batches are fetched, sort by checksum in duplicates mode
+                let finalItems = this.items;
+                if (!more && duplicates && !name) {
+                    finalItems = this.items.slice().sort((a, b) => {
+                        // first sort by checksum to group duplicates together
+                        const checksumCompare = (a.checksum || '').localeCompare(b.checksum || '');
+                        if (checksumCompare !== 0) return checksumCompare;
+                        // preserve original solr sort order within each checksum group
+                        return a._originalIndex - b._originalIndex;
+                    })
+                    .map(doc => {
+                        delete doc._originalIndex; // clean up temporary property
+                        return doc;
+                    });
+                }
+
                 this.setState(
                     {
                         loading: more,
                         status: docs.length ? "" : "No Results",
-                        items: more ? this.state.items : this.items
+                        items: more ? this.state.items : finalItems
                     },
                     () => {
                         if (more) {
