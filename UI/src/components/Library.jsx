@@ -535,13 +535,12 @@ class Library extends Component {
                     });
                 } else if (duplicates && !name) {
                     // when in duplicates mode without a specific file:
-                    // 1. process all documents to add duplicate counts and preserve original order
+                    // 1. process all documents to add duplicate counts
                     // 2. filter to only show documents that have duplicates (numFound > 0)
                     // note: sorting by checksum will happen after all batches are fetched
-                    docs = docs.map((doc, index) => {
+                    docs = docs.map((doc) => {
                         doc.duplicates = doc?.duplicates?.numFound ?? 0;
                         doc.children = doc?.children?.docs ?? [];
-                        doc._originalIndex = start + index; // preserve global solr order across batches
                         return doc;
                     })
                     .filter(doc => doc.duplicates > 0);
@@ -560,16 +559,25 @@ class Library extends Component {
                 let finalItems = this.items;
                 if (!more && duplicates && !name) {
                     finalItems = this.items.slice().sort((a, b) => {
-                        // first sort by checksum to group duplicates together
-                        const checksumCompare = (a.checksum || '').localeCompare(b.checksum || '');
+                        // sort by checksum to group duplicates together, then by name
+                        const checksumA = a.checksum || '';
+                        const checksumB = b.checksum || '';
+                        const checksumCompare = checksumA.localeCompare(checksumB);
                         if (checksumCompare !== 0) return checksumCompare;
-                        // preserve original solr sort order within each checksum group
-                        return a._originalIndex - b._originalIndex;
-                    })
-                    .map(doc => {
-                        delete doc._originalIndex; // clean up temporary property
-                        return doc;
+                        // within same checksum group, sort by name
+                        return (a.name || '').localeCompare(b.name || '');
                     });
+
+                    // debug: check for duplicate IDs
+                    if (/*import.meta.env.MODE === 'development'*/true) {
+                        const ids = finalItems.map(item => item.id);
+                        const uniqueIds = new Set(ids);
+                        if (ids.length !== uniqueIds.size) {
+                            console.error(`Duplicate IDs found! Total: ${ids.length}, Unique: ${uniqueIds.size}`);
+                        } else {
+                            console.debug(`All IDs are unique: ${ids.length} items`);
+                        }
+                    }
                 }
 
                 this.setState(
