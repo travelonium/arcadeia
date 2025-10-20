@@ -419,7 +419,8 @@ class Library extends Component {
         checksumGroups.forEach((group) => {
             if (group.length > 1) {
                 // helper function to check if a name has an index like (1), (2), etc.
-                const hasIndex = (name) => /\(\d+\)\.\w+$/.test(name);
+                // matches patterns like "photo (1).jpg", "video ( 2 ).mp4", "file(3).png"
+                const hasIndex = (name) => /\s*\(\s*\d+\s*\)\.\w+$/.test(name);
 
                 // find files without indices
                 const withoutIndex = group.filter(item => !hasIndex(item.name));
@@ -431,19 +432,37 @@ class Library extends Component {
                     original = withoutIndex[0];
                 } else {
                     // strategy 2: use the oldest dateAdded from all items
+                    // if dates are equal, use lexicographically smallest name as tiebreaker
                     original = group.reduce((oldest, current) => {
                         const oldestDate = oldest.dateAdded ? new Date(oldest.dateAdded) : new Date(0);
                         const currentDate = current.dateAdded ? new Date(current.dateAdded) : new Date(0);
-                        return currentDate < oldestDate ? current : oldest;
+
+                        // compare dates
+                        if (currentDate < oldestDate) {
+                            return current;
+                        } else if (currentDate > oldestDate) {
+                            return oldest;
+                        }
+
+                        // dates are equal, compare names (lexicographically)
+                        const nameComparison = (current.name || '').localeCompare(oldest.name || '');
+                        if (nameComparison !== 0) {
+                            return nameComparison < 0 ? current : oldest;
+                        }
+
+                        // names are also equal - this is ambiguous, return null to indicate we should skip this group
+                        return null;
                     });
                 }
 
-                // select all items except the original
-                group.forEach((item) => {
-                    if (item.id !== original.id) {
-                        this.selected.add(item.id);
-                    }
-                });
+                // only select items if we found a clear original (not ambiguous)
+                if (original !== null) {
+                    group.forEach((item) => {
+                        if (item.id !== original.id) {
+                            this.selected.add(item.id);
+                        }
+                    });
+                }
             }
         });
 
