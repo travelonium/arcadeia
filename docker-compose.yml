@@ -12,6 +12,8 @@ services:
     image: solr:8.11.1
     restart: unless-stopped
     logging: *default-logging
+    environment:
+      - SOLR_HEAP=2g
     command:
       - solr-precreate
       - Library
