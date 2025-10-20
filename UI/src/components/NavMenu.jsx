@@ -20,11 +20,11 @@
 
 import './NavMenu.css';
 import cx from 'classnames';
+import { Component } from 'react';
 import { Flag } from './toolbar/Flag';
 import { connect } from "react-redux";
 import Nav from 'react-bootstrap/Nav';
 import Form from 'react-bootstrap/Form';
-import React, { Component } from 'react';
 import Badge from 'react-bootstrap/Badge';
 import { Button } from './toolbar/Button';
 import Navbar from 'react-bootstrap/Navbar';
@@ -272,6 +272,7 @@ class NavMenu extends Component {
                                 <SortDropdown className="me-1" name="sort" tooltip="Sort" value={sort} overridden={sortOverridden} onChange={this.onSortChange.bind(this)} onReset={this.onSortReset.bind(this)} disabled={disabled} />
                                 <ViewDropdown className="me-1" name="view" tooltip="View" value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
+                                <Button className="me-1" name="selection" icon="bi-check-square" tooltip="Selection" onClick={() => this.props.library.current?.showSelection()} disabled={disabled} />
                                 <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => this.props.library.current?.showUploads()}>
                                 {
                                     (active > 0 || queued > 0) ?

@@ -27,6 +27,7 @@ import { connect } from "react-redux";
 import { toast } from 'react-toastify';
 import MediaViewer from './MediaViewer';
 import Uploads from './toolbar/Uploads';
+import Selection from './toolbar/Selection';
 import update from 'immutability-helper';
 import React, { Component } from 'react';
 import { isEqual, isEmpty } from 'lodash';
@@ -50,7 +51,9 @@ class Library extends Component {
         this.viewing = false;       // indicates that a media is being viewed in the MediaViewer
         this.editing = false;       // indicates that text editing is in progress and should inhibit low level keyboard input capturing
         this.mediaContainers = {};  // stores the refs to MediaContainers with keys corresponding to indexes
+        this.selected = new Set();  // stores the IDs of selected MediaContainers
         this.grid = React.createRef();
+        this.selection = React.createRef();
         this.uploads = React.createRef();
         this.uploadZone = React.createRef();
         this.gridWrapper = React.createRef();
@@ -370,6 +373,82 @@ class Library extends Component {
                 callback(this.state.items[index], false);
             }
         });
+    }
+
+    /**
+     * Select items based on a predicate function.
+     * @param {(item) => boolean} predicate Function called for each item in this.items. Returns true to select the item, false otherwise.
+     */
+    select(predicate) {
+        this.selected.clear();
+        if (this.state.items) {
+            this.state.items.forEach((item) => {
+                if (predicate(item)) {
+                    this.selected.add(item.id);
+                }
+            });
+        }
+        // force a re-render to update the visual selection state
+        this.forceUpdate();
+    }
+
+    /**
+     * Select duplicate files based on checksum, excluding the original.
+     * The original is determined by:
+     * 1. The file without an index like (1), (2), etc.
+     * 2. If all have indices or none do, the one with the oldest dateAdded
+     */
+    selectDuplicates() {
+        this.selected.clear();
+        if (!this.state.items) {
+            this.forceUpdate();
+            return;
+        }
+        // group items by checksum
+        const checksumGroups = new Map();
+        this.state.items.forEach((item) => {
+            if (item.checksum) {
+                if (!checksumGroups.has(item.checksum)) {
+                    checksumGroups.set(item.checksum, []);
+                }
+                checksumGroups.get(item.checksum).push(item);
+            }
+        });
+
+        // for each group with duplicates, find the original and select the rest
+        checksumGroups.forEach((group) => {
+            if (group.length > 1) {
+                // helper function to check if a name has an index like (1), (2), etc.
+                const hasIndex = (name) => /\(\d+\)\.\w+$/.test(name);
+
+                // find files without indices
+                const withoutIndex = group.filter(item => !hasIndex(item.name));
+
+                let original;
+
+                // strategy 1: if there's exactly one file without an index, that's the original
+                if (withoutIndex.length === 1) {
+                    original = withoutIndex[0];
+                } else {
+                    // strategy 2: use the oldest dateAdded from all items
+                    original = group.reduce((oldest, current) => {
+                        const oldestDate = oldest.dateAdded ? new Date(oldest.dateAdded) : new Date(0);
+                        const currentDate = current.dateAdded ? new Date(current.dateAdded) : new Date(0);
+                        return currentDate < oldestDate ? current : oldest;
+                    });
+                }
+
+                // select all items except the original
+                group.forEach((item) => {
+                    if (item.id !== original.id) {
+                        this.selected.add(item.id);
+                    }
+                });
+            }
+        });
+
+        // force a re-render to update the visual selection state
+        this.forceUpdate();
     }
 
     retrieve(id, fullPath, callback = undefined) {
@@ -770,6 +849,20 @@ class Library extends Component {
         this.reload(id);
     }
 
+    showSelection() {
+        console.debug("showSelection()");
+        this.selection.current?.show();
+    }
+
+    onSelect(predicate) {
+        console.debug("onSelect()");
+        if (predicate === 'duplicates') {
+            this.selectDuplicates();
+        } else {
+            this.select(predicate);
+        }
+    }
+
     showUploads() {
         console.debug("showUploads()");
         this.uploads.current?.show();
@@ -1004,9 +1097,10 @@ class Library extends Component {
                             const view = this.props.ui.view[this.searching ? "search" : this.path] ?? this.props.ui.view.default;
                             if (source !== undefined) {
                                 this.mediaContainers[index] = React.createRef();
+                                const isSelected = this.selected.has(source.id);
                                 return (
                                     <div className="grid-item animate__animated animate__fadeIn" style={style}>
-                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={view} source={source} index={index} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
+                                        <MediaContainer ref={this.mediaContainers[index]} library={this.props.forwardedRef} view={view} source={source} index={index} selected={isSelected} onOpen={this.open.bind(this)} onView={this.view.bind(this)} onUpdate={this.update.bind(this)} />
                                     </div>
                                 );
                             } else {
@@ -1067,6 +1161,13 @@ class Library extends Component {
                             })
                         }
                         <div className="statistics d-none d-md-block ms-auto">
+                            {
+                                (this.selected.size > 0) ? <>
+                                    <span className="statistics-selected-files">{this.selected.size} Selected</span>
+                                    <span className="statistics-selected-size ms-1">{size(items.filter(item => this.selected.has(item.id)).reduce((sum, item) => sum + (item.size ?? 0), 0), 2, '(', ')')}</span>
+                                    <span className="statistics-selected-separator ms-2 me-2">/</span>
+                                </> : <></>
+                            }
                             <span className="statistics-files">{this.files()}</span>
                             <span className="statistics-size ms-1">{size(items.reduce((sum, item) => sum + (item.size ?? 0), 0), 2, '(', ')')}</span>
                         </div>
@@ -1092,16 +1193,11 @@ class Library extends Component {
                         <UploadZone ref={this.uploadZone} signalRConnection={this.props.signalRConnection} uploads={this.uploads} onUploadComplete={this.onUploadComplete.bind(this)}>
                             {this.gridView()}
                             <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
+                            <Selection ref={this.selection} onSelect={this.onSelect.bind(this)} />
                             <Uploads ref={this.uploads} onShow={this.onUploadsShow.bind(this)} onHide={this.onUploadsHide.bind(this)} onUpload={() => this.uploadZone.current?.upload(null, true)} onOpen={this.onUploadsOpen.bind(this)} />
                         </UploadZone>
                     </div>
                 </div>
-                {/*
-                <Navbar collapseOnSelect expand="sm" bg={(state.ui.theme === "dark") ? "dark" : "light"} variant="dark" className="p-3">
-                    <div style={{flexGrow: 1}}>{this.files()}</div>
-                    <div>{size(this.state.items.reduce((sum, item) => sum + item.size, 0))}</div>
-                </Navbar>
-                */}
             </>
         );
     }

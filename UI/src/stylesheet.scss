@@ -89,6 +89,14 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 box-shadow: 0 .125rem .25rem rgba($black, .075);
             }
         }
+
+        &.selected {
+            .card {
+                border: 2px solid rgba(#3498db, 0.8);
+                box-shadow: 0 0 0 3px rgba(#3498db, 0.2), 0 .25rem .5rem rgba($black, .15);
+                background-color: rgba(#3498db, 0.05);
+            }
+        }
     }
 
     .editable-text {
@@ -145,6 +153,14 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
             .card {
                 border: 1px solid rgba($white, 0.25);
                 box-shadow: 0 .125rem .75rem rgba($white, 0.075);
+            }
+        }
+
+        &.selected {
+            .card {
+                border: 2px solid rgba(#3498db, 0.9);
+                box-shadow: 0 0 0 3px rgba(#3498db, 0.3), 0 .25rem .75rem rgba($white, .15);
+                background-color: rgba(#3498db, 0.15);
             }
         }
     }

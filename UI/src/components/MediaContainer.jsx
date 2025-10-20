@@ -19,25 +19,24 @@
  */
 
 import cx from 'classnames';
-import { isEmpty } from 'lodash';
+import { Component } from 'react';
 import { Flag } from './toolbar/Flag';
 import { connect } from "react-redux";
 import Card from 'react-bootstrap/Card';
 import { Thumbnail } from './Thumbnail';
-import React, { Component } from 'react';
 import update from 'immutability-helper';
 import Badge from 'react-bootstrap/Badge';
 import Popover from 'react-bootstrap/Popover';
 import { EditableText } from './EditableText';
 import { Col, Container, Row } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { duration, size, extract, clone, withRouter, isEqualExcluding, differenceWith } from '../utils';
+import { duration, size, extract, clone, withRouter, isEqualExcluding } from '../utils';
 
 export class MediaContainer extends Component {
 
     static displayName = MediaContainer.name;
     static defaultProps = {
-        view: "card",
+        view: "card"
     }
 
     constructor(props) {
@@ -347,7 +346,7 @@ export class MediaContainer extends Component {
                 break
         }
         return (
-            <a href={href} className={cx("media-container" + (source.type ? (" " + source.type.toLowerCase()) : ""), (view.toLowerCase() + "-view"))} onClick={(event) => event.preventDefault()} >
+            <a href={href} className={cx("media-container" + (source.type ? (" " + source.type.toLowerCase()) : ""), (view.toLowerCase() + "-view"), {"selected": this.props.selected})} onClick={(event) => event.preventDefault()} >
             {
                 this.view(source, view)
             }

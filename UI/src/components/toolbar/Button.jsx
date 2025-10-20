@@ -18,11 +18,11 @@
  *
  */
 
+import cx from 'classnames';
+import { Component } from 'react';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import ReactBootstrapButton from 'react-bootstrap/Button';
 import Tooltip from 'react-bootstrap/Tooltip';
-import React, { Component } from 'react';
-import cx from 'classnames';
 
 export class Button extends Component {
 
@@ -51,11 +51,12 @@ export class Button extends Component {
     }
 
     render() {
+        const disabled = this.props.disabled ?? false;
         return (
             <OverlayTrigger key={this.props.name} placement="bottom" overlay={
                 (this.props.tooltip) ? <Tooltip id={"tooltip-" + this.props.name}>{this.props.tooltip}</Tooltip> : <></>
             }>
-                <ReactBootstrapButton className={cx(this.props.className, "button position-relative border-0 shadow-none")} variant="outline-secondary" onClick={this.onClick.bind(this)}>
+                <ReactBootstrapButton className={cx(this.props.className, "button position-relative border-0 shadow-none")} variant="outline-secondary" onClick={this.onClick.bind(this)} disabled={disabled}>
                     <i className={cx("bi", this.props.icon, this.props.name)} />
                     {this.props.children}
                 </ReactBootstrapButton>
