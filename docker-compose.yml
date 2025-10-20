@@ -10,6 +10,7 @@ x-logging:
 services:
   solr:
     image: solr:8.11.1
+    restart: unless-stopped
     logging: *default-logging
     command:
       - solr-precreate
