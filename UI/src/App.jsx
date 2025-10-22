@@ -194,9 +194,7 @@ class App extends Component {
         this.signalRConnection = connection;
         connection.start()
         .then(() => {
-            if (callback !== undefined) {
-                callback(connection);
-            }
+            callback?.(connection);
         })
         .catch(error => console.error("Error while starting a SignalR connection: ", error));
     }

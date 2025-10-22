@@ -273,6 +273,7 @@ class NavMenu extends Component {
                                 <ViewDropdown className="me-1" name="view" tooltip="View" value={view} overridden={viewOverridden} onChange={this.onViewChange.bind(this)} onReset={this.onViewReset.bind(this)} disabled={disabled} />
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
                                 <Button className="me-1" name="selection" icon="bi-check-square" tooltip="Selection" onClick={() => this.props.library.current?.showSelection()} disabled={disabled} />
+                                <Button className="me-1" name="delete" icon="bi-trash" tooltip="Delete" onClick={() => this.props.library.current?.delete()} disabled={disabled} />
                                 <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => this.props.library.current?.showUploads()}>
                                 {
                                     (active > 0 || queued > 0) ?

@@ -86,9 +86,7 @@ export class MediaContainer extends Component {
                 })
             }
         }, () => {
-            if (callback !== undefined) {
-                callback(this.state.current);
-            }
+            callback?.(this.state.current);
         });
     }
 
@@ -101,9 +99,7 @@ export class MediaContainer extends Component {
                     current: succeeded ? clone(source) : clone(this.state.previous),
                     previous: succeeded ? clone(this.state.current) : clone(this.state.previous),
                 }, () => {
-                    if (callback !== undefined) {
-                        callback(this.state.current);
-                    }
+                    callback?.(this.state.current);
                 });
             });
         });

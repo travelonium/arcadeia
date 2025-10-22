@@ -290,6 +290,10 @@ namespace Arcadeia
                   case "Photo":
                      path += container.Name;
                      break;
+
+                  case "Unknown":
+                     path += container.Name;
+                     break;
                }
             }
             while (container.Parent is not null && (container = container.Parent) != null);

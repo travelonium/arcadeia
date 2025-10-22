@@ -192,6 +192,65 @@ namespace Arcadeia.Controllers
          }
       }
 
+      // DELETE: /api/library/{path}
+      /// <summary>
+      /// Delete a media file (folders are not supported).
+      /// </summary>
+      /// <param name="path">The path to the file to delete.</param>
+      /// <param name="permanent">If true, permanently delete the file. Otherwise, send to recycle bin.</param>
+      /// <returns></returns>
+      [HttpDelete]
+      [Route("{*path}")]
+      [Produces("application/json")]
+      public IActionResult Delete(string path = "", [FromQuery] bool permanent = true)
+      {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return Problem(title: "Permission Denied", detail: "The library is read-only.", statusCode: 403);
+         }
+
+         path = Platform.Separator.Path + path;
+
+         if (!IsPathAllowed(path))
+         {
+            return Problem(title: "Bad Request", detail: "The path is invalid or inaccessible.", statusCode: 400);
+         }
+
+         if (!permanent)
+         {
+            return Problem(title: "Bad Request", detail: "Deleting files to recycle bin is not supported.", statusCode: 400);
+         }
+
+         try
+         {
+            if (Directory.Exists(path))
+            {
+               return Problem(title: "Bad Request", detail: "Cannot delete folders. Only files are supported.", statusCode: 400);
+            }
+
+            if (!System.IO.File.Exists(path))
+            {
+               return NotFound(new { message = "File not found.", path });
+            }
+
+            using MediaFile mediaFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, null, path, null);
+
+            mediaFile.Delete(permanent);
+
+            if (!System.IO.File.Exists(path)) return NoContent();
+         }
+         catch (UnauthorizedAccessException)
+         {
+            return Problem(title: "Permission Denied", detail: "Access to the file or folder is denied.", statusCode: 403);
+         }
+         catch (Exception ex)
+         {
+            return Problem(title: "Delete Failed", detail: ex.Message, statusCode: 500);
+         }
+
+         return Problem(title: "Delete Failed", detail: "Failed to delete the file.", statusCode: 500);
+      }
+
       // POST: /api/library/{path}
       /// <summary>
       /// Upload a file choosing whether to overwrite it or create one with an index if already exists.

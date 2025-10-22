@@ -158,9 +158,9 @@ namespace Arcadeia
 
          if (Skipped) return;
 
-         if (string.IsNullOrEmpty(Id)) throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
+         if (string.IsNullOrEmpty(Id)) throw new InvalidOperationException("The Id cannot be null or empty.");
 
-         if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
+         if (string.IsNullOrEmpty(FullPath)) throw new InvalidOperationException("The FullPath cannot be null or empty.");
 
          Thumbnails = new(ThumbnailsDatabase, Id);
 
@@ -359,10 +359,16 @@ namespace Arcadeia
             {
                try
                {
-                  FileSystem.DeleteFile(FullPath, UIOption.OnlyErrorDialogs,
-                                        permanent ? RecycleOption.DeletePermanently :
-                                                    RecycleOption.SendToRecycleBin,
-                                        UICancelOption.ThrowException);
+                  if (permanent)
+                  {
+                     File.Delete(FullPath);
+                  }
+                  else
+                  {
+                     // send to recycle bin without UI dialogs
+                     FileSystem.DeleteFile(FullPath, UIOption.OnlyErrorDialogs,
+                                           RecycleOption.SendToRecycleBin);
+                  }
 
                   Deleted = true;
 

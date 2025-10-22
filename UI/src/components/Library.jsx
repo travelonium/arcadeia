@@ -25,6 +25,7 @@ import Col from 'react-bootstrap/Col';
 import UploadZone from './UploadZone';
 import { connect } from "react-redux";
 import { toast } from 'react-toastify';
+import ProgressToast from './ProgressToast';
 import MediaViewer from './MediaViewer';
 import Uploads from './toolbar/Uploads';
 import Selection from './toolbar/Selection';
@@ -287,17 +288,13 @@ class Library extends Component {
             this.setState({
                 items: items
             }, () => {
-                if (callback !== undefined) {
-                    callback(this.state.items[index], true);
-                }
+                callback?.(this.state.items[index], true);
             });
         } else {
             // eslint-disable-next-line
             this.state.items = items;
-            this.mediaContainers[index]?.current?.set(source, (_) => {
-                if (callback !== undefined) {
-                    callback(this.state.items[index], true);
-                }
+            this.mediaContainers[index]?.current?.set(source, () => {
+                callback?.(this.state.items[index], true);
             });
         }
     }
@@ -310,9 +307,7 @@ class Library extends Component {
         this.setState({
             items: items
         }, () => {
-            if (callback !== undefined) {
-                callback();
-            }
+            callback?.();
         });
     }
 
@@ -323,10 +318,9 @@ class Library extends Component {
             name: this.duplicates ? this.name : undefined,
             start: 0,
             callback: (succeeded) => {
-            if (callback !== undefined) {
-                callback(succeeded);
+                callback?.(succeeded);
             }
-        }});
+        });
     }
 
     /**
@@ -346,7 +340,7 @@ class Library extends Component {
             toast.error("Unable to find the item that was to be updated.");
             return;
         }
-        fetch("/api/library" + item.fullPath, {
+        fetch("/api/library" + encodeURI(item.fullPath), {
             method: "PATCH",
             headers: {
                 accept: "application/json",
@@ -369,9 +363,121 @@ class Library extends Component {
         .catch(error => {
             console.error(error);
             toast.error(error.message);
-            if (callback !== undefined) {
-                callback(this.state.items[index], false);
+            callback?.(this.state.items[index], false);
+        });
+    }
+
+    /**
+     * Delete a MediaContainer or the selected MediaContainers.
+     * @param {*} source The MediaContainer to delete and if undefined, all selected MediaContainers are deleted.
+     * @param {(source, succeeded) => void} callback The callback function to call with the source and success status.
+     * @returns {Promise} Promise that resolves with {source, success, message} when complete.
+     */
+    delete(source, callback = undefined) {
+        if (!source) {
+            const items = this.state.items.filter(item => this.selected.has(item.id));
+            if (items.length === 0) {
+                toast.error("No items selected for deletion.");
+                return;
             }
+
+            let completed = 0;
+            const failed = [];
+            const succeeded = [];
+            const total = items.length;
+
+            const toastId = toast.info(
+                <ProgressToast title="Deleting..." subtitle="" />,
+                {
+                    autoClose: false,
+                    closeButton: false,
+                    draggable: false,
+                }
+            );
+
+            // delete items sequentially to show progress
+            const start = async () => {
+                for (const item of items) {
+                    try {
+                        // update progress toast with current file
+                        const prefix = `[${completed + 1} / ${total}] `;
+                        toast.update(toastId, {
+                            render: <ProgressToast title={`${prefix}Deleting...`} subtitle={item.name}/>
+                        });
+                        const result = await this.delete(item);
+                        if (result.success) {
+                            succeeded.push(item);
+                        } else {
+                            failed.push(item);
+                        }
+                    } catch (error) {
+                        console.error(`Failed to delete ${item.fullPath}:`, error);
+                        failed.push(item);
+                    }
+                    completed++;
+                }
+
+                // dismiss progress toast
+                toast.dismiss(toastId);
+
+                // show final result
+                if (succeeded.length > 0) {
+                    toast.success(`Deleted ${succeeded.length} item${succeeded.length > 1 ? 's' : ''} successfully.`);
+
+                    // remove deleted items from state in one batch update
+                    const deleted = new Set(succeeded.map(item => item.id));
+                    this.setState(prevState => ({
+                        items: prevState.items.filter(item => !deleted.has(item.id))
+                    }), () => {
+                        // clear selection for deleted items
+                        deleted.forEach(id => this.selected.delete(id));
+                        this.forceUpdate();
+                    });
+                }
+
+                if (failed.length > 0) {
+                    toast.error(`Failed to delete ${failed.length} item${failed.length > 1 ? 's' : ''}.`);
+                }
+
+                callback?.(succeeded.length, failed.length);
+            };
+
+            start();
+
+            return;
+        }
+
+        const index = this.state.items.findIndex(x => x.id === source.id);
+        if (index === -1) {
+            const error = new Error("Item not found");
+            callback?.(source, false);
+            return Promise.reject(error);
+        }
+        return fetch("/api/library" + encodeURI(source.fullPath), {
+            method: "DELETE",
+            headers: {
+                accept: "application/json",
+            },
+        })
+        .then(async (response) => {
+            if (!response.ok) {
+                // try to parse error response if available
+                return response.json().then((error) => {
+                    throw new Error(error.message ?? error.detail ?? error.title);
+                });
+            } else {
+                // read the response anyway to avoid fetch a failure even though it's empty
+                await response.text();
+                callback?.(source, true);
+                return { source, success: true };
+            }
+        })
+        .catch(error => {
+            console.error("Delete failed:", error);
+            console.error("URL was:", "/api/library" + source.fullPath);
+            console.error("Full error:", error);
+            callback?.(source, false);
+            return { source, success: false, error: error.message };
         });
     }
 
@@ -505,15 +611,11 @@ class Library extends Component {
         .then((result) => {
             const numFound = result?.response?.numFound ?? 0;
             const docs = result?.response?.docs ?? [];
-            if (callback !== undefined) {
-                callback(docs);
-            }
+            callback?.(docs);
         })
         .catch(error => {
             console.error(error);
-            if (callback !== undefined) {
-                callback();
-            }
+            callback?.();
         });
     }
 
@@ -593,6 +695,7 @@ class Library extends Component {
         if (!start) {
             this.items = [];
             this.mediaContainers = {};
+            this.selected.clear();
         }
         this.setState({
             items: [],
@@ -708,9 +811,7 @@ class Library extends Component {
                     status: error.message,
                     items: []
                 }, () => {
-                    if (callback !== undefined) {
-                        callback(false);
-                    }
+                    callback?.(false);
                 });
             });
         });

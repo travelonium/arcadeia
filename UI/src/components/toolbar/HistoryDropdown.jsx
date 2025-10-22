@@ -192,9 +192,7 @@ export class HistoryDropdown extends Component {
                         this.search(limit, start + rows);
                     } else {
                         this.items = [];
-                        if (callback !== undefined) {
-                            callback(true);
-                        }
+                        callback?.(true);
                     }
                 });
             })
@@ -207,9 +205,7 @@ export class HistoryDropdown extends Component {
                     status: error.message,
                     items: []
                 }, () => {
-                    if (callback !== undefined) {
-                        callback(false);
-                    }
+                    callback?.(false);
                 });
             });
         });
