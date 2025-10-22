@@ -401,8 +401,10 @@ class Library extends Component {
                     try {
                         // update progress toast with current file
                         const prefix = `[${completed + 1} / ${total}] `;
+                        const progress = completed / total;
                         toast.update(toastId, {
-                            render: <ProgressToast title={`${prefix}Deleting...`} subtitle={item.name}/>
+                            render: <ProgressToast title={`${prefix}Deleting...`} subtitle={item.name}/>,
+                            progress: progress
                         });
                         const result = await this.delete(item);
                         if (result.success) {
