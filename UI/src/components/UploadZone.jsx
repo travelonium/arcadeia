@@ -211,18 +211,26 @@ class UploadZone extends Component {
             let process = (item, path) => {
                 if (typeof item !== 'string') {
                     // the item is a file object, normalize its path before queueing it
-                    if (item.webkitRelativePath) path = pb.normalize(pb.dirname(pb.join(path, item.webkitRelativePath)) + "/");
+                    if (item.webkitRelativePath) {
+                        path = pb.normalize(pb.dirname(pb.join(path, item.webkitRelativePath)) + "/");
+                    }
                 }
                 queue(item, path);
             };
             let traverse = (item, path = this.path) => {
                 if (item.isFile) {
-                    item.file(file => process(file, path));
+                    item.file(file => {
+                        // build the full path including subdirectories
+                        const filePath = pb.normalize(pb.join(path, file.name));
+                        const fileDir = pb.normalize(pb.dirname(filePath) + "/");
+                        queue(file, fileDir);
+                    });
                 } else if (item.isDirectory) {
                     let dirReader = item.createReader();
+                    const subPath = pb.normalize(pb.join(path, item.name) + "/");
                     dirReader.readEntries(entries => {
                         entries.forEach(entry => {
-                            traverse(entry);
+                            traverse(entry, subPath);
                         });
                     });
                 }
