@@ -24,6 +24,7 @@ services:
   app:
     image: ${CONTAINER_REGISTRY:-ghcr.io/travelonium}/arcadeia:${CONTAINER_TAG:-latest}
     entrypoint: ["/usr/bin/dotnet", "/var/lib/app/Arcadeia.dll"]
+    restart: unless-stopped
     working_dir: /var/lib/app
     stop_signal: SIGINT
     logging: *default-logging
@@ -39,6 +40,7 @@ services:
       - uploads:/Uploads
   apache:
     image: httpd:2.4.54
+    restart: unless-stopped
     stop_signal: SIGWINCH
     logging: *default-logging
     depends_on:

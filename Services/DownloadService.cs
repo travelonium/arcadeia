@@ -94,7 +94,7 @@ namespace Arcadeia.Services
 
          if (process.ExitCode != 0)
          {
-            _logger.LogError("Failed To Determine File Name For: {}, Exist Code: {}", url, process.ExitCode);
+            _logger.LogError("Failed To Determine File Name For: {}, Exit Code: {}", url, process.ExitCode);
 
             if (!string.IsNullOrEmpty(error)) _logger.LogDebug("{}", error);
 
@@ -210,7 +210,7 @@ namespace Arcadeia.Services
 
          if (process.ExitCode != 0)
          {
-            _logger.LogError("Failed To Download URL: {Url}, Exist Code: {ExitCode}", url, process.ExitCode);
+            _logger.LogError("Failed To Download URL: {Url}, Exit Code: {ExitCode}", url, process.ExitCode);
 
             if (!string.IsNullOrEmpty(error))
             {
