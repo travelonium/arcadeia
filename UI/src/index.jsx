@@ -33,15 +33,60 @@ const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
 
-// auto-reload when a new service worker is available
-const updateSW = registerSW({
-    onNeedRefresh() {
-        updateSW(true); // forces page reload
-    },
-    onOfflineReady() {
-        console.log("PWA is ready to work offline.");
-    },
-});
+// Only register the service worker on origins where the backend API is
+// reachable. This prevents the SW from taking over on proxy/marketing
+// domains that serve the frontend but not the API. Once verified, the
+// origin is remembered so the SW still works offline on return visits.
+const SW_ORIGIN_KEY = 'arcadeia-sw-origin';
+
+async function initServiceWorker() {
+    const storedOrigin = localStorage.getItem(SW_ORIGIN_KEY);
+
+    if (storedOrigin === window.location.origin) {
+        // previously verified — register (works even if offline)
+        registerAppSW();
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/settings', {
+            method: "GET",
+            headers: {
+                accept: "application/json",
+            }
+        });
+        if (response.ok) {
+            localStorage.setItem(SW_ORIGIN_KEY, window.location.origin);
+            registerAppSW();
+        } else {
+            await unregisterExistingSW();
+        }
+    } catch {
+        await unregisterExistingSW();
+    }
+}
+
+function registerAppSW() {
+    const updateSW = registerSW({
+        onNeedRefresh() {
+            updateSW(true); // forces page reload
+        },
+        onOfflineReady() {
+            console.log("PWA is ready to work offline.");
+        },
+    });
+}
+
+async function unregisterExistingSW() {
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+            await registration.unregister();
+        }
+    }
+}
+
+initServiceWorker();
 
 root.render(
     <BrowserRouter basename={baseUrl}>
