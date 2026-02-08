@@ -39,14 +39,14 @@ export default defineConfig({
       includes: ['trace', 'debug', 'group', 'groupCollapsed', 'groupEnd']
     }),
     VitePWA({
+      strategies: 'injectManifest',
       registerType: 'autoUpdate',
       manifest: false,
       outDir: 'build',
-      workbox: {
-        sourcemap: true,
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,woff,woff2,png,svg}'],
-        clientsClaim: true, // makes new SW take control immediately
-        skipWaiting: true, // forces SW activation without waiting
       },
       devOptions: {
         enabled: true

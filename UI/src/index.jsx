@@ -84,6 +84,11 @@ async function unregisterExistingSW() {
             await registration.unregister();
         }
     }
+    // clear all caches left behind by the service worker
+    const cacheNames = await caches.keys();
+    for (const name of cacheNames) {
+        await caches.delete(name);
+    }
 }
 
 initServiceWorker();
