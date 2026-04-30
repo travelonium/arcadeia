@@ -56,7 +56,7 @@ export const uiSlice = createSlice({
         queueUpload: (state, action) => {
             let item = {};
             const { key, value } = action.payload;
-            const index = state.uploads.items.findIndex(item => item.key === key);
+            let index = state.uploads.items.findIndex(item => item.key === key);
             if (index !== -1) {
                 item = state.uploads.items[index];
                 if (item.state === 'active') {
@@ -74,6 +74,27 @@ export const uiSlice = createSlice({
                 // remove the item from the array
                 state.uploads.items.splice(index, 1);
             }
+            // in case the item has a url, check if it has already been uploaded or is in the queue, unless reupload is enabled
+            if (value.url) {
+                const url = value.url;
+                index = state.uploads.items.findIndex(item => item.url === url);
+                if (index !== -1) {
+                    item = state.uploads.items[index];
+                    if (item.state === 'active') {
+                        console.log("Already Active:", item.url);
+                        return;
+                    };
+                    if (item.state === 'queued') {
+                        console.log("Already Queued:", item.url);
+                        return;
+                    };
+                    if (item.state === 'succeeded' && !state.uploads.reupload) {
+                        console.log("Already Uploaded:", item.url);
+                        return;
+                    }
+                }
+            }
+            // now we can safely add the item to the queue
             Object.assign(item, value, {
                 key: key,
                 state: 'queued',
