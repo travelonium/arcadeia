@@ -33,6 +33,11 @@ const target = env.ASPNETCORE_HTTPS_PORT
     : 'http://localhost:31735';
 
 export default defineConfig({
+  test: {
+    environment: 'node',
+    globals: true,
+    setupFiles: ['./src/vitest.setup.js'],
+  },
   plugins: [
     react(),
     removeConsole({

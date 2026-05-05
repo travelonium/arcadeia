@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+FOLDER_NAME="$(basename "$SCRIPT_DIR")"
+
+VOLUMES=("${FOLDER_NAME}_data" "${FOLDER_NAME}_solr" "${FOLDER_NAME}_uploads")
+
+echo "Backing up volumes..."
+for VOLUME in "${VOLUMES[@]}"; do
+    BACKUP_FILE="$SCRIPT_DIR/${VOLUME}.tar.gz"
+    echo "Creating backup: $BACKUP_FILE"
+    docker run --rm -v ${VOLUME}:/data -v "$SCRIPT_DIR":/backup busybox tar czvf "/backup/${VOLUME}.tar.gz" /data
+done

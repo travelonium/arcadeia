@@ -31,7 +31,7 @@ import { Container, Row, Col } from 'react-bootstrap';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
 import { queueUpload, startUploadThunk, updateUpload, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
 
-class UploadZone extends Component {
+export class UploadZone extends Component {
 
     static displayName = UploadZone.name;
 

@@ -142,7 +142,24 @@ namespace Arcadeia.Models
 
          foreach (var property in Properties())
          {
-            hash.Add(property.GetValue(this));
+            var value = property.GetValue(this);
+            if (value is DateTime dt)
+            {
+               hash.Add(dt.TruncateToSeconds());
+            }
+            else if (value is string[] strings)
+            {
+               foreach (var s in strings)
+                  hash.Add(s);
+            }
+            else if (value == null && property.PropertyType == typeof(string[]))
+            {
+               // null string[] is equal to empty string[] — contribute nothing
+            }
+            else
+            {
+               hash.Add(value);
+            }
          }
 
          return hash.ToHashCode();

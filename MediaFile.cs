@@ -75,7 +75,10 @@ namespace Arcadeia
          {
             var extension = System.IO.Path.GetExtension(Name);
 
-            return (!string.IsNullOrEmpty(extension)) ? extension.ToLower().TrimStart(['.']) : null;
+            if (string.IsNullOrEmpty(extension)) return null;
+            if (string.IsNullOrEmpty(System.IO.Path.GetFileNameWithoutExtension(Name))) return null;
+
+            return extension.ToLower().TrimStart(['.']);
          }
       }
 

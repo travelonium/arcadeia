@@ -160,10 +160,10 @@ namespace Arcadeia
                throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
             }
 
-            var field = "parent";
+            var fieldName = "parent";
             var value = Id;
 
-            var children = solrIndexService.Get(field, value);
+            var children = solrIndexService.Get(fieldName, value);
 
             foreach (var child in children)
             {

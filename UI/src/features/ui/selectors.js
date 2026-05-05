@@ -20,15 +20,11 @@
 
 import { createSelector } from '@reduxjs/toolkit';
 
-const items = (state) => state.ui.uploads.items;
-const progress = (state) => state.ui.uploads.progress;
 
-export const selectAll = createSelector(
-    [items], (uploads) => {
-        console.debug('selectAll()');
-        return uploads;
-    }
-);
+export const selectAll = (state) => {
+    console.debug('selectAll()');
+    return state.ui.uploads.items;
+};
 
 export const selectQueued = createSelector(
     [selectAll], (uploads) => {
@@ -58,9 +54,7 @@ export const selectSucceeded = createSelector(
     }
 );
 
-export const selectProgress = createSelector(
-    [progress], (progress) => {
-        console.debug('selectProgress()');
-        return progress;
-    }
-);
+export const selectProgress = (state) => {
+    console.debug('selectProgress()');
+    return state.ui.uploads.progress;
+};

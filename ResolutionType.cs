@@ -51,7 +51,7 @@ namespace Arcadeia
          }
          catch (Exception)
          {
-            // 0x0 it is then!
+            Width = Height = 0;
             return;
          }
       }

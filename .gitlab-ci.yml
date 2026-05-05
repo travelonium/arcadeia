@@ -101,7 +101,7 @@ deploy:demo:
   only:
     - master
 
-test:
+test:backend:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
   before_script:
     - dotnet restore
@@ -109,7 +109,26 @@ test:
     - linux
   stage: test
   script:
-    - dotnet test
+    - mkdir -p test-results
+    - dotnet test --no-restore --logger "junit;LogFilePath=$CI_PROJECT_DIR/test-results/dotnet-junit.xml"
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/dotnet-junit.xml
+
+test:frontend:
+  image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
+  before_script: []
+  tags:
+    - linux
+  stage: test
+  script:
+    - cd UI && npm ci
+    - npx vitest run --reporter=verbose --reporter=junit --outputFile=$CI_PROJECT_DIR/test-results/ui-junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/ui-junit.xml
 
 .deploy-artifacts:
   artifacts:
