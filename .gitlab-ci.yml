@@ -117,12 +117,13 @@ test:backend:
       junit: test-results/dotnet-junit.xml
 
 test:frontend:
-  image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
+  image: node:20
   before_script: []
   tags:
     - linux
   stage: test
   script:
+    - mkdir -p $CI_PROJECT_DIR/test-results
     - cd UI && npm ci
     - npx vitest run --reporter=verbose --reporter=junit --outputFile=$CI_PROJECT_DIR/test-results/ui-junit.xml
   artifacts:
