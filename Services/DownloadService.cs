@@ -72,10 +72,12 @@ namespace Arcadeia.Services
 
          string executable = Path.Combine(_settings.CurrentValue.YtDlp.Path ?? "", $"yt-dlp{Platform.Extension.Executable}");
 
+         string options = string.Join(" ", _settings.CurrentValue.YtDlp.Options.Where(x => !string.IsNullOrEmpty(x)).ToArray());
+
          ProcessStartInfo processStartInfo = new()
          {
             FileName = executable,
-            Arguments = $"--get-filename -o \"{template}\" \"{url}\"",
+            Arguments = string.Join(" ", new[] { "--get-filename", $"-o \"{template}\"", options, $"\"{url}\"" }.Where(x => !string.IsNullOrEmpty(x))),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
