@@ -117,7 +117,7 @@ test:backend:
       junit: test-results/dotnet-junit.xml
 
 test:frontend:
-  image: node:20
+  image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
   before_script: []
   tags:
     - linux
