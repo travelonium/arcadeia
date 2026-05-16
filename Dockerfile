@@ -43,7 +43,7 @@ RUN set -eux; \
     tar -xvf /tmp/ffmpeg-release.tar.xz -C /tmp/; \
     cd /tmp/$(ls -l /tmp/ | grep ^d | grep 'ffmpeg-' | awk '{print $9}' | head -n 1); \
     cp ffmpeg ffprobe qt-faststart /usr/bin/; \
-    pip install --break-system-packages -U "yt-dlp[default]"; \
+    pip install --break-system-packages -U "yt-dlp[default,curl-cffi]"; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -p /Network /Uploads; \
     dpkg -l; \
