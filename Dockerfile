@@ -1,5 +1,6 @@
 ARG VERSION=10.0
 ARG NODEJS_VERSION=20
+ARG FFMPEG_VERSION=8.1.1
 ARG DISTRO=noble
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${VERSION}-${DISTRO} AS builder
@@ -19,17 +20,19 @@ RUN set -eux; \
     dotnet restore -a $TARGETARCH ./Arcadeia.csproj; \
     dotnet publish -a $TARGETARCH ./Arcadeia.csproj --no-restore --configuration Release -o /app;
 
+FROM mwader/static-ffmpeg:${FFMPEG_VERSION}-${TARGETARCH} AS ffmpeg
+
 FROM mcr.microsoft.com/dotnet/aspnet:${VERSION}-${DISTRO}
 ARG VERSION
 ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 LABEL org.opencontainers.image.architecture=$TARGETARCH
 RUN dpkg --print-architecture;
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/bin/
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
                     curl \
-                    xz-utils \
                     sqlite3 \
                     net-tools \
                     iputils-ping \
@@ -39,10 +42,6 @@ RUN set -eux; \
                     python3-pip \
                     ca-certificates \
                     software-properties-common; \
-    curl -SL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$(dpkg --print-architecture)-static.tar.xz" -o /tmp/ffmpeg-release.tar.xz; \
-    tar -xvf /tmp/ffmpeg-release.tar.xz -C /tmp/; \
-    cd /tmp/$(ls -l /tmp/ | grep ^d | grep 'ffmpeg-' | awk '{print $9}' | head -n 1); \
-    cp ffmpeg ffprobe qt-faststart /usr/bin/; \
     pip install --break-system-packages -U "yt-dlp[default,curl-cffi]"; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -p /Network /Uploads; \
@@ -51,7 +50,6 @@ RUN set -eux; \
     yt-dlp --version; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*;
-
 COPY --from=builder /app /var/lib/app/
 COPY entrypoint.sh /
 
