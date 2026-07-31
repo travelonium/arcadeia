@@ -58,6 +58,38 @@ export class VideoPlayer extends React.Component {
                         vjsIconClass: "vjs-icon-cog",
                         displayCurrentQuality: false,
                     });
+                    // unlike vttThumbnails/hlsQualitySelector above, addRemoteTextTrack needs the
+                    // tech to be attached, which isn't guaranteed immediately after construction -
+                    // called too early it silently no-ops, so it must wait for the player to be ready.
+                    this.player.ready(() => {
+                        let embedded = [];
+                        try {
+                            embedded = source.subtitles ? JSON.parse(source.subtitles) : [];
+                        } catch {
+                            embedded = [];
+                        }
+                        if (embedded.length > 0) {
+                            // the video has its own subtitle streams - use those instead of a
+                            // whisper transcript, one track per embedded stream/language.
+                            embedded.forEach((subtitle) => {
+                                this.player.addRemoteTextTrack({
+                                    kind: "subtitles",
+                                    src: window.location.origin + "/api/preview/video/" + source.id + "/subtitles/" + subtitle.Index + ".vtt",
+                                    srclang: subtitle.Language || "und",
+                                    label: subtitle.Language ? subtitle.Language.toUpperCase() : "Subtitles",
+                                    default: false,
+                                }, false);
+                            });
+                        } else {
+                            this.player.addRemoteTextTrack({
+                                kind: "subtitles",
+                                src: window.location.origin + "/api/preview/video/" + source.id + "/subtitles.vtt",
+                                srclang: source.transcriptLanguage || "en",
+                                label: "Transcript",
+                                default: false,
+                            }, false);
+                        }
+                    });
                 }
             }
         }

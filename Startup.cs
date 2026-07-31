@@ -72,6 +72,12 @@ namespace Arcadeia
                  .ValidateDataAnnotations()
                  .ValidateOnStart();
 
+         // Transcription Settings
+         services.AddOptions<TranscriptionSettings>()
+                 .Bind(Configuration.GetSection("Transcription"))
+                 .ValidateDataAnnotations()
+                 .ValidateOnStart();
+
          // yt-dlp Settings
          services.AddOptions<YtDlpSettings>()
                  .Bind(Configuration.GetSection("YtDlp"))
@@ -175,6 +181,13 @@ namespace Arcadeia
          // Start the Scanner Hosted Service
          services.AddSingleton<IScannerService, ScannerService>();
          services.AddHostedService(provider => provider.GetRequiredService<IScannerService>());
+
+         // Instantiate the Transcription Queue used by the Transcription Service
+         services.AddSingleton<ITranscriptionQueue, TranscriptionQueue>();
+
+         // Start the Transcription Hosted Service
+         services.AddSingleton<ITranscriptionService, TranscriptionService>();
+         services.AddHostedService(provider => provider.GetRequiredService<ITranscriptionService>());
 
          // Instantiate the Download Service
          services.AddSingleton<IDownloadService, DownloadService>();

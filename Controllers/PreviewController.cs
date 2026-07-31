@@ -148,6 +148,34 @@ namespace Arcadeia.Controllers
          };
       }
 
+      // GET: /api/preview/video/{id}/subtitles.vtt
+      [HttpGet]
+      [Route("video/{id}/subtitles.vtt")]
+      public IActionResult Subtitles(string id)
+      {
+         using VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         string? subtitles = videoFile.GenerateSubtitles();
+
+         if (string.IsNullOrEmpty(subtitles)) return NotFound();
+
+         return Content(subtitles, "text/vtt", Encoding.UTF8);
+      }
+
+      // GET: /api/preview/video/{id}/subtitles/{index}.vtt
+      [HttpGet]
+      [Route("video/{id}/subtitles/{index}.vtt")]
+      public IActionResult EmbeddedSubtitle(string id, int index)
+      {
+         using VideoFile videoFile = new(_logger, _services, _settings, _thumbnailsDatabase, _mediaLibrary, id: id);
+
+         string? subtitle = videoFile.GenerateEmbeddedSubtitle(index);
+
+         if (string.IsNullOrEmpty(subtitle)) return NotFound();
+
+         return Content(subtitle, "text/vtt", Encoding.UTF8);
+      }
+
       // GET: /api/preview/video/{id}/{sequence}.ts
       [HttpGet]
       [Route("video/{id}/{sequence}.ts")]

@@ -60,6 +60,12 @@ namespace Arcadeia.Services
          set;
       } = false;
 
+      public bool Cleaning
+      {
+         get;
+         set;
+      } = false;
+
       /// <summary>
       /// The lists of folders to be scanned for changes that are mounted or exist.
       /// </summary>
@@ -429,6 +435,45 @@ namespace Arcadeia.Services
          }
       }
 
+      public void QueueScan()
+      {
+         foreach (var folder in AvailableFolders.Concat(AvailableWatchedFolders).ToList())
+         {
+            _taskQueue.Queue(folder, cancellationToken =>
+            {
+               string uuid = System.Guid.NewGuid().ToString();
+
+               return Task.Run(() => ScanAsync(uuid, folder, "Manual", _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            });
+         }
+
+         _logger.LogInformation("Manual Scan Queued.");
+      }
+
+      public void QueueUpdate()
+      {
+         _taskQueue.Queue("Manual Update", cancellationToken =>
+         {
+            string uuid = System.Guid.NewGuid().ToString();
+
+            return Task.Run(() => UpdateAsync(uuid, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+         });
+
+         _logger.LogInformation("Manual Update Queued.");
+      }
+
+      public void QueueCleanup()
+      {
+         _taskQueue.Queue("Manual Cleanup", cancellationToken =>
+         {
+            string uuid = System.Guid.NewGuid().ToString();
+
+            return Task.Run(() => CleanupAsync(uuid, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+         });
+
+         _logger.LogInformation("Manual Cleanup Queued.");
+      }
+
       public async Task UpdateAsync(string uuid, CancellationToken cancellationToken)
       {
          Updating = true;
@@ -569,6 +614,8 @@ namespace Arcadeia.Services
 
       public async Task CleanupAsync(string uuid, CancellationToken cancellationToken)
       {
+         Cleaning = true;
+
          var watch = new Stopwatch();
 
          _logger.LogInformation("Thumbnails Database Cleanup Started.");
@@ -687,6 +734,7 @@ namespace Arcadeia.Services
          // Inform the client(s) of the need to refresh
          await _notificationService.RefreshAsync("/");
 
+         Cleaning = false;
          var ts = watch.Elapsed;
          _logger.LogInformation("Thumbnails Database Cleanup {} After {} Days, {} Hours, {} Minutes, {} Seconds.",
                                 cancellationToken.IsCancellationRequested ? "Cancelled" : "Finished",

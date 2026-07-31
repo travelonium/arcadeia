@@ -267,5 +267,6 @@ Temporary Items
 
 # Custom development and production settings
 appsettings.*.json
+.claude
 .env.*
 .env

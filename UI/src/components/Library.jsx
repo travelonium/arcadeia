@@ -38,6 +38,16 @@ import Container from 'react-bootstrap/Container';
 import Breadcrumb from 'react-bootstrap/Breadcrumb';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
+
+// The fields returned for every result row (top-level and nested children/duplicates). Deliberately
+// excludes "transcript" and "transcriptSegments": they're matched for relevance via `qf` below, but
+// returning the full transcript text for every row (up to `rows: 10000` on a plain listing, or for
+// each of a parent's nested children) would make responses enormous. "transcriptLanguage" and
+// "subtitles" are kept - they're just a short language code and a small list of stream metadata.
+const FIELDS = "id,name,type,parent,parentType,parents,description,path,fullPath,flags,views,size," +
+               "checksum,dateAdded,dateCreated,dateModified,dateTaken,dateAccessed,contentType,extension," +
+               "thumbnails,duration,width,height,transcriptLanguage,subtitles,name_ngram,description_ngram,path_ngram";
+
 import { setScrollPosition } from '../features/ui/slice';
 import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag } from '../utils';
 
@@ -638,10 +648,10 @@ class Library extends Component {
             fq: [],
             rows: rows,
             start: start,
-            fl: "*,children:[subquery],duplicates:[subquery]",
+            fl: `${FIELDS},children:[subquery],duplicates:[subquery]`,
             "q.op": "AND",
             defType: "edismax",
-            qf: "name_ngram^20 description_ngram^10 path_ngram^5",
+            qf: "name_ngram^20 description_ngram^10 path_ngram^5 transcript^2",
             // TODO: Replace qf with the following when parents filtering is properly in place fields are available
             // qf: "name_ngram^20 description_ngram^10",
             wt: "json",
@@ -651,6 +661,7 @@ class Library extends Component {
                 fq: ["-type:Folder", "-type:Drive", "-type:Server"],
                 sort: "views desc, dateAdded asc, name asc",
                 rows: 3,
+                fl: FIELDS,
             },
             duplicates: {
                 q: "{!term f=checksum v=$row.checksum}",
@@ -659,6 +670,7 @@ class Library extends Component {
                 ],
                 start: 0,
                 rows: duplicates ? rows : 0,
+                fl: FIELDS,
             }
         };
         if (duplicates && name) {

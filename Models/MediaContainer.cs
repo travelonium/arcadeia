@@ -94,6 +94,18 @@ namespace Arcadeia.Models
       [SolrField("height")]
       public long? Height { get; set; }
 
+      [SolrField("transcript")]
+      public string? Transcript { get; set; }
+
+      [SolrField("transcriptLanguage")]
+      public string? TranscriptLanguage { get; set; }
+
+      [SolrField("transcriptSegments")]
+      public string? TranscriptSegments { get; set; }
+
+      [SolrField("subtitles")]
+      public string? Subtitles { get; set; }
+
       [SolrField("flags")]
       public string[]? Flags { get; set; }
 

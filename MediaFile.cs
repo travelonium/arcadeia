@@ -239,6 +239,42 @@ namespace Arcadeia
             {
                Logger.LogWarning("Failed To Retrieve MediaFile Information For: {}, Because: {}", FullPath, e.Message);
             }
+
+            bool hasEmbeddedSubtitles = false;
+
+            try
+            {
+               // Cheap (ffprobe/ffmpeg, no whisper), so detected inline during scanning - the same
+               // as thumbnails - rather than through the decoupled background transcription queue.
+               hasEmbeddedSubtitles = DetectSubtitles(force: true);
+            }
+            catch (Exception e)
+            {
+               Logger.LogWarning("Failed To Detect Subtitles For: {}, Because: {}", FullPath, e.Message);
+            }
+
+            if (!hasEmbeddedSubtitles && !string.IsNullOrEmpty(Id))
+            {
+               // No embedded subtitles to fall back on - queue for whisper transcription, which is
+               // CPU-heavy and runs on a separate, decoupled background worker so scanning itself
+               // stays fast. See Services/TranscriptionService.cs.
+               Services.GetRequiredService<ITranscriptionQueue>().Enqueue(Id);
+            }
+         }
+         else if (Settings.CurrentValue.Scanner.ForceDetectMissingSubtitles)
+         {
+            try
+            {
+               // Backfill embedded subtitle detection for already-indexed files that predate this
+               // check (or were never re-scanned since), the same as ForceGenerateMissingThumbnails
+               // does for thumbnails below. Unlike the checksum-changed path above, this doesn't
+               // force a re-check of files already known to have (or not have) embedded subtitles.
+               DetectSubtitles();
+            }
+            catch (Exception e)
+            {
+               Logger.LogWarning("Failed To Detect Subtitles For: {}, Because: {}", FullPath, e.Message);
+            }
          }
 
          try
@@ -322,6 +358,33 @@ namespace Arcadeia
       public virtual int GenerateThumbnails(bool force = false)
       {
          throw new NotImplementedException("This MediaFile does not offer a GenerateThumbnails() method!");
+      }
+
+      /// <summary>
+      /// Generates the transcript for the current media file's audio, if any. This method is to be
+      /// overridden for each individual type of media file capable of being transcribed. The base
+      /// implementation is a no-op since not every MediaFile type has audio to transcribe. Unlike
+      /// DetectSubtitles() below, this uses whisper.cpp and is CPU-heavy, so it runs on a separate,
+      /// decoupled background worker instead of inline during scanning - see
+      /// Services/TranscriptionService.cs.
+      /// </summary>
+      /// <param name="force">Whether to regenerate the transcript even if one already exists.</param>
+      public virtual void GenerateTranscript(bool force = false)
+      {
+      }
+
+      /// <summary>
+      /// Detects and uses the media file's own embedded subtitle streams, if any, in place of a
+      /// whisper.cpp transcript. This method is to be overridden for each individual type of media
+      /// file capable of carrying subtitles. The base implementation is a no-op since not every
+      /// MediaFile type can. Unlike GenerateTranscript() above, this is cheap (an ffprobe/ffmpeg
+      /// call, no whisper involved), so it runs inline during scanning, the same as thumbnails.
+      /// </summary>
+      /// <param name="force">Whether to re-probe even if the file was already checked before.</param>
+      /// <returns>True if embedded subtitle streams were found and used, false otherwise.</returns>
+      public virtual bool DetectSubtitles(bool force = false)
+      {
+         return false;
       }
 
       #endregion // Common Functionality

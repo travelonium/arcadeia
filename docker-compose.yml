@@ -28,6 +28,25 @@ services:
     working_dir: /var/lib/app
     stop_signal: SIGINT
     logging: *default-logging
+    sysctls:
+      # The "internal" bridge network is IPv4-only, but the container's loopback
+      # still has IPv6 (::1). .NET's dual-stack sockets then try to connect to
+      # other containers via an IPv4-mapped IPv6 address and fail with
+      # "Cannot assign requested address" because there's no real IPv6 route
+      # (e.g. Solr connections dropping mid-scan). Disabling IPv6 on the
+      # container removes the loophole so only IPv4 sockets are ever used.
+      - net.ipv6.conf.all.disable_ipv6=1
+      - net.ipv6.conf.default.disable_ipv6=1
+      - net.ipv6.conf.lo.disable_ipv6=1
+      # Every Solr request during a scan opens a fresh short-lived TCP
+      # connection instead of reusing one, which piles up in TIME_WAIT
+      # (60s each) faster than the ephemeral port range can recycle it
+      # during a large scan, eventually exhausting local ports and causing
+      # the same "Cannot assign requested address" failures. Let the kernel
+      # reuse TIME_WAIT sockets for new outbound connections to the same
+      # destination instead of leaving them idle.
+      - net.ipv4.tcp_tw_reuse=1
+      - net.ipv4.tcp_fin_timeout=15
     depends_on:
       - solr
     privileged: true

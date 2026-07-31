@@ -21,6 +21,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Globalization;
 using Microsoft.Extensions.Options;
 using ImageMagick;
@@ -65,6 +66,29 @@ namespace Arcadeia
       }
 
       /// <summary>
+      /// Gets or sets the full plain-text transcript of the video file's speech, if any.
+      /// </summary>
+      public string? Transcript { get; set; }
+
+      /// <summary>
+      /// Gets or sets the language detected/used while transcribing the video file.
+      /// </summary>
+      public string? TranscriptLanguage { get; set; }
+
+      /// <summary>
+      /// Gets or sets the JSON-serialized, timestamped transcript segments of the video file.
+      /// Unused (null) when the video has embedded subtitle streams - see <see cref="Subtitles"/>.
+      /// </summary>
+      public string? TranscriptSegments { get; set; }
+
+      /// <summary>
+      /// Gets or sets the JSON-serialized list of the video file's embedded subtitle streams
+      /// (index/language/codec), if any. When present, these are used instead of a whisper.cpp
+      /// transcript for playback captions.
+      /// </summary>
+      public string? Subtitles { get; set; }
+
+      /// <summary>
       /// Gets a tailored MediaContainer model describing a video file.
       /// </summary>
       public override Models.MediaContainer Model
@@ -76,6 +100,10 @@ namespace Arcadeia
             model.Duration = Duration;
             model.Width = Resolution.Width;
             model.Height = Resolution.Height;
+            model.Transcript = Transcript;
+            model.TranscriptLanguage = TranscriptLanguage;
+            model.TranscriptSegments = TranscriptSegments;
+            model.Subtitles = Subtitles;
 
             return model;
          }
@@ -88,6 +116,10 @@ namespace Arcadeia
 
             Duration = value.Duration;
             Resolution = new(value.Width, value.Height);
+            Transcript = value.Transcript;
+            TranscriptLanguage = value.TranscriptLanguage;
+            TranscriptSegments = value.TranscriptSegments;
+            Subtitles = value.Subtitles;
          }
       }
 
@@ -234,6 +266,27 @@ namespace Arcadeia
          process.Start();
          Task<string> errorTask = process.StandardError.ReadToEndAsync();
 
+         // Standard output must be drained concurrently, not after WaitForExit(): once the child's
+         // output exceeds the OS pipe buffer (a few tens of KB), it blocks on write() until someone
+         // reads the pipe, which would otherwise deadlock here until the timeout fires. This only
+         // showed up once a caller (audio extraction) started producing output larger than a single
+         // small thumbnail frame.
+         Task<MemoryStream>? outputTask = output ? Task.Run(async () =>
+         {
+            var memoryStream = new MemoryStream();
+
+            try
+            {
+               await process.StandardOutput.BaseStream.CopyToAsync(memoryStream);
+            }
+            catch
+            {
+               // The process may have been killed due to a timeout, closing the pipe mid-read.
+            }
+
+            return memoryStream;
+         }) : null;
+
          if (!process.WaitForExit(timeout))
          {
             logger?.LogWarning("FFmpeg Execution Timeout: {FileName} {Arguments}", process.StartInfo.FileName, process.StartInfo.Arguments);
@@ -249,10 +302,9 @@ namespace Arcadeia
             return null;
          }
 
-         if (output)
+         if (outputTask != null)
          {
-            using var memoryStream = new MemoryStream();
-            process.StandardOutput.BaseStream.CopyTo(memoryStream);
+            using var memoryStream = outputTask.GetAwaiter().GetResult();
             return memoryStream.ToArray();
          }
 
@@ -399,6 +451,449 @@ namespace Arcadeia
          Progress?.Report(1.0f);
 
          return thumbnails;
+      }
+
+      private readonly record struct TranscriptSegment(long Start, long End, string Text);
+
+      private readonly record struct EmbeddedSubtitle(int Index, string? Language, string Codec);
+
+      // Only the default model is bundled in the Docker image; any other model configured via
+      // Transcription.Model (e.g. picking a larger checkpoint for better accuracy) is fetched here
+      // the first time it's needed rather than bloating the image with every possible model. Guarded
+      // by a static lock since multiple ParallelTasks transcription workers could otherwise race to
+      // download the same missing model file at once.
+      private static readonly SemaphoreSlim ModelDownloadLock = new(1, 1);
+
+      private void EnsureModelDownloaded(string modelPath, ILogger logger)
+      {
+         if (File.Exists(modelPath)) return;
+
+         ModelDownloadLock.Wait();
+
+         try
+         {
+            // Re-check now that the lock is held, in case another thread already downloaded it.
+            if (File.Exists(modelPath)) return;
+
+            string filename = System.IO.Path.GetFileName(modelPath);
+            string url = $"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{filename}";
+            string? directory = System.IO.Path.GetDirectoryName(modelPath);
+            string temporaryPath = modelPath + ".download";
+
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+
+            logger.LogInformation("Downloading Whisper Model: {} -> {}", url, modelPath);
+
+            var client = Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+            client.Timeout = TimeSpan.FromMilliseconds(Settings.CurrentValue.Transcription.TimeoutMilliseconds);
+
+            using (var response = client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult())
+            {
+               response.EnsureSuccessStatusCode();
+
+               using (var fileStream = File.Create(temporaryPath))
+               {
+                  response.Content.CopyToAsync(fileStream).GetAwaiter().GetResult();
+               }
+            }
+
+            File.Move(temporaryPath, modelPath, overwrite: true);
+
+            logger.LogInformation("Whisper Model Downloaded: {}", modelPath);
+         }
+         catch (Exception e)
+         {
+            logger.LogWarning("Failed To Download Whisper Model: {}, Because: {}", modelPath, e.Message);
+         }
+         finally
+         {
+            ModelDownloadLock.Release();
+         }
+      }
+
+      private byte[]? ExtractAudio(string path)
+      {
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            // Input file
+            $"-i \"{path}\"",
+            // Drop the video stream
+            "-vn",
+            // Downmix to mono
+            "-ac 1",
+            // Resample to 16kHz as expected by whisper.cpp
+            "-ar 16000",
+            // Encode as 16-bit PCM
+            "-acodec pcm_s16le",
+            // Overwrite output files
+            "-y",
+            // Output format: WAV
+            "-f wav",
+            // Output to stdout
+            "-",
+         ];
+
+         return FFmpeg(executable, arguments, Settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, Logger);
+      }
+
+      // Image-based subtitle formats (DVD/Blu-ray) are bitmaps, not text - they can't be converted
+      // to WebVTT, so they're not worth exposing as a track.
+      private static readonly string[] UnsupportedSubtitleCodecs = ["dvd_subtitle", "hdmv_pgs_subtitle", "dvb_subtitle"];
+
+      private List<EmbeddedSubtitle> GetEmbeddedSubtitles()
+      {
+         if (string.IsNullOrEmpty(FullPath)) return [];
+
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", $"ffprobe{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            "-v quiet",
+            "-print_format json",
+            "-show_streams",
+            "-select_streams s",
+            $"\"{FullPath}\"",
+         ];
+
+         byte[]? output = FFmpeg(executable, arguments, Settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, Logger);
+
+         if (output is null || output.Length == 0) return [];
+
+         try
+         {
+            var result = JsonDocument.Parse(output).RootElement;
+            var subtitles = new List<EmbeddedSubtitle>();
+
+            if (result.TryGetProperty("streams", out var streamsElement))
+            {
+               foreach (var stream in streamsElement.EnumerateArray())
+               {
+                  int index = stream.GetProperty("index").GetInt32();
+                  string codec = stream.TryGetProperty("codec_name", out var codecElement) ? codecElement.GetString() ?? "" : "";
+
+                  if (UnsupportedSubtitleCodecs.Contains(codec)) continue;
+
+                  string? language = stream.TryGetProperty("tags", out var tagsElement) &&
+                                      tagsElement.TryGetProperty("language", out var languageElement)
+                                      ? languageElement.GetString() : null;
+
+                  subtitles.Add(new EmbeddedSubtitle(index, language, codec));
+               }
+            }
+
+            return subtitles;
+         }
+         catch (Exception e)
+         {
+            Logger.LogDebug("Failed To Probe Embedded Subtitles For: {}, Because: {}", FullPath, e.Message);
+
+            return [];
+         }
+      }
+
+      /// <summary>
+      /// Extracts and converts one of the video file's embedded subtitle streams to WebVTT, or null
+      /// if extraction fails. <paramref name="index"/> is the absolute ffprobe stream index (as
+      /// stored in <see cref="Subtitles"/>), not a subtitle-relative one.
+      /// </summary>
+      public string? GenerateEmbeddedSubtitle(int index)
+      {
+         if (string.IsNullOrEmpty(FullPath)) return null;
+
+         string executable = System.IO.Path.Combine(Settings.CurrentValue.FFmpeg.Path ?? "", $"ffmpeg{Platform.Extension.Executable}");
+
+         string[] arguments =
+         [
+            $"-i \"{FullPath}\"",
+            $"-map 0:{index}",
+            "-c:s webvtt",
+            "-f webvtt",
+            "-y",
+            "-",
+         ];
+
+         byte[]? output = FFmpeg(executable, arguments, Settings.CurrentValue.FFmpeg.TimeoutMilliseconds, true, Logger);
+
+         return (output is not null && output.Length > 0) ? Encoding.UTF8.GetString(output) : null;
+      }
+
+      private static string PlainTextFromVtt(string vtt)
+      {
+         var text = new List<string>();
+
+         foreach (var line in vtt.Split('\n').Select(line => line.Trim()))
+         {
+            if (line.Length == 0) continue;
+            if (line.StartsWith("WEBVTT", StringComparison.Ordinal)) continue;
+            if (line.Contains("-->", StringComparison.Ordinal)) continue;
+            if (line.All(char.IsDigit)) continue; // numeric cue identifier
+
+            text.Add(line);
+         }
+
+         return string.Join(" ", text);
+      }
+
+      private void GenerateTranscriptFromEmbeddedSubtitles(List<EmbeddedSubtitle> subtitles)
+      {
+         Subtitles = JsonSerializer.Serialize(subtitles);
+         TranscriptSegments = null;
+
+         // Pick one stream to populate the searchable Transcript/TranscriptLanguage fields with:
+         // the one matching the configured transcription language if there is one, else the first.
+         string? language = Settings.CurrentValue.Transcription.Language;
+         EmbeddedSubtitle primary = subtitles[0];
+
+         if (!string.IsNullOrEmpty(language) && !string.Equals(language, "auto", StringComparison.OrdinalIgnoreCase))
+         {
+            foreach (var subtitle in subtitles)
+            {
+               if (!string.Equals(subtitle.Language, language, StringComparison.OrdinalIgnoreCase)) continue;
+
+               primary = subtitle;
+
+               break;
+            }
+         }
+
+         string? vtt = GenerateEmbeddedSubtitle(primary.Index);
+
+         Transcript = string.IsNullOrEmpty(vtt) ? "" : PlainTextFromVtt(vtt);
+         TranscriptLanguage = primary.Language;
+      }
+
+      /// <summary>
+      /// Overrides the DetectSubtitles() method of the MediaFile, checking for and using the video
+      /// file's own embedded subtitle streams in place of a whisper.cpp transcript, if any exist.
+      /// </summary>
+      public override bool DetectSubtitles(bool force = false)
+      {
+         // Subtitles is "[]" (not null) once a video has been checked and found to have no embedded
+         // streams, distinguishing "checked, none found" from "never checked" - the latter is what
+         // Scanner.ForceDetectMissingSubtitles backfills for already-indexed videos, without forcing
+         // a redundant re-probe of videos whose answer (either way) is already known.
+         if (!force && Subtitles is not null) return Subtitles != "[]";
+
+         var embedded = GetEmbeddedSubtitles();
+
+         if (embedded.Count == 0)
+         {
+            Subtitles = "[]";
+
+            return false;
+         }
+
+         GenerateTranscriptFromEmbeddedSubtitles(embedded);
+
+         return true;
+      }
+
+      /// <summary>
+      /// Overrides the GenerateTranscript() method of the MediaFile generating a speech transcript
+      /// for the video file's audio using whisper.cpp. Only called for videos without embedded
+      /// subtitle streams - see DetectSubtitles() above.
+      /// </summary>
+      public override void GenerateTranscript(bool force = false)
+      {
+         if (!Settings.CurrentValue.Transcription.Enabled) return;
+         if (!force && !string.IsNullOrEmpty(Transcript)) return;
+         if (string.IsNullOrEmpty(FullPath)) return;
+
+         DirectoryInfo temp = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
+
+         try
+         {
+            string audioPath = System.IO.Path.Combine(temp.FullName, "audio.wav");
+            byte[]? audio = ExtractAudio(FullPath);
+
+            if ((audio == null) || (audio.Length == 0))
+            {
+               Logger.LogDebug("No Audio Track Found For: {}", FullPath);
+
+               Transcript = "";
+               TranscriptLanguage = null;
+               TranscriptSegments = null;
+
+               return;
+            }
+
+            File.WriteAllBytes(audioPath, audio);
+
+            EnsureModelDownloaded(Settings.CurrentValue.Transcription.Model, Logger);
+
+            string executable = System.IO.Path.Combine(Settings.CurrentValue.Transcription.Path ?? "", $"whisper-cli{Platform.Extension.Executable}");
+            string outputBase = System.IO.Path.Combine(temp.FullName, "output");
+
+            string[] arguments =
+            [
+               // Path to the ggml model
+               $"-m \"{Settings.CurrentValue.Transcription.Model}\"",
+               // Language to transcribe in, or "auto" to detect
+               $"-l {Settings.CurrentValue.Transcription.Language ?? "auto"}",
+               // Write the transcript as JSON
+               "-oj",
+               // Output file path, without extension
+               $"-of \"{outputBase}\"",
+               // Input audio file
+               $"\"{audioPath}\"",
+            ];
+
+            byte[]? output = FFmpeg(executable, arguments, Settings.CurrentValue.Transcription.TimeoutMilliseconds, true, Logger);
+
+            if (output is not null && output.Length > 0)
+            {
+               Logger.LogTrace("{}", Encoding.UTF8.GetString(output));
+            }
+
+            string outputPath = outputBase + ".json";
+
+            if (!File.Exists(outputPath))
+            {
+               Logger.LogWarning("Transcription Failed, No Output Produced For: {}", FullPath);
+
+               Transcript = "";
+               TranscriptLanguage = null;
+               TranscriptSegments = null;
+
+               return;
+            }
+
+            var result = JsonDocument.Parse(File.ReadAllText(outputPath)).RootElement;
+
+            TranscriptLanguage = result.TryGetProperty("result", out var resultElement) &&
+                                  resultElement.TryGetProperty("language", out var languageElement)
+                                  ? languageElement.GetString() : null;
+
+            var segments = new List<TranscriptSegment>();
+
+            if (result.TryGetProperty("transcription", out var transcriptionElement))
+            {
+               foreach (var entry in transcriptionElement.EnumerateArray())
+               {
+                  string text = entry.GetProperty("text").GetString()?.Trim() ?? "";
+
+                  if (text.Length == 0) continue;
+
+                  // Whisper occasionally hallucinates a repetition loop (a character or short
+                  // token repeated hundreds of times) on silence/music/noise. whisper.cpp's own
+                  // entropy/logprob decoder-fail thresholds don't reliably catch this, so mirror
+                  // OpenAI's reference implementation's compression-ratio check: a degenerate,
+                  // highly-repetitive string compresses far better than natural language does.
+                  if (IsRepetitive(text))
+                  {
+                     Logger.LogDebug("Repetitive Transcript Segment Discarded For: {}, Text: {}", FullPath, text);
+                     continue;
+                  }
+
+                  long start = entry.GetProperty("offsets").GetProperty("from").GetInt64();
+                  long end = entry.GetProperty("offsets").GetProperty("to").GetInt64();
+
+                  segments.Add(new TranscriptSegment(start, end, text));
+               }
+            }
+
+            segments = RemoveStuckSegments(segments);
+
+            Transcript = string.Join(" ", segments.Select(segment => segment.Text));
+            TranscriptSegments = segments.Count > 0 ? JsonSerializer.Serialize(segments) : null;
+         }
+         catch (Exception e)
+         {
+            Logger.LogWarning("Failed To Generate Transcript For: {}, Because: {}", FullPath, e.Message);
+
+            Transcript = "";
+            TranscriptLanguage = null;
+            TranscriptSegments = null;
+         }
+         finally
+         {
+            temp.Delete(true);
+         }
+      }
+
+      // Below this ratio the text is short/varied enough to be plausible speech. Above it, it's
+      // almost certainly a hallucinated repetition loop. 2.4 matches the compression_ratio_threshold
+      // OpenAI's reference Whisper implementation uses for the same purpose.
+      private const double RepetitionCompressionRatioThreshold = 2.4;
+
+      private static bool IsRepetitive(string text)
+      {
+         // Too short for the compression ratio to be meaningful; gzip's own overhead would dominate.
+         if (text.Length < 50) return false;
+
+         byte[] bytes = Encoding.UTF8.GetBytes(text);
+
+         using MemoryStream compressed = new();
+
+         using (GZipStream gzip = new(compressed, CompressionLevel.Optimal, leaveOpen: true))
+         {
+            gzip.Write(bytes, 0, bytes.Length);
+         }
+
+         return (double)bytes.Length / compressed.Length > RepetitionCompressionRatioThreshold;
+      }
+
+      // Whisper.cpp conditions each chunk's decode on the previously transcribed text. On long
+      // stretches of silence/music/noise this occasionally makes the decoder get "stuck" repeating
+      // the same short phrase verbatim across many disjoint segments (e.g. a name transcribed once
+      // correctly, then echoed for the next several minutes) - too short internally to trip
+      // IsRepetitive, but implausible for genuine speech to produce identically, over and over,
+      // across unrelated time windows. A segment is dropped once its exact text accounts for both
+      // a meaningful share and a minimum count of all segments.
+      private const double StuckSegmentRatioThreshold = 0.2;
+      private const int StuckSegmentMinimumCount = 4;
+
+      private List<TranscriptSegment> RemoveStuckSegments(List<TranscriptSegment> segments)
+      {
+         if (segments.Count < StuckSegmentMinimumCount) return segments;
+
+         var counts = segments.CountBy(segment => segment.Text)
+                               .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+
+         return segments.Where(segment =>
+         {
+            int count = counts[segment.Text];
+
+            if ((count < StuckSegmentMinimumCount) || ((double)count / segments.Count < StuckSegmentRatioThreshold)) return true;
+
+            Logger.LogDebug("Stuck Transcript Segment Discarded For: {}, Text: {}, Count: {}", FullPath, segment.Text, count);
+
+            return false;
+         }).ToList();
+      }
+
+      /// <summary>
+      /// Builds a WebVTT subtitle track from the stored transcript segments, or null if there is
+      /// no transcript (transcription disabled/pending/failed, or no audio track).
+      /// </summary>
+      public string? GenerateSubtitles()
+      {
+         if (string.IsNullOrEmpty(TranscriptSegments)) return null;
+
+         var segments = JsonSerializer.Deserialize<List<TranscriptSegment>>(TranscriptSegments);
+
+         if (segments is null || segments.Count == 0) return null;
+
+         var content = new StringBuilder();
+
+         content.AppendLine("WEBVTT");
+         content.AppendLine();
+
+         foreach (var segment in segments)
+         {
+            content.AppendLine($"{FormatTimestamp(segment.Start)} --> {FormatTimestamp(segment.End)}");
+            content.AppendLine(segment.Text);
+            content.AppendLine();
+         }
+
+         return content.ToString();
+      }
+
+      private static string FormatTimestamp(long milliseconds)
+      {
+         return TimeSpan.FromMilliseconds(milliseconds).ToString(@"hh\:mm\:ss\.fff");
       }
 
       public string GeneratePlaylist()

@@ -52,6 +52,7 @@ namespace Arcadeia.Controllers
          "Streaming",
          "SupportedExtensions",
          "FFmpeg",
+         "Transcription",
          "YtDlp",
          "Solr",
          "Scanner",
@@ -101,10 +102,20 @@ namespace Arcadeia.Controllers
                   // Add the supported codecs
                   ["Codecs"] = JsonNode.Parse(JsonSerializer.Serialize(codecs.Value)),
                },
+
+               ["Transcription"] = new JsonObject
+               {
+                  // Add the Whisper models already downloaded to disk. Computed fresh on every
+                  // request (unlike HardwareAcceleration/Codecs above) since a new model can appear
+                  // at any time via the on-demand download in VideoFile.EnsureModelDownloaded.
+                  ["Models"] = JsonNode.Parse(JsonSerializer.Serialize(AvailableModels())),
+               },
             };
 
-            // Add an Available key for each mount
-            var mounts = json["Mounts"]?.AsArray();
+            // Add an Available key for each mount. Note: an empty Mounts list is indistinguishable
+            // from an empty object once round-tripped through IConfiguration, so a plain `as` cast
+            // (rather than AsArray(), which throws on the wrong node type) is used here.
+            var mounts = json["Mounts"] as JsonArray;
             if (mounts is not null)
             {
                foreach (var item in mounts)
@@ -149,12 +160,13 @@ namespace Arcadeia.Controllers
                }
             }
 
-            // Add Scanning and Updating keys to Scanner
+            // Add Scanning, Updating and Cleaning keys to Scanner
             var scanner = json["Scanner"];
             if (scanner is not null)
             {
                scanner["Scanning"] = scannerService.Scanning;
                scanner["Updating"] = scannerService.Updating;
+               scanner["Cleaning"] = scannerService.Cleaning;
             }
          }
          else
@@ -163,6 +175,54 @@ namespace Arcadeia.Controllers
          }
 
          return Ok(json);
+      }
+
+      // POST: /api/settings/scanner/scan
+      [HttpPost]
+      [Route("scanner/scan")]
+      [Produces("application/json")]
+      public IActionResult Scan()
+      {
+         if (settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return StatusCode(401, new { message = "The library is read-only." });
+         }
+
+         scannerService.QueueScan();
+
+         return Ok();
+      }
+
+      // POST: /api/settings/scanner/update
+      [HttpPost]
+      [Route("scanner/update")]
+      [Produces("application/json")]
+      public IActionResult Update()
+      {
+         if (settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return StatusCode(401, new { message = "The library is read-only." });
+         }
+
+         scannerService.QueueUpdate();
+
+         return Ok();
+      }
+
+      // POST: /api/settings/scanner/cleanup
+      [HttpPost]
+      [Route("scanner/cleanup")]
+      [Produces("application/json")]
+      public IActionResult Cleanup()
+      {
+         if (settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return StatusCode(401, new { message = "The library is read-only." });
+         }
+
+         scannerService.QueueCleanup();
+
+         return Ok();
       }
 
       // POST: /api/settings
@@ -257,6 +317,17 @@ namespace Arcadeia.Controllers
          }
 
          return null;
+      }
+
+      private IEnumerable<string> AvailableModels()
+      {
+         string? directory = System.IO.Path.GetDirectoryName(settings.CurrentValue.Transcription.Model);
+
+         if (string.IsNullOrEmpty(directory) || !System.IO.Directory.Exists(directory)) return [];
+
+         return System.IO.Directory.GetFiles(directory, "ggml-*.bin")
+                                    .Select(System.IO.Path.GetFileName)
+                                    .Where(name => !string.IsNullOrEmpty(name))!;
       }
 
       private IEnumerable<string> HardwareAccelerators()

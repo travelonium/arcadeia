@@ -39,6 +39,9 @@ namespace Arcadeia.Configuration
       [Required(ErrorMessage = "The 'FFmpeg' configuration is required.")]
       public required FFmpegSettings FFmpeg { get; set; }
 
+      [Required(ErrorMessage = "The 'Transcription' configuration is required.")]
+      public required TranscriptionSettings Transcription { get; set; }
+
       [Required(ErrorMessage = "The 'YtDlp' configuration is required.")]
       public required YtDlpSettings YtDlp { get; set; }
 
@@ -158,6 +161,28 @@ namespace Arcadeia.Configuration
       public string? Subtitle { get; set; }
    }
 
+   public class TranscriptionSettings
+   {
+      public bool Enabled { get; set; } = false;
+
+      public string? Path { get; set; }
+
+      [Required(ErrorMessage = "The 'Model' property is required for Transcription settings.")]
+      public required string Model { get; set; }
+
+      public string? Language { get; set; } = "auto";
+
+      [Required(ErrorMessage = "The 'TimeoutMilliseconds' property is required for Transcription settings.")]
+      [Range(1, int.MaxValue, ErrorMessage = "TimeoutMilliseconds must be a positive integer.")]
+      public int TimeoutMilliseconds { get; set; }
+
+      [Required(ErrorMessage = "The 'ParallelTasks' property is required for Transcription settings.")]
+      [Range(1, int.MaxValue, ErrorMessage = "ParallelTasks must be a positive integer.")]
+      public int ParallelTasks { get; set; } = 1;
+
+      public bool CatchUpOnStartup { get; set; } = true;
+   }
+
    public class YtDlpSettings
    {
       public string? Path { get; set; }
@@ -187,6 +212,7 @@ namespace Arcadeia.Configuration
       public bool StartupUpdate { get; set; } = false;
       public bool StartupCleanup { get; set; } = false;
       public bool ForceGenerateMissingThumbnails { get; set; }
+      public bool ForceDetectMissingSubtitles { get; set; }
 
       [Required(ErrorMessage = "The 'PeriodicScanIntervalMilliseconds' is required for scanner settings.")]
       [Range(0, uint.MaxValue, ErrorMessage = "TimeoutMilliseconds must be an integer.")]

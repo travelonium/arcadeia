@@ -22,11 +22,12 @@ import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
+import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import ToggleButton from 'react-bootstrap/ToggleButton';
-import { writeSettings } from '../../features/settings/slice';
+import { readSettings, writeSettings } from '../../features/settings/slice';
 import ToggleButtonGroup from 'react-bootstrap/ToggleButtonGroup';
 
 export default function Scanner() {
@@ -34,22 +35,58 @@ export default function Scanner() {
 
     const settings = useSelector((state) => state.settings.current);
     const readOnly = useSelector((state) => state.settings.current?.Security?.Settings?.ReadOnly);
+    const libraryReadOnly = useSelector((state) => state.settings.current?.Security?.Library?.ReadOnly);
+    const scanning = useSelector((state) => state.settings.current?.Scanner?.Scanning);
+    const updating = useSelector((state) => state.settings.current?.Scanner?.Updating);
+    const cleaning = useSelector((state) => state.settings.current?.Scanner?.Cleaning);
 
     const [startupScan, setStartupScan] = useState(null);
     const [startupUpdate, setStartupUpdate] = useState(null);
     const [startupCleanup, setStartupCleanup] = useState(null);
     const [forceGenerateMissingThumbnails, setForceGenerateMissingThumbnails] = useState(null);
+    const [forceDetectMissingSubtitles, setForceDetectMissingSubtitles] = useState(null);
     const [periodicScanIntervalMilliseconds, setPeriodicScanIntervalMilliseconds] = useState(null);
     const [parallelScannerTasks, setParallelScannerTasks] = useState(null);
+    const [starting, setStarting] = useState(null);
 
     useEffect(() => {
         setStartupScan(settings?.Scanner?.StartupScan);
         setStartupUpdate(settings?.Scanner?.StartupUpdate);
         setStartupCleanup(settings?.Scanner?.StartupCleanup);
         setForceGenerateMissingThumbnails(settings?.Scanner?.ForceGenerateMissingThumbnails);
+        setForceDetectMissingSubtitles(settings?.Scanner?.ForceDetectMissingSubtitles);
         setPeriodicScanIntervalMilliseconds(settings?.Scanner?.PeriodicScanIntervalMilliseconds);
         setParallelScannerTasks(settings?.Scanner?.ParallelScannerTasks);
     }, [settings]);
+
+    // Poll for the scanning/updating/cleaning status so the "Start Now" buttons
+    // reflect a task that's already running (e.g. started from another tab, or
+    // still going from before this page was loaded) and re-enable once it ends.
+    useEffect(() => {
+        const interval = setInterval(() => dispatch(readSettings()), 3000);
+        return () => clearInterval(interval);
+    }, [dispatch]);
+
+    async function start(action, label) {
+        setStarting(action);
+        try {
+            const response = await fetch(`/api/settings/scanner/${action}`, {
+                method: "POST",
+                headers: {
+                    accept: "application/json",
+                },
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message ?? error.detail ?? error.title ?? response.statusText);
+            }
+            toast.info(`${label} queued.`);
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setStarting(null);
+        }
+    }
 
     function onChange(setting, value) {
         switch (setting) {
@@ -71,6 +108,11 @@ export default function Scanner() {
             case 'ForceGenerateMissingThumbnails':
                 setForceGenerateMissingThumbnails(value);
                 dispatch(writeSettings({ Scanner: { ForceGenerateMissingThumbnails: value } }));
+                break;
+
+            case 'ForceDetectMissingSubtitles':
+                setForceDetectMissingSubtitles(value);
+                dispatch(writeSettings({ Scanner: { ForceDetectMissingSubtitles: value } }));
                 break;
 
             case 'PeriodicScanIntervalMilliseconds':
@@ -105,7 +147,11 @@ export default function Scanner() {
                                     <Row className="align-items-center">
                                         <Col><b>Startup Scan</b></Col>
                                         <Col xs="auto">
-                                            <Button className="shadow-none me-2" variant="outline-info" size="sm" disabled>Start Now</Button>
+                                            <Button className="shadow-none me-2" variant="outline-info" size="sm"
+                                                disabled={starting != null || libraryReadOnly || scanning}
+                                                onClick={() => start('scan', 'Scan')}>
+                                                {scanning ? 'Running…' : starting === 'scan' ? 'Starting…' : 'Start Now'}
+                                            </Button>
                                             <ToggleButtonGroup name="startup-scan" value={startupScan ? 1 : 0} onChange={(value) => onChange('StartupScan', value > 0)}>
                                                 <ToggleButton type="radio" size="sm" id="startup-scan-off" variant="outline-secondary" name="radio" disabled={startupScan == null || readOnly} value={0}>OFF</ToggleButton>
                                                 <ToggleButton type="radio" size="sm" id="startup-scan-on" variant="outline-info" name="radio" disabled={startupScan == null || readOnly} value={1}>ON</ToggleButton>
@@ -128,7 +174,11 @@ export default function Scanner() {
                                     <Row className="align-items-center">
                                         <Col><b>Startup Update</b></Col>
                                         <Col xs="auto">
-                                            <Button className="shadow-none me-2" variant="outline-info" size="sm" disabled>Start Now</Button>
+                                            <Button className="shadow-none me-2" variant="outline-info" size="sm"
+                                                disabled={starting != null || libraryReadOnly || updating}
+                                                onClick={() => start('update', 'Update')}>
+                                                {updating ? 'Running…' : starting === 'update' ? 'Starting…' : 'Start Now'}
+                                            </Button>
                                             <ToggleButtonGroup name="startup-update" value={startupUpdate ? 1 : 0} onChange={(value) => onChange('StartupUpdate', value > 0)}>
                                                 <ToggleButton type="radio" size="sm" id="startup-update-off" variant="outline-secondary" name="radio" value={0} disabled={startupScan == null || readOnly}>OFF</ToggleButton>
                                                 <ToggleButton type="radio" size="sm" id="startup-update-on" variant="outline-info" name="radio" value={1} disabled={startupScan == null || readOnly}>ON</ToggleButton>
@@ -151,7 +201,11 @@ export default function Scanner() {
                                     <Row className="align-items-center">
                                         <Col><b>Startup Cleanup</b></Col>
                                         <Col xs="auto">
-                                            <Button className="shadow-none me-2" variant="outline-info" size="sm" disabled>Start Now</Button>
+                                            <Button className="shadow-none me-2" variant="outline-info" size="sm"
+                                                disabled={starting != null || libraryReadOnly || cleaning}
+                                                onClick={() => start('cleanup', 'Cleanup')}>
+                                                {cleaning ? 'Running…' : starting === 'cleanup' ? 'Starting…' : 'Start Now'}
+                                            </Button>
                                             <ToggleButtonGroup name="startup-cleanup" value={startupCleanup ? 1 : 0} onChange={(value) => onChange('StartupCleanup', value > 0)}>
                                                 <ToggleButton type="radio" size="sm" id="startup-cleanup-off" variant="outline-secondary" name="radio" value={0} disabled={startupScan == null || readOnly}>OFF</ToggleButton>
                                                 <ToggleButton type="radio" size="sm" id="startup-cleanup-on" variant="outline-info" name="radio" value={1} disabled={startupScan == null || readOnly}>ON</ToggleButton>
@@ -185,6 +239,28 @@ export default function Scanner() {
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
                                         Regenerate any missing thumbnails upon access, scan or update.
+                                    </Card.Text>
+                                </Card.Body>
+                            </Card>
+                        </Row>
+
+                        <Row className="force-detect-missing-subtitles align-items-center mb-3">
+                            <Card className="px-0">
+                                <Card.Header className="pe-2">
+                                    <Row className="align-items-center">
+                                        <Col><b>Force Detect Missing Subtitles</b></Col>
+                                        <Col xs="auto">
+                                            <ToggleButtonGroup name="force-detect-missing-subtitles" value={forceDetectMissingSubtitles ? 1 : 0} onChange={(value) => onChange('ForceDetectMissingSubtitles', value > 0)}>
+                                                <ToggleButton type="radio" size="sm" id="force-detect-missing-subtitles-off" variant="outline-secondary" name="radio" disabled={forceDetectMissingSubtitles == null  || readOnly} value={0}>OFF</ToggleButton>
+                                                <ToggleButton type="radio" size="sm" id="force-detect-missing-subtitles-on" variant="outline-info" name="radio" disabled={forceDetectMissingSubtitles == null || readOnly} value={1}>ON</ToggleButton>
+                                            </ToggleButtonGroup>
+                                        </Col>
+                                    </Row>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Card.Text className="d-flex align-items-center">
+                                        <i className="bi bi-question-circle text-info pe-2"></i>
+                                        Detect embedded subtitle streams for already-indexed videos that have not been checked yet, upon scan or update.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>

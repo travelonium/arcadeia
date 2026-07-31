@@ -24,6 +24,7 @@ import Logging from './settings/Logging';
 import Scanner from './settings/Scanner';
 import { Nav, Tab } from 'react-bootstrap';
 import Transcoding from './settings/Transcoding';
+import Transcription from './settings/Transcription';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router';
@@ -97,6 +98,9 @@ export default function Settings() {
                                     <Nav.Link eventKey="transcoding"><i className="bi bi-arrow-repeat me-3"></i>Transcoding</Nav.Link>
                                 </Nav.Item>
                                 <Nav.Item>
+                                    <Nav.Link eventKey="transcription"><i className="bi bi-mic me-3"></i>Transcription</Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
                                     <Nav.Link eventKey="logging"><i className="bi bi-file-earmark-text me-3"></i>Logging</Nav.Link>
                                 </Nav.Item>
                             </Nav>
@@ -111,6 +115,9 @@ export default function Settings() {
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="transcoding">
                                     {activeKey === 'transcoding' && <Transcoding />}
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="transcription">
+                                    {activeKey === 'transcription' && <Transcription />}
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="logging">
                                     {activeKey === 'logging' && <Logging />}

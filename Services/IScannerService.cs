@@ -26,10 +26,23 @@ namespace Arcadeia.Services
 
       bool Scanning { get; }
 
+      bool Cleaning { get; }
+
       public Task RestartAsync(CancellationToken cancellationToken);
 
       public Task ScanAsync(string uuid, string path, string type, CancellationToken cancellationToken);
 
       public Task UpdateAsync(string uuid, CancellationToken cancellationToken);
+
+      public Task CleanupAsync(string uuid, CancellationToken cancellationToken);
+
+      /// <summary>Queues an immediate scan of every available folder, the same as StartupScan.</summary>
+      public void QueueScan();
+
+      /// <summary>Queues an immediate library update, the same as StartupUpdate.</summary>
+      public void QueueUpdate();
+
+      /// <summary>Queues an immediate thumbnails database cleanup, the same as StartupCleanup.</summary>
+      public void QueueCleanup();
    }
 }

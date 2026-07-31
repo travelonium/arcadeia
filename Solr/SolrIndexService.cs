@@ -347,6 +347,48 @@ namespace Arcadeia.Solr
                { "stored", true },
             }
          },
+         {  "transcript", new Dictionary<string, object>
+            {
+               { "name", "transcript" },
+               { "type", "text_general" },
+               { "multiValued", false },
+               { "indexed", true },
+               { "stored", true },
+            }
+         },
+         {  "transcriptLanguage", new Dictionary<string, object>
+            {
+               { "name", "transcriptLanguage" },
+               { "type", "string" },
+               { "multiValued", false },
+               { "indexed", true },
+               { "stored", true },
+            }
+         },
+         {  "transcriptSegments", new Dictionary<string, object>
+            {
+               { "name", "transcriptSegments" },
+               { "type", "string" },
+               { "multiValued", false },
+               { "indexed", false },
+               { "stored", true },
+            }
+         },
+         {  "subtitles", new Dictionary<string, object>
+            {
+               // JSON list of the video's embedded subtitle streams (index/language/codec), if any.
+               // Not the subtitle text itself - each track is extracted from the source file and
+               // served on demand, not stored in Solr.
+               { "name", "subtitles" },
+               { "type", "string" },
+               { "multiValued", false },
+               { "indexed", false },
+               { "stored", true },
+            }
+         },
+         // TODO(embedding): once an embedding model is chosen and Solr is upgraded to 9.x+, add a
+         // "knn_vector" field type (class: solr.DenseVectorField, vectorDimension: <N>, similarityFunction:
+         // "cosine") and a corresponding "embedding" field here for multimodal similarity search.
       };
 
       private readonly Dictionary<string, Dictionary<string, object>> DynamicFields = new()
