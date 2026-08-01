@@ -126,7 +126,7 @@ deploy:production:
   tags:
     - linux
   only:
-    - tags
+    - master
 
 test:backend:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
