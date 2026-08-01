@@ -101,6 +101,33 @@ deploy:demo:
   only:
     - master
 
+deploy:production:
+  image: $CI_REGISTRY/dockerhub/ubuntu:latest
+  needs:
+    - job: deploy:latest
+      artifacts: false
+  stage: deploy
+  script:
+    - |
+      ssh -T $SSH_USER@$PRODUCTION_SERVER "
+        mkdir -p \"$PRODUCTION_SERVER_DEPLOY_PATH\"; \
+        cd \"$PRODUCTION_SERVER_DEPLOY_PATH\"; \
+        ./stop || true; \
+        find . -maxdepth 1 ! -name 'appsettings.*' ! -name '.*' ! -name '.' ! -name '..' -exec rm -rf {} +; \
+        echo \"$PRODUCTION_SERVER_REGISTRY_PASSWORD\" | docker login \"$CI_REGISTRY\" -u \"$PRODUCTION_SERVER_REGISTRY_USER\" --password-stdin;
+      "
+    - scp -r Apache docker-compose*.* start stop restart logs exec $SSH_USER@$PRODUCTION_SERVER:$PRODUCTION_SERVER_DEPLOY_PATH/
+    - |
+      ssh -T $SSH_USER@$PRODUCTION_SERVER "
+        cd \"$PRODUCTION_SERVER_DEPLOY_PATH\";
+        chown -R \"$PRODUCTION_SERVER_DEPLOY_OWNER\" .; \
+        ./start production;
+      "
+  tags:
+    - linux
+  only:
+    - tags
+
 test:backend:
   image: $CI_REGISTRY/dockerhub/dotnet-core-build:latest
   before_script:
