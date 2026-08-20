@@ -59,7 +59,11 @@ export class UploadZone extends Component {
     }
 
     get all() {
-        return this.props.ui.uploads.all.filter(item => (item.timestamp >= this.state.timestamp) && (['queued', 'active'].includes(item.state)));
+        return this.props.ui.uploads.all.filter(item => item.timestamp >= this.state.timestamp);
+    }
+
+    get started() {
+        return this.props.ui.uploads.all.filter(item => (item.timestamp >= this.state.timestamp) && (item.state !== 'queued'));
     }
 
     get queued() {
@@ -287,8 +291,7 @@ export class UploadZone extends Component {
 
     uploadFile(file, key, path) {
         const fileName = file.name;
-        const total = this.all.length;
-        const index = total - this.queued.length;
+        const index = this.started.length;
         const theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
         let data = new FormData();
         data.append('files', file, pb.join(path, file.name));
@@ -358,8 +361,7 @@ export class UploadZone extends Component {
     }
 
     uploadUrl(url, key, path) {
-        const total = this.all.length;
-        const index = total - this.queued.length;
+        const index = this.started.length;
         let theme = (this.props.ui.theme === 'dark') ? 'dark' : 'light';
         this.props.dispatch(updateUpload({
             key: key,
