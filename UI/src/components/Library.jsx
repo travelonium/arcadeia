@@ -897,6 +897,133 @@ class Library extends Component {
         });
     }
 
+    /**
+     * Compares two items using the same sort fields/direction as the current query, to
+     * determine their relative order without having to ask Solr.
+     */
+    compare(a, b, sort) {
+        const direction = (sort.direction === "desc") ? -1 : 1;
+        const fields = sort.fields.filter(item => item.active).flatMap(item => item.value.split(' '));
+        for (const field of fields) {
+            const va = a[field];
+            const vb = b[field];
+            if (va === vb) continue;
+            if (va == null) return 1;
+            if (vb == null) return -1;
+            const result = (typeof va === 'number' && typeof vb === 'number')
+                ? va - vb
+                : String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' });
+            if (result !== 0) return result * direction;
+        }
+        return 0;
+    }
+
+    /**
+     * Finds the index at which an item should be inserted into the already-sorted
+     * state.items to preserve the current sort order.
+     */
+    insertionIndex(source, sort) {
+        const items = this.state.items;
+        let low = 0;
+        let high = items.length;
+        while (low < high) {
+            const mid = (low + high) >> 1;
+            if (this.compare(items[mid], source, sort) <= 0) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        return low;
+    }
+
+    /**
+     * Fetches a single newly-added item by its full path and splices it into state.items
+     * at the correct sorted position, instead of re-fetching the entire (possibly huge)
+     * directory listing via refresh() just to reflect one new file.
+     */
+    insert(name, callback = undefined) {
+        console.debug("insert()");
+        const path = this.path;
+        const fullPath = path + name;
+        const solrUrl = this.props.settings?.Solr?.URL;
+        if (!solrUrl) {
+            callback?.(false);
+            return;
+        }
+        const target = `${solrUrl}/select`;
+        const input = {
+            q: "*",
+            fq: [
+                "fullPath:\"" + fullPath + "\""
+            ],
+            rows: 1,
+            start: 0,
+            fl: `${FIELDS},children:[subquery]`,
+            wt: "json",
+            children: {
+                q: "{!field f=parents v=$row.id}",
+                fq: ["-type:Folder", "-type:Drive", "-type:Server"],
+                sort: "views desc, dateAdded asc, name asc",
+                rows: 3,
+                fl: FIELDS,
+            },
+        };
+        this.controller.abort();
+        this.controller = new AbortController();
+        fetch(target + "?" + querify(input).toString(), {
+            signal: this.controller.signal,
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+            },
+        })
+        .then((response) => {
+            if (response.ok) return response.json();
+            let message = "Error querying the Solr index!";
+            return response.text().then((data) => {
+                try {
+                    let json = JSON.parse(data);
+                    let exception = extract(null, json, "error", "msg");
+                    if (exception) message = exception;
+                } catch (error) {}
+                throw Error(message);
+            });
+        })
+        .then((result) => {
+            const numFound = extract(0, result, "response", "numFound");
+            const source = extract(null, result, "response", "docs", 0);
+            if (numFound !== 1 || !source) {
+                console.error("Unable to find the newly added item: %s", fullPath);
+                callback?.(false);
+                return;
+            }
+            source.duplicates = 0;
+            source.children = source?.children?.docs ?? [];
+            // if the item is already present (e.g. it was overwritten), just update it in place
+            const existingIndex = this.state.items.findIndex(x => x.fullPath === fullPath);
+            if (existingIndex !== -1) {
+                this.set(existingIndex, source, true, () => callback?.(true, existingIndex));
+                return;
+            }
+            const sort = this.props.search.sort[path] ?? this.props.search.sort;
+            const index = this.insertionIndex(source, sort);
+            const items = update(this.state.items, {
+                $splice: [[index, 0, source]]
+            });
+            this.setState({ items: items }, () => callback?.(true, index));
+        })
+        .catch(error => {
+            if (error.name === 'AbortError') {
+                callback?.(false);
+                return;
+            }
+            toast.error(error.message);
+            console.error(error);
+            callback?.(false);
+        });
+    }
+
     open(source) {
         let url;
         const params = new URLSearchParams(this.props.location.search);
@@ -1203,12 +1330,22 @@ class Library extends Component {
     }
 
     onUploadComplete(name) {
-        this.refresh((succeeded) => {
-            if (succeeded) {
-                const index = this.state.items.findIndex(x => x.name === name);
-                if (index !== -1) this.scrollToItem(index, true);
-            }
-        });
+        // while searching or viewing duplicates, the item may not even belong in the current
+        // results (it might not match the query or have a duplicate), so fall back to a full
+        // refresh() there; otherwise just fetch and insert the one new item, which avoids
+        // re-fetching the entire (possibly huge) directory listing just to show one new file
+        if (this.searching || this.duplicates) {
+            this.refresh((succeeded) => {
+                if (succeeded) {
+                    const index = this.state.items.findIndex(x => x.name === name);
+                    if (index !== -1) this.scrollToItem(index, true);
+                }
+            });
+        } else {
+            this.insert(name, (succeeded, index) => {
+                if (succeeded && index != null) this.scrollToItem(index, true);
+            });
+        }
     }
 
     gridView() {
