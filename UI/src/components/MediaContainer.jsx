@@ -30,7 +30,7 @@ import Popover from 'react-bootstrap/Popover';
 import { EditableText } from './EditableText';
 import { Col, Container, Row } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import { duration, size, extract, clone, withRouter, isEqualExcluding } from '../utils';
+import { duration, size, extract, clone, withRouter, isEqualExcluding, encodePath } from '../utils';
 
 export class MediaContainer extends Component {
 
@@ -158,7 +158,7 @@ export class MediaContainer extends Component {
         params.set('duplicates', true);
         const source = this.state.current;
         const path = source.fullPath;
-        const url = encodeURI(path + "?" + params.toString());
+        const url = encodePath(path) + "?" + params.toString();
         this.props.navigate(url);
     }
 

@@ -49,7 +49,7 @@ const FIELDS = "id,name,type,parent,parentType,parents,description,path,fullPath
                "thumbnails,duration,width,height,transcriptLanguage,subtitles,name_ngram,description_ngram,path_ngram";
 
 import { setScrollPosition } from '../features/ui/slice';
-import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag } from '../utils';
+import { clone, extract, size, querify, withRouter, isEqualExcluding, differenceWith, getFlag, encodePath } from '../utils';
 
 class Library extends Component {
 
@@ -350,7 +350,7 @@ class Library extends Component {
             toast.error("Unable to find the item that was to be updated.");
             return;
         }
-        fetch("/api/library" + encodeURI(item.fullPath), {
+        fetch("/api/library" + encodePath(item.fullPath), {
             method: "PATCH",
             headers: {
                 accept: "application/json",
@@ -465,7 +465,7 @@ class Library extends Component {
             callback?.(source, false);
             return Promise.reject(error);
         }
-        return fetch("/api/library" + encodeURI(source.fullPath), {
+        return fetch("/api/library" + encodePath(source.fullPath), {
             method: "DELETE",
             headers: {
                 accept: "application/json",
@@ -1029,8 +1029,8 @@ class Library extends Component {
         const params = new URLSearchParams(this.props.location.search);
         params.delete('duplicates');
         params.delete('query');
-        if (typeof source === 'object') url = encodeURI(source.fullPath) + "?" + params.toString();
-        else url = encodeURI(source) + "?" + params.toString();
+        if (typeof source === 'object') url = encodePath(source.fullPath) + "?" + params.toString();
+        else url = encodePath(source) + "?" + params.toString();
         this.props.navigate(url);
     }
 
@@ -1042,7 +1042,7 @@ class Library extends Component {
             // did the view request come from a direct link to the file?
             this.mediaViewer.current.view([source], 0);
             if (path !== this.pathname) {
-                const url = encodeURI(path + this.props.location.search);
+                const url = encodePath(path) + this.props.location.search;
                 this.props.navigate(url, {state: {path: this.pathname, search: this.props.location.search}});
             }
         } else {
@@ -1103,7 +1103,7 @@ class Library extends Component {
         console.debug("onMediaViewerHide()");
         this.viewing = false;
         const id = extract(null, this.state.items, this.current, 'id');
-        const path = encodeURI(this.props.location?.state?.path || this.path);
+        const path = encodePath(this.props.location?.state?.path || this.path);
         const search = this.props.location?.state?.search || this.props.location.search;
         const url = path + search;
         this.props.navigate(url);

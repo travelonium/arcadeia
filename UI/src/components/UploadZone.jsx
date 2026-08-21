@@ -26,7 +26,7 @@ import { connect } from "react-redux";
 import { toast } from 'react-toastify';
 import Badge from 'react-bootstrap/Badge';
 import ProgressToast from './ProgressToast';
-import { extract, withRouter } from '../utils';
+import { extract, withRouter, encodePath } from '../utils';
 import { Container, Row, Col } from 'react-bootstrap';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed } from '../features/ui/selectors';
 import { queueUpload, startUploadThunk, updateUpload, switchUploadState, switchUploadStateThunk } from '../features/ui/slice';
@@ -319,7 +319,7 @@ export class UploadZone extends Component {
             };
         };
         this.props.signalRConnection?.on("ShowUploadProgress", onShowUploadProgress.bind(this));
-        const target = new URL("/api/library" + path, window.location.origin);
+        const target = new URL("/api/library" + encodePath(path), window.location.origin);
         target.searchParams.set('overwrite', this.props.ui.uploads.overwrite);
         target.searchParams.set('duplicate', this.props.ui.uploads.duplicate);
         axios.post(target.toString(), data, config)

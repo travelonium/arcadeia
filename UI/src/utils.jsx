@@ -28,6 +28,14 @@ export function extract(fallback, obj, level, ...rest) {
     return extract(fallback, obj[level], ...rest);
 }
 
+// Percent-encodes a filesystem path for use in a URL, one segment at a time, so that
+// characters such as "#" or "?" in a file or folder name are escaped instead of being
+// misread as a URL fragment/query delimiter (unlike encodeURI, which deliberately leaves
+// them untouched). The "/" separators themselves are preserved.
+export function encodePath(path) {
+    return path.split('/').map(encodeURIComponent).join('/');
+}
+
 export function duration(seconds) {
     let date = new Date(seconds * 1000);
 
