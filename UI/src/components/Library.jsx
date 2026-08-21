@@ -1329,6 +1329,15 @@ class Library extends Component {
         this.scrollToItem(0, true);
     }
 
+    /**
+     * Whether the grid is sitting at the top, i.e. the user hasn't scrolled down to browse.
+     * Used to decide whether it's safe to auto-scroll to a newly inserted item without
+     * yanking the viewport away from something the user is actively looking at.
+     */
+    get atRest() {
+        return !this.grid.current || this.grid.current.state.scrollTop === 0;
+    }
+
     onUploadComplete(name) {
         // while searching or viewing duplicates, the item may not even belong in the current
         // results (it might not match the query or have a duplicate), so fall back to a full
@@ -1342,10 +1351,18 @@ class Library extends Component {
                 }
             });
         } else {
+            // only auto-scroll if the user isn't already browsing elsewhere in the grid; the
+            // toast for this upload turns green once this insert lands, and clicking it (see
+            // onUploadClick) scrolls to the item on demand regardless of scroll position
             this.insert(name, (succeeded, index) => {
-                if (succeeded && index != null) this.scrollToItem(index, true);
+                if (succeeded && index != null && this.atRest) this.scrollToItem(index, true);
             });
         }
+    }
+
+    onUploadClick(name) {
+        const index = this.state.items.findIndex(x => x.name === name);
+        if (index !== -1) this.scrollToItem(index, true);
     }
 
     gridView() {
@@ -1461,7 +1478,7 @@ class Library extends Component {
                                 </Col>
                             </Row>
                         </Container>
-                        <UploadZone ref={this.uploadZone} signalRConnection={this.props.signalRConnection} uploads={this.uploads} onUploadComplete={this.onUploadComplete.bind(this)}>
+                        <UploadZone ref={this.uploadZone} signalRConnection={this.props.signalRConnection} uploads={this.uploads} onUploadComplete={this.onUploadComplete.bind(this)} onUploadClick={this.onUploadClick.bind(this)}>
                             {this.gridView()}
                             <MediaViewer ref={this.mediaViewer} library={this.props.forwardedRef} uploadZone={this.uploadZone} onUpdate={this.update.bind(this)} onShow={this.onMediaViewerShow.bind(this)} onHide={this.onMediaViewerHide.bind(this)} />
                             <Selection ref={this.selection} onSelect={this.onSelect.bind(this)} />

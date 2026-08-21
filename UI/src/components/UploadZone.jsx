@@ -609,6 +609,9 @@ export class UploadZone extends Component {
                 ...(type !== undefined && { type }),
                 ...(theme !== undefined && { theme }),
                 ...(toastId !== undefined && { render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} /> }),
+                // once the toast turns green (upload complete), clicking it scrolls the grid
+                // to the item instead of relying on it having been auto-scrolled to
+                ...(type === 'success' && { onClick: () => this.props.onUploadClick?.(subtitle) }),
             };
             if (!toastId || !toast.isActive(toastId)) {
                 this.toasts[key] = toast.info(<ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />, options);
