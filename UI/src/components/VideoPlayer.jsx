@@ -25,6 +25,7 @@ import { isEqual } from 'lodash';
 import { extract } from '../utils';
 import "jb-videojs-hls-quality-selector";
 import '../plugins/video.js/videojs-vtt-thumbnails';
+import '../plugins/video.js/videojs-ab-loop';
 
 export class VideoPlayer extends React.Component {
 
@@ -45,6 +46,7 @@ export class VideoPlayer extends React.Component {
             if (this.videoJsContainer.current) {
                 this.videoJsContainer.current.appendChild(videoElement);
                 this.player = videojs(videoElement, options, this.onPlayerReady.bind(this));
+                this.player.abLoop();
                 this.player.on('loadstart', this.onPlayerLoadStart.bind(this));
                 this.player.on('loadeddata', this.onPlayerLoadedData.bind(this));
                 this.player.on('error', this.onPlayerError.bind(this));
