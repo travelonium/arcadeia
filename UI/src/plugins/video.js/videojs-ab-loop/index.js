@@ -70,7 +70,8 @@ export class ABLoop extends Plugin {
             const rect = this.seekBar.el().getBoundingClientRect();
             if (rect.width) this.select((point.clientX - rect.left) / rect.width * this.player.duration());
         }));
-        ['mousemove', 'mouseup', 'touchmove', 'touchend', 'click'].forEach(type => listen(type, event => {
+        // Let mousemove reach hover previews, including while marking a point.
+        ['mouseup', 'touchmove', 'touchend', 'click'].forEach(type => listen(type, event => {
             if (this.selectingGesture) stop(event);
             if (type === 'click' || type === 'touchend') this.selectingGesture = false;
         }));
