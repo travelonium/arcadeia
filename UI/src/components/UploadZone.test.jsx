@@ -136,3 +136,53 @@ describe('sessionStartedTimestamp', () => {
         expect(instance.fetchSessionStartedTimestamp).toHaveBeenCalledOnce();
     });
 });
+
+// ─── componentDidMount ────────────────────────────────────────────────────────
+
+describe('componentDidMount', () => {
+    const STARTED = 1_000_000;
+    const NOW = 5_000_000;
+
+    function mount(items) {
+        const instance = new UploadZone({
+            location: { pathname: '/' },
+            dispatch: vi.fn(() => Promise.resolve()),
+            ui: {
+                uploads: {
+                    all: items,
+                    active: items.filter(item => item.state === 'active'),
+                    queued: items.filter(item => item.state === 'queued'),
+                },
+            },
+        });
+        instance.sessionStartedTimestamp = vi.fn().mockResolvedValue(STARTED);
+        instance.setState = vi.fn((state, callback) => {
+            Object.assign(instance.state, state);
+            callback?.();
+        });
+        return instance;
+    }
+
+    beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it('starts a fresh batch instead of counting uploads finished earlier in the session', async () => {
+        const instance = mount([
+            { key: 'a', state: 'succeeded', timestamp: STARTED + 100 },
+            { key: 'b', state: 'failed', timestamp: STARTED + 200 },
+        ]);
+        await instance.componentDidMount();
+        expect(instance.state.timestamp).toBe(NOW);
+        expect(instance.all).toHaveLength(0);
+    });
+
+    it('keeps URL uploads still running from this session in the batch', async () => {
+        const instance = mount([
+            { key: 'a', state: 'succeeded', timestamp: STARTED + 100 },
+            { key: 'b', state: 'active', url: 'https://example.com/x', timestamp: STARTED + 200 },
+        ]);
+        await instance.componentDidMount();
+        expect(instance.state.timestamp).toBe(STARTED + 200);
+        expect(instance.all.map(item => item.key)).toEqual(['b']);
+    });
+});

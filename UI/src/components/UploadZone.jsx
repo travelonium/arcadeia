@@ -103,12 +103,15 @@ export class UploadZone extends Component {
     }
 
     async componentDidMount() {
-        const timestamp = await this.sessionStartedTimestamp();
+        const started = await this.sessionStartedTimestamp();
+        const active = this.props.ui.uploads.active.filter(item => item.timestamp < started);
+        const queued = this.props.ui.uploads.queued.filter(item => item.timestamp < started);
+        // URL uploads of this session may still be running on the server, keep them in the current batch
+        const running = this.props.ui.uploads.active.filter(item => item.url && item.timestamp >= started);
         this.setState({
-            timestamp: timestamp
+            // start a fresh batch so the previously finished uploads don't count toward its total
+            timestamp: Math.min(Date.now(), ...running.map(item => item.timestamp))
         }, () => {
-            const active = this.props.ui.uploads.active.filter(item => item.timestamp < this.state.timestamp);
-            const queued = this.props.ui.uploads.queued.filter(item => item.timestamp < this.state.timestamp);
             // go through the list of active uploads and set the stale items to failed
             active.forEach((item) => {
                 if (item.url) {
@@ -127,7 +130,7 @@ export class UploadZone extends Component {
                 if (item.url) {
                     const key = item.path + item.url;
                     // set the item's state to 'queued' forcing timestamp update and start uploading
-                    this.props.dispatch(switchUploadStateThunk({ key: key, to: 'queued' })).then(() => {
+                    this.props.dispatch(switchUploadStateThunk(key, 'queued')).then(() => {
                         this.upload(null, true);
                     });
                 }
