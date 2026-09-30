@@ -245,7 +245,7 @@ const Uploads = forwardRef((props, ref) => {
                 </Modal.Title>
                 {
                     (queued.length > 0) ?
-                    <Button className="me-3" variant={paused ? "info" : "outline-secondary"} size="sm" onClick={onPause} title={paused ? "Resume starting queued uploads" : "Stop starting queued uploads, the active ones will finish"}>
+                    <Button className="me-3" variant={paused ? "outline-info" : "outline-secondary"} size="sm" onClick={onPause} title={paused ? "Resume starting queued uploads" : "Stop starting queued uploads, the active ones will finish"}>
                         <i className={cx("bi pe-1", paused ? "bi-play-fill" : "bi-pause-fill")} />{paused ? "Resume" : "Pause"}
                     </Button>
                     : <></>
