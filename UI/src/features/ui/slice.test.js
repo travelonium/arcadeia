@@ -19,7 +19,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { uiSlice, queueUpload } from './slice';
+import { uiSlice, queueUpload, pauseUploads, removeUploads } from './slice';
 
 const reducer = uiSlice.reducer;
 
@@ -133,4 +133,28 @@ describe('queueUpload – URL deduplication', () => {
         expect(next.uploads.items).toHaveLength(2);
     });
 
+});
+
+describe('pauseUploads', () => {
+    it('pauses and resumes without touching the queue', () => {
+        const items = [makeItem(URL, PATH_A, 'queued'), makeItem(URL, PATH_B, 'active')];
+        const paused = reducer(makeState(items), pauseUploads(true));
+        expect(paused.uploads.paused).toBe(true);
+        expect(paused.uploads.items).toEqual(items);
+        const resumed = reducer(paused, pauseUploads(false));
+        expect(resumed.uploads.paused).toBe(false);
+        expect(resumed.uploads.items).toEqual(items);
+    });
+});
+
+describe('removeUploads – pause', () => {
+    it('resumes once the last queued upload is removed', () => {
+        const queued = makeItem(URL, PATH_A, 'queued');
+        const state = { ...makeState([queued, makeItem(URL, PATH_B, 'queued')]), };
+        state.uploads.paused = true;
+        const one = reducer(state, removeUploads({ key: queued.key }));
+        expect(one.uploads.paused).toBe(true);
+        const none = reducer(one, removeUploads({ state: 'queued' }));
+        expect(none.uploads.paused).toBe(false);
+    });
 });

@@ -53,6 +53,7 @@ const initialState = {
         duplicate: true,
         overwrite: false,
         reupload: false,
+        paused: false,
     },
     history: {
         items: 100,

@@ -231,6 +231,8 @@ export const uiSlice = createSlice({
                     return shouldKeep;
                 });
             } else throw new Error("Neither key nor state has been supplied to the removeUploads.");
+            // nothing left to hold back, so don't leave new uploads stuck behind a hidden pause
+            if (!state.uploads.items.some(item => item.state === 'queued')) state.uploads.paused = false;
         },
         setSimultaneousUploads: (state, action) => {
             state.uploads.simultaneous = action.payload ?? initialState.uploads.simultaneous;
@@ -243,6 +245,9 @@ export const uiSlice = createSlice({
         },
         setReupload: (state, action) => {
             state.uploads.reupload = action.payload ?? initialState.uploads.reupload;
+        },
+        pauseUploads: (state, action) => {
+            state.uploads.paused = action.payload ?? initialState.uploads.paused;
         },
         setHistory: (state, action) => {
             state.history.items = action.payload?.items ?? initialState.history.items;
@@ -299,6 +304,7 @@ export const {
     setDuplicateUploads,
     setOverwriteUploads,
     setReupload,
+    pauseUploads,
     setHistory,
     setHistoryItems
 } = actions;

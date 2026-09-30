@@ -186,3 +186,46 @@ describe('componentDidMount', () => {
         expect(instance.all.map(item => item.key)).toEqual(['b']);
     });
 });
+
+// ─── upload ───────────────────────────────────────────────────────────────────
+
+describe('upload', () => {
+    function makeUploading(paused) {
+        const items = [
+            { key: 'a', state: 'active', timestamp: 2 },
+            { key: 'b', state: 'queued', timestamp: 3 },
+        ];
+        const dispatch = vi.fn(() => Promise.resolve({ key: null, item: null }));
+        const instance = new UploadZone({
+            location: { pathname: '/' },
+            dispatch,
+            ui: {
+                uploads: {
+                    all: items,
+                    active: items.filter(item => item.state === 'active'),
+                    queued: items.filter(item => item.state === 'queued'),
+                    failed: [],
+                    simultaneous: 4,
+                    paused,
+                },
+            },
+        });
+        instance.state.timestamp = 1;
+        return { instance, dispatch };
+    }
+
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it('does not start queued uploads while paused', () => {
+        const { instance, dispatch } = makeUploading(true);
+        instance.upload();
+        expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it('starts the next queued upload when not paused', () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const { instance, dispatch } = makeUploading(false);
+        instance.upload();
+        expect(dispatch).toHaveBeenCalledOnce();
+    });
+});

@@ -272,6 +272,8 @@ export class UploadZone extends Component {
             }
             return;
         }
+        // leave the queue untouched while paused, the active uploads carry on regardless
+        if (this.props.ui.uploads.paused) return;
         // yes, we can start one more
         // dequeue the oldest queued item and start uploading it
         this.props.dispatch(startUploadThunk()).then(({ key, item }) => {

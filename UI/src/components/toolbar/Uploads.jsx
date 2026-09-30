@@ -32,7 +32,7 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { switchUploadStateThunk, removeUploads } from '../../features/ui/slice';
+import { switchUploadStateThunk, removeUploads, pauseUploads } from '../../features/ui/slice';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed, selectProgress } from '../../features/ui/selectors';
 
 const Uploads = forwardRef((props, ref) => {
@@ -47,6 +47,7 @@ const Uploads = forwardRef((props, ref) => {
     const failed = useSelector(selectFailed);
     const succeeded = useSelector(selectSucceeded);
     const progress = useSelector(selectProgress);
+    const paused = useSelector((state) => state.ui.uploads.paused);
 
     useImperativeHandle(ref, () => ({
         show() {
@@ -70,6 +71,12 @@ const Uploads = forwardRef((props, ref) => {
         dispatch(switchUploadStateThunk(key, 'queued')).then(() => {
             props.onUpload?.();
         });
+    }
+
+    function onPause() {
+        dispatch(pauseUploads(!paused));
+        // pick up where the queue left off
+        if (paused) props.onUpload?.();
     }
 
     function onOpen(path, name, url) {
@@ -233,9 +240,16 @@ const Uploads = forwardRef((props, ref) => {
     return (
         <Modal className="uploads" show={state} onShow={onShow} onHide={onHide} backdrop={true} animation={true} size={"lg"} aria-labelledby="contained-modal-title-vcenter" centered>
             <Modal.Header className="flex-row align-items-center me-3" closeButton>
-                <Modal.Title className="ms-2" id="contained-modal-title-vcenter">
+                <Modal.Title className="ms-2 flex-grow-1" id="contained-modal-title-vcenter">
                     Uploads
                 </Modal.Title>
+                {
+                    (queued.length > 0) ?
+                    <Button className="me-3" variant={paused ? "info" : "outline-secondary"} size="sm" onClick={onPause} title={paused ? "Resume starting queued uploads" : "Stop starting queued uploads, the active ones will finish"}>
+                        <i className={cx("bi pe-1", paused ? "bi-play-fill" : "bi-pause-fill")} />{paused ? "Resume" : "Pause"}
+                    </Button>
+                    : <></>
+                }
             </Modal.Header>
             <Modal.Body className="d-flex flex-column p-0">
                 <Tabs id="uploads-tabs" className="flex-row mb-2 px-2 pt-2" activeKey={tab} onSelect={(tab) => setTab(tab)} variant="tabs" navbar justify>
