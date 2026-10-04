@@ -124,3 +124,19 @@ describe('createFolder', () => {
         expect(toast.error).toHaveBeenCalledWith('network error');
     });
 });
+
+// ─── delete ───────────────────────────────────────────────────────────────────
+
+describe('delete', () => {
+    beforeEach(() => { vi.clearAllMocks(); });
+    afterEach(() => { vi.unstubAllGlobals(); });
+
+    it('shows the spinner instead of the default icon on the progress toast', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve('') }));
+        const instance = makeInstance({ items: [{ id: '1', name: 'Alpha', fullPath: '/photos/Alpha.jpg' }] });
+        instance.selected.add('1');
+        instance.forceUpdate = vi.fn();
+        await new Promise((resolve) => instance.delete(undefined, resolve));
+        expect(toast.info.mock.calls[0][1].icon.props.className).toBe('Toastify__spinner');
+    });
+});

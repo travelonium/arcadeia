@@ -605,12 +605,15 @@ export class UploadZone extends Component {
         // only create or update the toast if the Uploads dialog is not open
         if (!this.props.uploads?.current?.open) {
             const toastId = this.toasts[key];
+            const creating = !toastId || !toast.isActive(toastId);
             const prefix = index != null ? `[${index} / ${this.all.length}] ` : "";
             const options = {
                 onClose: (reason) => delete this.toasts[key],
                 autoClose: progress === 0.0 ? false : null,
                 progress: progress !== 1.0 ? progress : null,
-                ...(icon !== undefined && { icon }),
+                // a toast recreated mid-upload, e.g. after the Uploads dialog was closed, should show
+                // the spinner like the original one did rather than the default type icon
+                ...((icon !== undefined) ? { icon } : (creating && type === undefined) && { icon: <div className="Toastify__spinner" /> }),
                 ...(type !== undefined && { type }),
                 ...(theme !== undefined && { theme }),
                 ...(toastId !== undefined && { render: <ProgressToast title={`${prefix}${title}`} subtitle={subtitle} /> }),
@@ -618,7 +621,7 @@ export class UploadZone extends Component {
                 // to the item instead of relying on it having been auto-scrolled to
                 ...(type === 'success' && { onClick: () => this.props.onUploadClick?.(subtitle) }),
             };
-            if (!toastId || !toast.isActive(toastId)) {
+            if (creating) {
                 this.toasts[key] = toast.info(<ProgressToast title={`${prefix}${title}`} subtitle={subtitle} />, options);
             } else {
                 toast.update(toastId, options);

@@ -399,6 +399,7 @@ export class Library extends Component {
             const toastId = toast.info(
                 <ProgressToast title="Deleting..." subtitle="" />,
                 {
+                    icon: <div className="Toastify__spinner" />,
                     autoClose: false,
                     closeButton: false,
                     draggable: false,

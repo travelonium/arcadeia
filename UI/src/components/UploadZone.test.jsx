@@ -21,7 +21,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { toast } from 'react-toastify';
 import { UploadZone } from './UploadZone';
+
+vi.mock('react-toastify', () => ({
+    toast: { info: vi.fn(() => 'toast-id'), update: vi.fn(), isActive: vi.fn(() => false), dismiss: vi.fn() },
+}));
 
 function makeInstance(pathname = '/photos/') {
     return new UploadZone({ location: { pathname }, dispatch: vi.fn() });
@@ -227,5 +232,60 @@ describe('upload', () => {
         const { instance, dispatch } = makeUploading(false);
         instance.upload();
         expect(dispatch).toHaveBeenCalledOnce();
+    });
+});
+
+// ─── onUploadProgress toasts ──────────────────────────────────────────────────
+
+describe('onUploadProgress toasts', () => {
+    function makeToasting(open = false) {
+        const instance = new UploadZone({
+            location: { pathname: '/' },
+            dispatch: vi.fn(),
+            uploads: { current: { open } },
+            ui: { uploads: { all: [] } },
+        });
+        instance.state.timestamp = 0;
+        return instance;
+    }
+
+    const spinner = (options) => options.icon?.props?.className === 'Toastify__spinner';
+
+    beforeEach(() => {
+        vi.mocked(toast.info).mockClear();
+        vi.mocked(toast.update).mockClear();
+        vi.mocked(toast.isActive).mockReturnValue(false);
+    });
+
+    it('shows the spinner when recreating an in-progress toast, e.g. after the Uploads dialog was closed', () => {
+        // progress updates after the first one don't pass an icon
+        makeToasting().onUploadProgress('a', 1, 'Processing...', 'clip.mp4', 0.5, undefined, 'light', undefined);
+        expect(toast.info).toHaveBeenCalledTimes(1);
+        expect(spinner(vi.mocked(toast.info).mock.calls[0][1])).toBe(true);
+    });
+
+    it('keeps the icon of an existing toast when updating it', () => {
+        const instance = makeToasting();
+        instance.toasts.a = 'toast-id';
+        vi.mocked(toast.isActive).mockReturnValue(true);
+        instance.onUploadProgress('a', 1, 'Uploading...', 'clip.mp4', 0.5, undefined, 'light', undefined);
+        expect(toast.update).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(toast.update).mock.calls[0][1]).not.toHaveProperty('icon');
+    });
+
+    it('uses the icon it is given', () => {
+        makeToasting().onUploadProgress('a', 1, 'Complete', 'clip.mp4', 1.0, 'success', null, null);
+        expect(vi.mocked(toast.info).mock.calls[0][1].icon).toBeNull();
+    });
+
+    it('leaves the type icon alone when recreating a finished toast', () => {
+        makeToasting().onUploadProgress('a', 1, 'Upload Failed', 'clip.mp4', null, 'error', null, undefined);
+        expect(vi.mocked(toast.info).mock.calls[0][1]).not.toHaveProperty('icon');
+    });
+
+    it('does not show a toast while the Uploads dialog is open', () => {
+        makeToasting(true).onUploadProgress('a', 1, 'Uploading...', 'clip.mp4', 0.5, undefined, 'light', undefined);
+        expect(toast.info).not.toHaveBeenCalled();
+        expect(toast.update).not.toHaveBeenCalled();
     });
 });
