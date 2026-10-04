@@ -38,7 +38,7 @@ async function getLatestTag() {
 
 export default defineConfig({
     title: "ARCADEIA",
-    description: "An open-source, self-hosted and web-based media archiving, browsing, searching and management solution",
+    description: "Arcadeia is an open-source, self-hosted media library for photos and videos. Browse animated video thumbnails, search your archive and watch in your browser.",
     sitemap: {
         hostname: "https://www.arcadeia.org"
     },

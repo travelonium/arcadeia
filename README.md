@@ -1,11 +1,37 @@
-# ARCADEIA
+# Arcadeia
 
-**Arcadeia** is an open-source, self-hosted and web-based media archiving, browsing, searching and management solution designed to bring order and access
-to your personal media storage. It allows you to collect all your media files in one place and find, view and manage your media files on any device.
+**Find the video you remember, even when you forgot its filename.**
 
-It also features **Dynamic Thumbnails** that brings your library to life by showing a quick preview of the video files without requiring any interaction whatsoever.
+Arcadeia is an open-source, self-hosted media library for browsing, searching and managing your personal photos and videos in a web browser. **Dynamic thumbnails** preview key moments in videos automatically, so you can recognize a clip without opening each file.
 
-![](https://github.com/user-attachments/assets/36b287d7-5c17-4f9c-a5b3-29dedd02edd9)
+[Try the demo](https://demo.arcadeia.org) · [Installation guide](https://www.arcadeia.org/docs/getting-started.html) · [Website](https://www.arcadeia.org) · [Latest release](https://github.com/travelonium/arcadeia/releases/latest)
+
+![Arcadeia media library with dynamic video thumbnails](https://github.com/user-attachments/assets/36b287d7-5c17-4f9c-a5b3-29dedd02edd9)
+
+## What you can do
+
+- **Browse visually:** animated video thumbnails show key moments without interaction.
+- **Search your archive:** find media with search and advanced queries.
+- **Import media:** upload files, directories or URLs using drag and drop.
+- **Keep favorites close:** mark files and filter your library by favorites.
+- **Play videos in the browser:** transcode into web-friendly formats on the fly.
+- **Connect network storage:** bring media from network locations into your library.
+
+Built for people with personal media archives and self-hosting setups who want to find and revisit their files. Your library runs on your own server. Arcadeia is licensed under [AGPL-3.0](LICENSE).
+
+## Try Arcadeia
+
+Explore the [demo](https://demo.arcadeia.org), then follow the [Docker installation guide](https://www.arcadeia.org/docs/getting-started.html) to run your own instance. You will need Docker and Docker Compose; hardware requirements are listed below.
+
+Start with a local or trusted network deployment. Review the deployment warning before connecting your own media or exposing an instance to the internet.
+
+## Feedback and contributions
+
+Tried Arcadeia? [Open an issue](https://github.com/travelonium/arcadeia/issues) with what worked, what got in your way, and your operating system and deployment method. For bugs, include reproduction steps and logs with private paths and credentials removed.
+
+Contributions to setup documentation, media browsing and thumbnail behavior are welcome. For substantial changes, open an issue to discuss the approach first. See [TESTING.md](TESTING.md) for development testing instructions. If Arcadeia is useful to you, a GitHub star helps others discover it.
+
+## Deployment status
 
 > [!WARNING]
 > **Arcadeia** is not yet fully tested or optimized for deployment on publicly accessible networks. Users are advised to take the following precautions if considering internet-facing deployments:

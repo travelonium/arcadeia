@@ -24,6 +24,7 @@ Download and install **Docker Desktop** from [Docker Desktop](https://www.docker
    After installation, check if Docker is running:
    ```bash
    docker --version
+   ```
 
 ### Installing Docker Compose
 1. **Linux**:
@@ -36,6 +37,7 @@ Docker Desktop includes Docker Compose, so no additional installation is require
    After installation, check if Docker Compose is installed:
    ```bash
    docker compose --version
+   ```
 
 ## Installation (Docker)
 1. Download and unpack the latest release package from [GitHub](https://github.com/travelonium/arcadeia/releases/latest):

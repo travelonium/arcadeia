@@ -270,3 +270,6 @@ appsettings.*.json
 .claude
 .env.*
 .env
+
+# Internal marketing planning
+/marketing/LAUNCH-KIT.md
