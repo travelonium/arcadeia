@@ -19,6 +19,7 @@
  */
 
 import { toast } from 'react-toastify';
+import About from './settings/About';
 import Mounts from './settings/Mounts';
 import Logging from './settings/Logging';
 import Scanner from './settings/Scanner';
@@ -103,6 +104,9 @@ export default function Settings() {
                                 <Nav.Item>
                                     <Nav.Link eventKey="logging"><i className="bi bi-file-earmark-text me-3"></i>Logging</Nav.Link>
                                 </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="about"><i className="bi bi-info-circle me-3"></i>About</Nav.Link>
+                                </Nav.Item>
                             </Nav>
                         </Col>
                         <Col className="content" sm={9}>
@@ -121,6 +125,9 @@ export default function Settings() {
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="logging">
                                     {activeKey === 'logging' && <Logging />}
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="about">
+                                    {activeKey === 'about' && <About />}
                                 </Tab.Pane>
                             </Tab.Content>
                         </Col>

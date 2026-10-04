@@ -7,7 +7,8 @@
     <Authors>Travelonium AB</Authors>
     <PackageLicenseExpression>AGPL-3.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/travelonium/arcadeia</PackageProjectUrl>
-    <Copyright>Copyright © 2024 Travelonium AB</Copyright>
+    <CopyrightYear>2024</CopyrightYear>
+    <Copyright>Copyright © $(CopyrightYear) $(Authors)</Copyright>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
     <IsPackable>false</IsPackable>
@@ -16,7 +17,6 @@
     <SpaProxyServerUrl>http://localhost:5173</SpaProxyServerUrl>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <ImplicitUsings>enable</ImplicitUsings>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 
@@ -33,6 +33,8 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="10.0.7" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.7" />
+    <!-- Derives the version from the git tags, so it must never be set in here -->
+    <PackageReference Include="MinVer" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
@@ -70,6 +72,25 @@
     <Folder Include="data\" />
     <Folder Include="Providers\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="RepositoryUrl" Value="$(PackageProjectUrl)" />
+  </ItemGroup>
+
+  <!-- Embed the date of the commit being built and extend the copyright up to its year -->
+  <Target Name="AddCommitMetadata" BeforeTargets="GetAssemblyAttributes">
+    <Exec Command="git log -1 --format=%25cI" ConsoleToMSBuild="true" StandardOutputImportance="low" StandardErrorImportance="low" IgnoreExitCode="true" ContinueOnError="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="CommitDate" />
+      <Output TaskParameter="ExitCode" PropertyName="CommitDateExitCode" />
+    </Exec>
+    <PropertyGroup Condition=" '$(CommitDateExitCode)' == '0' And '$(CommitDate)' != '' ">
+      <CommitYear>$(CommitDate.Substring(0, 4))</CommitYear>
+      <Copyright Condition=" '$(CommitYear)' != '$(CopyrightYear)' ">Copyright © $(CopyrightYear)–$(CommitYear) $(Authors)</Copyright>
+    </PropertyGroup>
+    <ItemGroup Condition=" '$(CommitDateExitCode)' == '0' And '$(CommitDate)' != '' ">
+      <AssemblyMetadata Include="CommitDate" Value="$(CommitDate)" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
     <!-- Ensure Node.js is installed -->

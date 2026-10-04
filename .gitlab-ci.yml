@@ -3,6 +3,10 @@ include:
     file: "docker.yml"
     ref: master
 
+variables:
+  # The full history and tags are needed to derive the version from them
+  GIT_DEPTH: 0
+
 stages:
   - github
   - build

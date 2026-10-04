@@ -12,7 +12,7 @@ WORKDIR /root/
 COPY ./ ./
 RUN set -eux; \
     apt-get update; \
-    apt-get -y install curl gnupg build-essential python3; \
+    apt-get -y install curl gnupg build-essential python3 git; \
     curl -sLo /tmp/nsolid_setup_deb.sh https://deb.nodesource.com/nsolid_setup_deb.sh; \
     chmod 500 /tmp/nsolid_setup_deb.sh; \
     /tmp/nsolid_setup_deb.sh ${NODEJS_VERSION}; \
