@@ -18,6 +18,7 @@
  *
  */
 
+import SettingsHelp from './SettingsHelp';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import React, { useState, useEffect } from 'react';
@@ -86,6 +87,7 @@ export default function Transcoding() {
                     <h2>Transcoding</h2>
                 </Col>
             </Row>
+            <SettingsHelp section="transcoding" />
             <Row>
                 <Col>
                     <Container>
@@ -108,7 +110,7 @@ export default function Transcoding() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Select an available hardware acceleration method or disable hardware acceleration.
+                                        Use a method supported by both FFmpeg and the host GPU. Default: OFF. A listed method can still require device access or additional drivers.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -132,7 +134,7 @@ export default function Transcoding() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Select an available hardware acceleration method or disable hardware acceleration.
+                                        Choose the video encoder for new transcoding work. Default uses the application’s automatic choice. Hardware encoders need a compatible GPU and container device access.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -156,7 +158,7 @@ export default function Transcoding() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Select an available hardware acceleration method or disable hardware acceleration.
+                                        Choose the audio encoder for new transcoding work. Default uses the application’s automatic choice. Select a browser-compatible codec.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>

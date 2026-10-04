@@ -18,6 +18,7 @@
  *
  */
 
+import SettingsHelp from './SettingsHelp';
 import cx from 'classnames';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
@@ -30,10 +31,10 @@ export default function Logging() {
     const dispatch = useDispatch();
 
     const descriptions = {
-        "Default": "This is the fallback log level. Any component not explicitly configured will inherit this level.",
-        "Microsoft": "Controls the verbosity of logs from the .NET framework and Microsoft libraries.",
-        "Microsoft.AspNetCore.SpaProxy": " Logs related to proxying requests to a frontend dev server (like React, Angular, or Vue).",
-        "Microsoft.Hosting.Lifetime": "Logs application lifecycle events such as starting, stopping, and shutdown timing.",
+        "Default": "Fallback for components without a category override. Default: Information. Trace and Debug are most verbose; None suppresses messages.",
+        "Microsoft": "Framework and Microsoft library messages. Default: Warning. Raise verbosity temporarily when diagnosing framework issues.",
+        "Microsoft.AspNetCore.SpaProxy": "Development frontend proxy messages. Default: Information. This category is mainly relevant while running a development server.",
+        "Microsoft.Hosting.Lifetime": "Application startup and shutdown messages. Default: Information.",
     };
 
     const settings = useSelector((state) => state.settings.current);
@@ -134,6 +135,7 @@ export default function Logging() {
                     <h2>Logging</h2>
                 </Col>
             </Row>
+            <SettingsHelp section="logging" />
             <Row>
                 <Col>
                     <Container>

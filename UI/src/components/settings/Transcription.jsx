@@ -18,6 +18,7 @@
  *
  */
 
+import SettingsHelp from './SettingsHelp';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Badge from 'react-bootstrap/Badge';
@@ -149,6 +150,7 @@ export default function Transcription() {
                     <h2>Transcription</h2>
                 </Col>
             </Row>
+            <SettingsHelp section="transcription" />
             <Row>
                 <Col>
                     <Container>
@@ -169,7 +171,7 @@ export default function Transcription() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Transcribe the speech in video files during scanning and index the result for search.
+                                        Enable local speech recognition in a background queue. Default: OFF. Supported embedded text subtitles can supply searchable text without speech recognition.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -197,7 +199,7 @@ export default function Transcription() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        The Whisper model to transcribe with. Larger models are more accurate, especially for non-English speech, but slower. If not already present, it&apos;s downloaded automatically the first time it&apos;s needed.
+                                        Default: Small. The Whisper model to transcribe with. Larger models are more accurate, especially for non-English speech, but slower. If not already present, it&apos;s downloaded automatically the first time it&apos;s needed, requiring network access and writable model storage. Changing models does not replace existing transcripts.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -222,7 +224,7 @@ export default function Transcription() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        The spoken language to transcribe, or detect it automatically.
+                                        Select the recording’s spoken language or Detect Automatically (default). This recognizes speech in its original language; it does not translate it.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -244,7 +246,7 @@ export default function Transcription() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        The maximum time to allow a single video&apos;s transcription to run before it&apos;s aborted.
+                                        Maximum processing time per video, in minutes. Default: 30; minimum: 1. Increase it for longer recordings or slower models.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -275,7 +277,7 @@ export default function Transcription() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Adjusts the number of videos transcribed in parallel. Kept low by default since transcription is CPU-intensive.
+                                        Videos processed concurrently. Default: 1. More workers use more CPU and memory. After changing this, turn transcription OFF and ON to restart the worker pool.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -297,7 +299,7 @@ export default function Transcription() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Automatically transcribe any video still missing a transcript at startup, including ones that previously failed.
+                                        Queue eligible videos missing transcripts when transcription workers start, including when enabling transcription. Default: ON. Toggle OFF and ON to apply this to an already running worker pool.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>

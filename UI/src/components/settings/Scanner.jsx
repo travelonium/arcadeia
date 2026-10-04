@@ -18,6 +18,7 @@
  *
  */
 
+import SettingsHelp from './SettingsHelp';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Badge from 'react-bootstrap/Badge';
@@ -138,6 +139,7 @@ export default function Scanner() {
                     <h2>Media Scanner</h2>
                 </Col>
             </Row>
+            <SettingsHelp section="scanner" />
             <Row>
                 <Col>
                     <Container>
@@ -162,7 +164,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Scan the watched, mounted and added folders for new media files at startup or manually.
+                                        Find new and modified media in configured folders when the scanner starts. Default: ON. Start Now queues a scan immediately.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -189,7 +191,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Go through the library and update modified items and remove the deleted ones at startup or manually.
+                                        Revisit indexed media and remove entries for deleted files when the scanner starts. Default: ON. Start Now queues an update without deleting original files.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -216,7 +218,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Go through the library and delete orphaned thumbnails at startup or manually.
+                                        Remove thumbnail records with no matching media entry in the search index. Default: OFF. Original files are kept; existing previews are not rebuilt.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -238,7 +240,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Regenerate any missing thumbnails upon access, scan or update.
+                                        Fill missing thumbnail slots when media is processed. Default: OFF. This does not replace existing previews after changing their size or crop.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -260,7 +262,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Detect embedded subtitle streams for already-indexed videos that have not been checked yet, upon scan or update.
+                                        Check older indexed videos for embedded text subtitles during scan or update. Default: OFF. Already checked videos are skipped; image-based subtitles are unsupported.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -298,7 +300,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Adjusts the interval at which a periodic scan is performed or disables it altogether.
+                                        Hours between automatic scans. Default: 1 hour. OFF disables periodic scanning; startup and manual scans remain available.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
@@ -329,7 +331,7 @@ export default function Scanner() {
                                 <Card.Body>
                                     <Card.Text className="d-flex align-items-center">
                                         <i className="bi bi-question-circle text-info pe-2"></i>
-                                        Adjusts the number of parallel scanner tasks used during scan or update.
+                                        Files processed concurrently during scanning and updating. Default: 4. More tasks use more CPU, memory and disk bandwidth.
                                     </Card.Text>
                                 </Card.Body>
                             </Card>

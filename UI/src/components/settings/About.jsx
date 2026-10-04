@@ -26,13 +26,14 @@ import { Container, Row, Col, ListGroup, Spinner, Badge } from 'react-bootstrap'
 const LICENSES = {
     "ImageMagick": "https://imagemagick.org/license/",
     "Public Domain": "https://sqlite.org/copyright.html",
+    "Build-dependent": "https://ffmpeg.org/legal.html",
 };
 
 const THIRD_PARTY = [
     {
         title: "Bundled Tools",
         items: [
-            { name: "FFmpeg", url: "https://ffmpeg.org", license: "GPL-3.0-or-later" },
+            { name: "FFmpeg", url: "https://ffmpeg.org", license: "Build-dependent" },
             { name: "whisper.cpp", url: "https://github.com/ggml-org/whisper.cpp", license: "MIT" },
             { name: "Whisper Models", url: "https://github.com/openai/whisper", license: "MIT" },
             { name: "yt-dlp", url: "https://github.com/yt-dlp/yt-dlp", license: "Unlicense" },
@@ -228,7 +229,7 @@ export default function About() {
                             <Card className="px-0">
                                 <Card.Header className="pe-2">
                                     <Row className="align-items-center">
-                                        <Col><b>License</b></Col>
+                                        <Col><b>License &amp; Legal</b></Col>
                                         <Col xs="auto">
                                             <Badge bg="info">{about?.license ?? "AGPL-3.0-or-later"}</Badge>
                                         </Col>
@@ -248,8 +249,21 @@ export default function About() {
                                     </Card.Text>
                                     <Card.Text className="d-flex flex-wrap gap-3">
                                         <Link href={source}>Source Code</Link>
+                                        <Link href="https://www.arcadeia.org/docs/legal.html">License &amp; Legal Guide</Link>
                                         <Link href="https://www.gnu.org/licenses/agpl-3.0.html">GNU Affero General Public License</Link>
                                     </Card.Text>
+                                </Card.Body>
+                            </Card>
+                        </Row>
+
+                        <Row className="legal align-items-center mb-3">
+                            <Card className="px-0">
+                                <Card.Header><b>Media Rights and Privacy</b></Card.Header>
+                                <Card.Body>
+                                    <Card.Text>Arcadeia’s license covers its software, not your media. Import and share only content you have permission to use, and preserve any required creator credits.</Card.Text>
+                                    <Card.Text>Speech recognition runs locally. Missing models are downloaded from Hugging Face; URL imports contact the media source. Configuration can contain mount credentials and logs can contain media paths.</Card.Text>
+                                    <Card.Text>Arcadeia has no built-in user authentication. Protect the application and its supporting services before exposing a deployment. Read-only settings do not provide authentication.</Card.Text>
+                                    <Card.Text>Third-party components retain their own licenses. FFmpeg licensing depends on its build; yt-dlp dependencies and bundled executables can have additional terms. Review the legal guide and the licenses of the exact versions you redistribute.</Card.Text>
                                 </Card.Body>
                             </Card>
                         </Row>

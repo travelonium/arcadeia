@@ -18,6 +18,7 @@
  *
  */
 
+import SettingsHelp from './SettingsHelp';
 import cx from 'classnames';
 import { isEqual } from 'lodash';
 import { clone } from '../../utils';
@@ -258,6 +259,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="folder">Folder</Form.Label>
+                                <p className="small text-muted mb-2">Local folder inside the application. Basic mode places it under /Network, which is scanned by default.</p>
                                 <InputGroup id="folder" className="mb-3">
                                     <InputGroup.Text className={cx((folder.startsWith("/Network/") || !folder) ? "" : "text-decoration-line-through")} >{"/Network/"}</InputGroup.Text>
                                     <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} disabled={readOnly} />
@@ -267,6 +269,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="server">Server</Form.Label>
+                                <p className="small text-muted mb-2">SMB server and share, such as nas/photos. The container must be able to reach it.</p>
                                 <InputGroup id="server" className="mb-3">
                                     <InputGroup.Text className={cx((device.startsWith("//") || !device) ? "" : "text-decoration-line-through")}>{"//"}</InputGroup.Text>
                                     <Form.Control aria-label="Server" aria-describedby="server" value={device.replace(/\/\//, "")} onChange={onServerChange} disabled={readOnly} />
@@ -274,6 +277,7 @@ export default function Mounts() {
                             </Col>
                             <Col>
                                 <Form.Label id="protocolVersionLabel" htmlFor="protocolVersion">Protocol Version</Form.Label>
+                                <p className="small text-muted mb-2">Leave default to negotiate with the server, or select a version supported by your share.</p>
                                 <Form.Select id="protocolVersion" aria-label="Protocol Version" aria-describedby="protocolVersionLabel" value={fields.vers} onChange={onVersionChange} disabled={readOnly} >
                                     <option value="default" title="Tries to negotiate the highest SMB2+ version supported by both the client and server.">default</option>
                                     <option value="1.0" title="The classic CIFS/SMBv1 protocol.">1.0</option>
@@ -289,11 +293,13 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="username">User Name</Form.Label>
+                                <p className="small text-muted mb-2">Account authorized to access this share.</p>
                                 <Form.Control id="username" value={fields.username} onChange={onUserNameChange} disabled={readOnly} />
 
                             </Col>
                             <Col>
                                 <Form.Label id="passwordLabel" htmlFor="password">Password</Form.Label>
+                                <p className="small text-muted mb-2">Share credentials are saved in configuration. Hidden input does not encrypt stored credentials.</p>
                                 <Form.Control type="password" id="password" aria-describedby="passwordLabel" value={fields.password} onChange={onPasswordChange} disabled={readOnly} />
                             </Col>
                         </Row>
@@ -304,6 +310,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label id="folderLabel" htmlFor="folder">Folder</Form.Label>
+                                <p className="small text-muted mb-2">Local folder inside the application. Basic mode places it under /Network, which is scanned by default.</p>
                                 <InputGroup className="mb-3">
                                     <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} disabled={readOnly} />
                                 </InputGroup>
@@ -312,6 +319,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label id="deviceLabel" htmlFor="folder">Device</Form.Label>
+                                <p className="small text-muted mb-2">Full mount source: //server/share for SMB or server:/path for NFS.</p>
                                 <InputGroup className="mb-3">
                                     <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} disabled={readOnly} />
                                 </InputGroup>
@@ -320,6 +328,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label id="optionsLabel" htmlFor="folder">Options</Form.Label>
+                                <p className="small text-muted mb-2">Comma-separated mount options. These can include credentials; do not share settings API output.</p>
                                 <InputGroup className="">
                                     <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} disabled={readOnly} />
                                     <Button variant="outline-secondary" onClick={() => setShowOptions(!showOptions)}><i className={cx("bi", showOptions ? "bi-eye-slash" : "bi-eye")}></i></Button>
@@ -417,6 +426,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="folder">Folder</Form.Label>
+                                <p className="small text-muted mb-2">Local folder inside the application. Basic mode places it under /Network, which is scanned by default.</p>
                                 <InputGroup id="folder" className="mb-3">
                                     <InputGroup.Text className={cx((folder.startsWith("/Network/") || !folder) ? "" : "text-decoration-line-through")} >{"/Network/"}</InputGroup.Text>
                                     <Form.Control aria-label="Folder" aria-describedby="folder" value={folder.replace(/\/Network\//, "")} onChange={onFolderChange} disabled={readOnly} />
@@ -426,6 +436,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label htmlFor="share">Share</Form.Label>
+                                <p className="small text-muted mb-2">NFS server address and exported path, such as nas:/photos.</p>
                                 <InputGroup id="share" className="mb-3">
                                     <Form.Control aria-label="Server" placeholder="Server" aria-describedby="server" value={server} onChange={onServerChange} disabled={readOnly} />
                                     <InputGroup.Text>{":"}</InputGroup.Text>
@@ -440,6 +451,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label id="folderLabel" htmlFor="folder">Folder</Form.Label>
+                                <p className="small text-muted mb-2">Local folder inside the application. Basic mode places it under /Network, which is scanned by default.</p>
                                 <InputGroup className="mb-3">
                                     <Form.Control aria-label="Folder" aria-describedby="folderLabel" value={folder} onChange={onAdvancedFolderChange} disabled={readOnly} />
                                 </InputGroup>
@@ -448,6 +460,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label id="deviceLabel" htmlFor="folder">Device</Form.Label>
+                                <p className="small text-muted mb-2">Full mount source: //server/share for SMB or server:/path for NFS.</p>
                                 <InputGroup className="mb-3">
                                     <Form.Control aria-label="Device" aria-describedby="deviceLabel" value={device} onChange={onDeviceChange} disabled={readOnly} />
                                 </InputGroup>
@@ -456,6 +469,7 @@ export default function Mounts() {
                         <Row>
                             <Col>
                                 <Form.Label id="optionsLabel" htmlFor="folder">Options</Form.Label>
+                                <p className="small text-muted mb-2">Comma-separated mount options. These can include credentials; do not share settings API output.</p>
                                 <InputGroup className="">
                                     <Form.Control type={!showOptions ? "password" : undefined} aria-label="Options" aria-describedby="optionsLabel" value={options} onChange={onOptionsChange} disabled={readOnly} />
                                     <Button variant="outline-secondary" onClick={() => setShowOptions(!showOptions)}><i className={cx("bi", showOptions ? "bi-eye-slash" : "bi-eye")}></i></Button>
