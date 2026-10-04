@@ -19,7 +19,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { uiSlice, queueUpload, pauseUploads, removeUploads } from './slice';
+import { uiSlice, queueUpload, pauseUploads, removeUploads, updateUpload, switchUploadState } from './slice';
 
 const reducer = uiSlice.reducer;
 
@@ -156,5 +156,42 @@ describe('removeUploads – pause', () => {
         expect(one.uploads.paused).toBe(true);
         const none = reducer(one, removeUploads({ state: 'queued' }));
         expect(none.uploads.paused).toBe(false);
+    });
+});
+
+describe('updateUpload – progress', () => {
+    it('stores a zero progress so processing restarts the bar after uploading', () => {
+        const item = makeItem(URL, PATH_A, 'active');
+        const state = makeState([item]);
+        state.uploads.progress[item.key] = { value: 0.99, timestamp: 0 };
+        const next = reducer(state, updateUpload({ key: item.key, progress: 0, value: { status: 'Processing...' } }));
+        expect(next.uploads.progress[item.key].value).toBe(0);
+        expect(next.uploads.items[0].status).toBe('Processing...');
+    });
+
+    it('accepts a zero progress on its own', () => {
+        const item = makeItem(URL, PATH_A, 'active');
+        const next = reducer(makeState([item]), updateUpload({ key: item.key, progress: 0 }));
+        expect(next.uploads.progress[item.key].value).toBe(0);
+    });
+
+    it('rejects an update with neither a value nor a progress', () => {
+        const item = makeItem(URL, PATH_A, 'active');
+        expect(() => reducer(makeState([item]), updateUpload({ key: item.key }))).toThrow();
+    });
+});
+
+describe('switchUploadState – status', () => {
+    it('clears the status of the previous attempt when retried', () => {
+        const item = { ...makeItem(URL, PATH_A, 'failed'), status: 'Upload Failed', error: 'boom' };
+        const next = reducer(makeState([item]), switchUploadState({ key: item.key, to: 'queued' }));
+        expect(next.uploads.items[0].status).toBeUndefined();
+        expect(next.uploads.items[0].error).toBeUndefined();
+    });
+
+    it('keeps the last status when an upload finishes', () => {
+        const item = { ...makeItem(URL, PATH_A, 'active'), status: 'Upload Complete' };
+        const next = reducer(makeState([item]), switchUploadState({ key: item.key, to: 'succeeded' }));
+        expect(next.uploads.items[0].status).toBe('Upload Complete');
     });
 });

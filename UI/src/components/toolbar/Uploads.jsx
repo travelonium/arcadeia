@@ -27,13 +27,17 @@ import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { FixedSizeList as List } from 'react-window';
+import { VariableSizeList as List } from 'react-window';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { switchUploadStateThunk, removeUploads, pauseUploads } from '../../features/ui/slice';
 import { selectAll, selectActive, selectQueued, selectSucceeded, selectFailed, selectProgress } from '../../features/ui/selectors';
+
+// the row heights fit up to two lines of name, the path and, for active uploads, the status row
+const ITEM_HEIGHT = 90;
+const ACTIVE_ITEM_HEIGHT = 120;
 
 const Uploads = forwardRef((props, ref) => {
     const dispatch = useDispatch();
@@ -124,17 +128,17 @@ const Uploads = forwardRef((props, ref) => {
                         <Col className="d-flex align-items-center gx-0">
                             <Container fluid>
                                 <Row>
-                                    <Col className="gx-0 pb-1" xs={12}>
+                                    <Col className="name gx-0 pb-1" xs={12} title={upload.name ?? upload.url}>
                                     {
                                         (upload.state === 'succeeded') ?
                                             <a href={pb.join(upload.path, upload.name)} className="text-decoration-none text-body" onClick={() => onOpen(upload.path, upload.name)}><strong>{shorten(upload.name ?? upload.url, 120)}</strong></a>
                                             : <strong>{shorten(upload.name ?? upload.url, 120)}</strong>
                                     }
                                     </Col>
-                                    <Col className="gx-0 small text-muted" xs={12}>
+                                    <Col className="gx-0 small text-muted text-truncate" xs={12}>
                                     {
                                         (upload.url) ?
-                                            <a href={upload.url} className="text-truncate d-inline-block text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{shorten(upload.url, 60)}</a>
+                                            <a href={upload.url} className="text-truncate d-inline-block mw-100 align-bottom text-decoration-none" onClick={() => onOpen(null, null, upload.url)}>{shorten(upload.url, 60)}</a>
                                             : <></>
                                     }
                                     {
@@ -143,11 +147,23 @@ const Uploads = forwardRef((props, ref) => {
                                     </Col>
                                 </Row>
                                 {
-                                    (upload.state === 'active' && progress != null) ?
-                                        <Row>
-                                            <Col className="pt-2 gx-0" xs={12}>
-                                                <ProgressBar variant="info" min={0.0} now={progress.value} max={1.0} animated={false} />
+                                    (upload.state === 'active') ?
+                                        <Row className="status pt-1 flex-nowrap align-items-center small">
+                                            <Col className="gx-0 text-info text-nowrap" xs="auto">
+                                                {upload.status ?? "Starting..."}
                                             </Col>
+                                            {
+                                                (progress != null) ?
+                                                    <>
+                                                        <Col className="px-2">
+                                                            <ProgressBar variant="info" min={0.0} now={progress.value} max={1.0} animated={false} />
+                                                        </Col>
+                                                        <Col className="percentage gx-0 text-muted text-end" xs="auto">
+                                                            {`${Math.round((progress.value ?? 0) * 100)}%`}
+                                                        </Col>
+                                                    </>
+                                                    : <></>
+                                            }
                                         </Row>
                                         : <></>
                                 }
@@ -184,6 +200,13 @@ const Uploads = forwardRef((props, ref) => {
     Upload.displayName = "Upload";
 
     const UploadListGroup = React.memo(({ uploads, clear, retry }) => {
+        const list = useRef(null);
+
+        // the row heights depend on the upload states, so drop the cached ones when they change
+        useEffect(() => {
+            list.current?.resetAfterIndex(0);
+        }, [uploads]);
+
         if (uploads.length === 0) return <></>;
         else return (
             <>
@@ -192,10 +215,11 @@ const Uploads = forwardRef((props, ref) => {
                     {({ height, width }) => {
                         return (
                             <List
+                                ref={list}
                                 height={height}
                                 width={width}
                                 itemCount={uploads.length}
-                                itemSize={90}
+                                itemSize={(index) => (uploads[index].state === 'active') ? ACTIVE_ITEM_HEIGHT : ITEM_HEIGHT}
                             >
                                 {({ index, style }) => (
                                     <Upload upload={uploads[index]} progress={progress[uploads[index].key]} style={style} />
@@ -238,7 +262,7 @@ const Uploads = forwardRef((props, ref) => {
     UploadListGroup.displayName = "UploadListGroup";
 
     return (
-        <Modal className="uploads" show={state} onShow={onShow} onHide={onHide} backdrop={true} animation={true} size={"lg"} aria-labelledby="contained-modal-title-vcenter" centered>
+        <Modal className="uploads" show={state} onShow={onShow} onHide={onHide} backdrop={true} animation={props.animation ?? true} size={"lg"} aria-labelledby="contained-modal-title-vcenter" centered>
             <Modal.Header className="flex-row align-items-center me-3" closeButton>
                 <Modal.Title className="ms-2 flex-grow-1" id="contained-modal-title-vcenter">
                     Uploads

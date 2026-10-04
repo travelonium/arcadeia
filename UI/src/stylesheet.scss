@@ -375,9 +375,23 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
 
         .list-group {
             .list-group-item {
+                // never let a long name grow the row beyond its fixed height
+                .name {
+                    display: -webkit-box;
+                    -webkit-box-orient: vertical;
+                    -webkit-line-clamp: 2;
+                    line-clamp: 2;
+                    overflow: hidden;
+                    overflow-wrap: anywhere;
+                }
+
                 .progress {
                     height: 5px;
                     border-radius: 0px;
+                }
+
+                .status .percentage {
+                    min-width: 3em;
                 }
             }
         }

@@ -158,7 +158,7 @@ export const uiSlice = createSlice({
         },
         updateUpload: (state, action) => {
             const { key, value, progress } = action.payload;
-            if (!value && !progress) throw new Error("Either value or progress needs to be supplied.");
+            if (!value && progress == null) throw new Error("Either value or progress needs to be supplied.");
             if (key) {
                 const index = state.uploads.items.findIndex(item => item.key === key);
                 if (index !== -1) {
@@ -166,7 +166,8 @@ export const uiSlice = createSlice({
                         // a specific key has been given, update the item
                         Object.assign(state.uploads.items[index], value);
                     }
-                    if (progress) {
+                    // a zero progress is valid too e.g. when the processing starts after uploading
+                    if (progress != null) {
                         state.uploads.progress[key] = {
                             value: progress,
                             timestamp: Date.now()
@@ -201,6 +202,8 @@ export const uiSlice = createSlice({
                     timestamp: Date.now()
                 };
                 if (to !== 'failed') delete item.error;
+                // a retried item shouldn't show the status of its previous attempt
+                if (to === 'queued') delete item.status;
                 // remove the item from the array
                 state.uploads.items.splice(index, 1);
                 // binary search for the new insertion index
