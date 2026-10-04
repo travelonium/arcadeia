@@ -824,6 +824,8 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
         }
 
         .card {
+            // size the labels relative to the tile rather than the viewport
+            container-type: inline-size;
 
             .thumbnail-container {
                 height: 100%;
@@ -831,13 +833,26 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                 .card-img {
                     object-fit: cover;
                 }
+
+                .properties .row {
+                    row-gap: 0.25rem;
+                }
             }
 
             .content-container {
-                top: 70%;
+                // anchor the name to the bottom so it's never clipped by a fixed height on small tiles
+                top: auto;
+                max-height: 100%;
                 padding-bottom: 2em;
                 border-top-left-radius: 0%;
                 border-top-right-radius: 0%;
+            }
+
+            // the properties wrap onto a second row on narrow tiles, keep the name clear of them
+            @container (max-width: 300px) {
+                .content-container {
+                    padding-bottom: 3.5em;
+                }
             }
         }
     }
