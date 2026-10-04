@@ -266,6 +266,15 @@ namespace Arcadeia
       /// photo file.
       /// </summary>
       /// <returns>The count of successfully generated thumbnails.</returns>
+      /// <summary>
+      /// Counts the thumbnails generated for the supplied thumbnail settings, which must match the
+      /// iterations of the generation loop for the reported progress not to exceed 1.
+      /// </summary>
+      internal static int CountThumbnails(IEnumerable<ThumbnailSettings> thumbnails)
+      {
+         return thumbnails.Sum(item => Math.Max(1, item.Count));
+      }
+
       public override int GenerateThumbnails(bool force = false)
       {
          int thumbnails = 0, total = 0, generated = 0;
@@ -282,10 +291,7 @@ namespace Arcadeia
          ----------------------------------------------------------------------------------*/
 
          // Calculate the total number of thumbnails to be generated used for progress reporting
-         foreach (var item in Settings.CurrentValue.Thumbnails.Photo)
-         {
-            total += Math.Min(1, item.Value.Count);
-         }
+         total = CountThumbnails(Settings.CurrentValue.Thumbnails.Photo.Values);
 
          Progress?.Report(0.0f);
 

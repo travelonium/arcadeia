@@ -80,6 +80,12 @@ describe('Uploads', () => {
         expect(element.querySelector('.status .progress')).not.toBeNull();
     });
 
+    it('caps the progress at 100%', async () => {
+        await render([item('clip', 'active', { status: 'Processing...' })], { clip: { value: 3, timestamp: 0 } });
+
+        expect(row('clip.mp4').querySelector('.status .percentage').textContent).toBe('100%');
+    });
+
     it('shows the status of an active upload before any progress is reported', async () => {
         await render([item('clip', 'active', { status: 'Resolving...' })]);
 

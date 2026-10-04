@@ -343,6 +343,16 @@ namespace Arcadeia
       /// video file.
       /// </summary>
       /// <returns>The count of successfully generated thumbnails.</returns>
+      /// <summary>
+      /// Counts the thumbnails generated for the supplied thumbnail settings and video duration,
+      /// which must match the iterations of the generation loop for the reported progress not to
+      /// exceed 1.
+      /// </summary>
+      internal static int CountThumbnails(IEnumerable<ThumbnailSettings> thumbnails, double duration)
+      {
+         return thumbnails.Sum(item => Math.Max(1, Math.Min(item.Count, (int)Math.Floor(duration))));
+      }
+
       public override int GenerateThumbnails(bool force = false)
       {
          int thumbnails = 0, total = 0, generated = 0;
@@ -362,10 +372,7 @@ namespace Arcadeia
          ----------------------------------------------------------------------------------*/
 
          // Calculate the total number of thumbnails to be generated used for progress reporting
-         foreach (var item in Settings.CurrentValue.Thumbnails.Video)
-         {
-            total += (item.Value.Count > 0) ? (int)Math.Min(item.Value.Count, Math.Floor(Duration ?? -1)) : 1;
-         }
+         total = CountThumbnails(Settings.CurrentValue.Thumbnails.Video.Values, Duration ?? 0.0);
 
          Progress?.Report(0.0f);
 

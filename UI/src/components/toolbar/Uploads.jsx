@@ -94,6 +94,8 @@ const Uploads = forwardRef((props, ref) => {
     }
 
     const Upload = React.memo(({ upload, progress, style }) => {
+        // guard against out of range progress reports
+        const value = Math.min(1, Math.max(0, progress?.value ?? 0));
         let icon = null;
         let color = null;
         switch (upload.state) {
@@ -156,10 +158,10 @@ const Uploads = forwardRef((props, ref) => {
                                                 (progress != null) ?
                                                     <>
                                                         <Col className="px-2">
-                                                            <ProgressBar variant="info" min={0.0} now={progress.value} max={1.0} animated={false} />
+                                                            <ProgressBar variant="info" min={0.0} now={value} max={1.0} animated={false} />
                                                         </Col>
                                                         <Col className="percentage gx-0 text-muted text-end" xs="auto">
-                                                            {`${Math.round((progress.value ?? 0) * 100)}%`}
+                                                            {`${Math.round(value * 100)}%`}
                                                         </Col>
                                                     </>
                                                     : <></>
