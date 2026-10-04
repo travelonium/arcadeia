@@ -24,6 +24,8 @@ using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.Logging.Console;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Arcadeia.Tests")]
+
 namespace Arcadeia
 {
    public class Program

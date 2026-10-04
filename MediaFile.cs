@@ -171,8 +171,9 @@ namespace Arcadeia
 
          if (!Exists())
          {
-            // Avoid updating or removing the file if it was located in a network mount that is currently unavailable.
-            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Attached))
+            // Avoid updating or removing the file if it was located in a network mount that is currently unavailable
+            // or if it's in the middle of being moved.
+            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Attached) || MediaLibrary.IsLocked(FullPath))
             {
                Skipped = true;
             }
@@ -458,18 +459,29 @@ namespace Arcadeia
       {
          if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
 
+         var source = FullPath;
+
+         if (destination == source) return;
+
          // Split the path in parent, child components.
          var pathComponents = GetPathComponents(destination);
 
+         // Keep anything else, e.g. the scanner, off both locations until the index has caught up.
+         using var _ = MediaLibrary.LockPaths(source, destination);
+
+         var previousName = Name;
+         var previousParent = Parent;
+         var previousParentType = ParentType;
+
+         if (pathComponents.Parent != null)
+         {
+            Directory.CreateDirectory(pathComponents.Parent);
+         }
+
+         File.Move(source, destination);
+
          try
          {
-            if (pathComponents.Parent != null)
-            {
-               Directory.CreateDirectory(pathComponents.Parent);
-            }
-
-            File.Move(FullPath, destination);
-
             // Update the MediaFile's Name.
             Name = pathComponents.Child;
 
@@ -501,11 +513,34 @@ namespace Arcadeia
                   ParentType = Parent.Type;
                }
             }
+
+            // Update the index straight away while the paths are still locked.
+            if (!Save())
+            {
+               throw new InvalidOperationException("Failed to update the file in the index.");
+            }
          }
          catch
          {
+            Name = previousName;
+            Parent = previousParent;
+            ParentType = previousParentType;
+
+            // Put the file back where it was so the disk and the index remain consistent.
+            try
+            {
+               File.Move(destination, source);
+            }
+            catch (Exception e)
+            {
+               Logger.LogError("Failed To Restore File: {} -> {}, Because: {}", destination, source, e.Message);
+            }
+
             throw;
          }
+
+         // Forget the id generated for the old path so a new file created there won't reuse it.
+         MediaLibrary.ClearCache(source);
       }
 
       #endregion // Overrides

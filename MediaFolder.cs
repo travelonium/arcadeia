@@ -18,6 +18,8 @@
  *
  */
 
+using SolrNet;
+using Arcadeia.Solr;
 using Microsoft.Extensions.Options;
 using Arcadeia.Configuration;
 using Arcadeia.Services;
@@ -50,8 +52,9 @@ namespace Arcadeia
 
          if (!Exists())
          {
-            // Avoid updating or removing the folder if it was located in a network mount that is currently unavailable.
-            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Attached))
+            // Avoid updating or removing the folder if it was located in a network mount that is currently unavailable
+            // or if it's in the middle of being moved.
+            if (fileSystemService.Mounts.Any(mount => FullPath != null && FullPath.StartsWith(mount.Folder) && !mount.Attached) || MediaLibrary.IsLocked(FullPath))
             {
                Skipped = true;
             }
@@ -104,79 +107,114 @@ namespace Arcadeia
       }
 
       /// <summary>
-      /// Moves (or Renames) the MediaFolder from one location or name to another.
+      /// Renames the MediaFolder by moving the physical folder as a whole and then updating the
+      /// paths of all the MediaContainers within it in the index, keeping their ids so their
+      /// attributes and thumbnails are preserved.
       /// </summary>
-      /// <param name="destination">The full path of the new name and location.</param>
+      /// <param name="destination">The full path of the new name within the same parent.</param>
       public override void Move(string destination)
       {
-         // TODO: Moving folders need a bit more work:
-         //       - Check whether the destination files and folders already exist on disk or in the
-         //         library and throw one or severals exceptions if so.
-         //       - All the child MediaContainers and their children need to move to the new location.
-         //       - Focus solely on the MediaContainers and leave the other files be as it would get
-         //         so much more complicated otherwise.
-         //       - When moving, remove the moved folder if it is empty of other files.
+         if (string.IsNullOrEmpty(Id)) throw new ArgumentNullException(nameof(Id), "The Id cannot be null or empty.");
 
-         // Split the path in parent, child components.
-         var pathComponents = GetPathComponents(destination);
+         if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
 
-         Directory.CreateDirectory(destination);
+         var source = FullPath;
+         var target = EnsureTrailingSlash(destination.TrimEnd('/', '\\'))!;
+         var pathComponents = GetPathComponents(target);
+         var name = pathComponents.Child?.Trim('/', '\\');
 
-         // Update the Name if necessary.
-         Name = pathComponents.Child;
+         if (string.IsNullOrEmpty(name)) throw new ArgumentException("The destination folder name cannot be empty.", nameof(destination));
 
-         foreach (var child in Children)
+         if (pathComponents.Parent != Path) throw new NotSupportedException("Folders can only be renamed and not moved.");
+
+         if (target == source) return;
+
+         // Allow case-only renames on case-insensitive file systems where the destination would appear to exist already.
+         if ((Directory.Exists(target) || File.Exists(target.TrimEnd('/', '\\'))) && !string.Equals(target, source, StringComparison.OrdinalIgnoreCase))
          {
-            if (string.IsNullOrEmpty(child.Name)) throw new ArgumentNullException(nameof(child.Name), "The child Name cannot be null or empty.");
-
-            child.Move(System.IO.Path.Combine(destination, child.Name));
-
-            child.Save();
+            throw new IOException("A file or folder with the same name already exists.");
          }
 
-         if (!Children.Any())
+         // Keep anything else, e.g. the scanner, off both locations until the index has caught up.
+         using var _ = MediaLibrary.LockPaths(source, target);
+
+         var previousName = Name;
+
+         Directory.Move(source, target);
+
+         try
          {
+            using IServiceScope scope = Services.CreateScope();
+            ISolrIndexService<Models.MediaContainer> solrIndexService = scope.ServiceProvider.GetRequiredService<ISolrIndexService<Models.MediaContainer>>();
+
+            // Rewrite the paths of all the descendants directly in the index rather than loading
+            // each of them, as that would mark them deleted while their parents still point to the
+            // old location.
+            var documents = solrIndexService.Get(new SolrQuery("path:" + EscapeQueryValue(source) + "*"))
+                                            .Where(descendant => descendant.Path?.StartsWith(source, StringComparison.Ordinal) ?? false)
+                                            .ToList();
+
+            foreach (var descendant in documents)
+            {
+               descendant.Path = target + descendant.Path![source.Length..];
+               descendant.FullPath = (descendant.FullPath?.StartsWith(source, StringComparison.Ordinal) ?? false) ? target + descendant.FullPath[source.Length..] : descendant.FullPath;
+            }
+
+            // Update the folder itself in the same batch so the index is never left half renamed.
+            Name = name;
+
+            var model = Model;
+
+            documents.Add(model);
+
+            if (!solrIndexService.Update(documents))
+            {
+               throw new InvalidOperationException("Failed to update the folder and its contents in the index.");
+            }
+
+            Original = model;
+
+            Logger.LogInformation("Folder Renamed: {} -> {}, Updated {} Descendants", source, target, documents.Count - 1);
+         }
+         catch
+         {
+            Name = previousName;
+
+            // Put the folder back where it was so the disk and the index remain consistent.
             try
             {
-               if (string.IsNullOrEmpty(FullPath)) throw new ArgumentNullException(nameof(FullPath), "The FullPath cannot be null or empty.");
-
-               // Attempt to delete the folder in its old location if it is empty now.
-               Directory.Delete(FullPath);
+               Directory.Move(target, source);
             }
-            catch (IOException e)
+            catch (Exception e)
             {
-               Logger.LogDebug("Folder Not Deleted: {}, Because: {}", FullPath, e.ToString());
-            };
-
-            // Flag the old MediaFolder as Deleted to be removed from the index since it lacks any children.
-            Deleted = true;
-
-            /*
-            // Save the old MediaFolder before replacing it with its new model.
-            Save();
-
-            // Reload the MediaFolder so the returned response is current.
-            var path = destination.EndsWith(Platform.Separator.Path) ? destination : destination + Platform.Separator.Path;
-            var model = Load(id: null, path: path);
-
-            if (model != null)
-            {
-               Moved = true;
-               Deleted = false;
-
-               Model = model;
+               Logger.LogError("Failed To Restore Folder: {} -> {}, Because: {}", target, source, e.Message);
             }
-            */
+
+            throw;
          }
-         else
-         {
-            Logger.LogError("Folder Has Children After Move: {}", FullPath);
-         }
+
+         // Forget the ids generated for the old paths so new containers created there won't reuse them.
+         MediaLibrary.ClearCache(source);
+
+         Moved = true;
       }
 
       #endregion
 
       #region Private Methods
+
+      private static string EscapeQueryValue(string value)
+      {
+         var result = new System.Text.StringBuilder();
+
+         foreach (var character in value)
+         {
+            if ("+-&|!(){}[]^\"~*?:\\/ ".Contains(character)) result.Append('\\');
+            result.Append(character);
+         }
+
+         return result.ToString();
+      }
 
       private static string? EnsureTrailingSlash(string? path)
       {

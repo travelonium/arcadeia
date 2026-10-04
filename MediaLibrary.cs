@@ -32,6 +32,7 @@ namespace Arcadeia
       // This makes parallel scanning possible as otherwise concurrency issues with updating the
       // Solr index leads to duplicate entries. The cache should be cleared once the scanning is over.
       private readonly Dictionary<string, string> _cache = [];
+      private readonly PathLocks _locks = new();
 
       #region Constructors
 
@@ -89,6 +90,31 @@ namespace Arcadeia
 
          Logger.LogInformation("Media Library Cache Cleared!");
       }
+
+      /// <summary>
+      /// Removes the cached ids of the supplied path and everything under it so they won't be
+      /// reused for new containers created there after it has been moved or renamed.
+      /// </summary>
+      public void ClearCache(string path)
+      {
+         lock (_lock)
+         {
+            foreach (var key in _cache.Keys.Where(key => PathLocks.IsWithin(key, path)).ToList())
+            {
+               _cache.Remove(key);
+            }
+         }
+      }
+
+      /// <summary>
+      /// Locks the supplied paths, and everything under the ones that are folders, while they are
+      /// being moved so that the containers loaded there in the meantime, e.g. by the scanner, are
+      /// skipped rather than deleted or duplicated as their index entries and the disk disagree.
+      /// </summary>
+      /// <returns>An IDisposable that unlocks the paths when disposed.</returns>
+      public IDisposable LockPaths(params string[] paths) => _locks.Lock(paths);
+
+      public bool IsLocked(string? path) => _locks.IsLocked(path);
 
       public MediaFile? InsertMediaFile(string path, IProgress<float>? progress = null)
       {

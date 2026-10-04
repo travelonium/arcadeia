@@ -515,6 +515,13 @@ namespace Arcadeia
             Created = true;
          }
 
+         // Avoid creating a duplicate entry for a path that is in the middle of being moved, its
+         // existing entry will be updated to point to it once the move is over.
+         if (Created && MediaLibrary != this && MediaLibrary.IsLocked(path))
+         {
+            Skipped = true;
+         }
+
          // Now that we're here, we can assume that the container entry and its parent(s) have been
          // created. Now the constructor of the inherited calling class will take care of the
          // container-specific attributes.

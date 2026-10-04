@@ -24,6 +24,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Arcadeia.Configuration;
 using Arcadeia.Services;
 using Arcadeia.Solr;
@@ -47,6 +48,8 @@ namespace Arcadeia.Controllers
       private readonly IThumbnailsDatabase _thumbnailsDatabase = thumbnailsDatabase;
       private readonly NotificationService _notificationService = notificationService;
       private readonly ILogger<MediaContainer> _logger = logger;
+
+      public record CreateFolderRequest(string? Name);
 
       private static async Task WriteAsync(HttpResponse response, string text)
       {
@@ -121,6 +124,29 @@ namespace Arcadeia.Controllers
          throw new InvalidOperationException("Unable to generate a unique file name.");
       }
 
+      internal static string GetUniqueFolderName(string path, string name)
+      {
+         bool Exists(string candidate) => Directory.Exists(Path.Combine(path, candidate)) || System.IO.File.Exists(Path.Combine(path, candidate));
+
+         if (!Exists(name)) return name;
+
+         // Find a unique folder name by incrementing the index
+         for (int i = 1; i < Int32.MaxValue; i++)
+         {
+            if (!Exists($"{name} ({i})")) return $"{name} ({i})";
+         }
+
+         throw new InvalidOperationException("Unable to generate a unique folder name.");
+      }
+
+      internal static bool IsNameValid(string? name)
+      {
+         return !string.IsNullOrWhiteSpace(name) &&
+                name != "." && name != ".." &&
+                name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
+                name.IndexOfAny(['/', '\\']) < 0;
+      }
+
       private bool IsPathAllowed(string path)
       {
          string fullPath = Path.GetFullPath(path);
@@ -174,6 +200,23 @@ namespace Arcadeia.Controllers
             {
                message = "Failed to instantiate the MediaContainer instance."
             });
+
+            // Validate the destination of a possible rename before the container acts upon it.
+            if (modified.Name != mediaContainer.Name || modified.Path != mediaContainer.Path)
+            {
+               if (!IsNameValid(modified.Name) || string.IsNullOrEmpty(modified.Path) || !IsPathAllowed(Path.Combine(modified.Path, modified.Name!)))
+               {
+                  return Problem(title: "Bad Request", detail: "The name or path is invalid.", statusCode: 400);
+               }
+
+               var destination = Path.Combine(modified.Path, modified.Name!);
+
+               if ((Directory.Exists(destination) || System.IO.File.Exists(destination)) &&
+                   !string.Equals(destination, mediaContainer.FullPath?.TrimEnd('/', '\\'), StringComparison.OrdinalIgnoreCase))
+               {
+                  return Problem(title: "Already Exists", detail: "A file or folder with the same name already exists.", statusCode: 409);
+               }
+            }
 
             // Reset the Views to its currently stored value as the UI is not allowed to update it.
             modified.Views = mediaContainer.Model.Views;
@@ -398,6 +441,93 @@ namespace Arcadeia.Controllers
          }
 
          return Ok(result);
+      }
+
+      // POST: /api/library/folder/{path}
+      /// <summary>
+      /// Create a new folder inside an existing folder.
+      /// </summary>
+      /// <param name="request">The optional name of the new folder. If omitted, a unique "New Folder" name is generated.</param>
+      /// <param name="path">The directory where the new folder shall be created.</param>
+      /// <returns>The MediaContainer of the newly created folder.</returns>
+      [HttpPost]
+      [Route("folder/{*path}")]
+      [Produces("application/json")]
+      public IActionResult CreateFolder([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CreateFolderRequest? request, string path = "")
+      {
+         if (_settings.CurrentValue.Security.Library.ReadOnly)
+         {
+            return Problem(title: "Permission Denied", detail: "The library is read-only.", statusCode: 403);
+         }
+
+         path = Platform.Separator.Path + path;
+
+         if (!IsPathAllowed(path))
+         {
+            return Problem(title: "Bad Request", detail: "The path is invalid or inaccessible.", statusCode: 400);
+         }
+
+         if (!Directory.Exists(path))
+         {
+            return Problem(title: "Not Found", detail: "The parent folder does not exist.", statusCode: 404);
+         }
+
+         var name = request?.Name?.Trim();
+
+         if (string.IsNullOrEmpty(name))
+         {
+            name = GetUniqueFolderName(path, "New Folder");
+         }
+         else if (!IsNameValid(name))
+         {
+            return Problem(title: "Bad Request", detail: "The folder name is invalid.", statusCode: 400);
+         }
+         else if (Directory.Exists(Path.Combine(path, name)) || System.IO.File.Exists(Path.Combine(path, name)))
+         {
+            return Problem(title: "Already Exists", detail: "A file or folder with the same name already exists.", statusCode: 409);
+         }
+
+         var fullPath = Path.Combine(path, name);
+
+         if (!IsPathAllowed(fullPath))
+         {
+            return Problem(title: "Bad Request", detail: "The path is invalid or inaccessible.", statusCode: 400);
+         }
+
+         try
+         {
+            Directory.CreateDirectory(fullPath);
+
+            _logger.LogInformation("Folder Created: {}", fullPath);
+         }
+         catch (UnauthorizedAccessException)
+         {
+            return Problem(title: "Permission Denied", detail: "Access to the folder is denied.", statusCode: 403);
+         }
+         catch (Exception ex)
+         {
+            _logger.LogWarning("Failed To Create Folder: {}, Because: {}", fullPath, ex.Message);
+            _logger.LogDebug("{}", ex.ToString());
+
+            return Problem(title: "Folder Creation Failed", detail: "Failed to create the folder.", statusCode: 500);
+         }
+
+         try
+         {
+            // Add the folder to the MediaLibrary and make sure it's indexed before responding.
+            using MediaFolder mediaFolder = _mediaLibrary.InsertMediaFolder(fullPath);
+
+            mediaFolder.Save();
+
+            return StatusCode((int)HttpStatusCode.Created, mediaFolder.Model);
+         }
+         catch (Exception ex)
+         {
+            _logger.LogWarning("Failed To Insert Folder: {}, Because: {}", fullPath, ex.Message);
+            _logger.LogDebug("{}", ex.ToString());
+
+            return Problem(title: "Folder Creation Failed", detail: ex.Message, statusCode: 500);
+         }
       }
 
       // PUT: /api/library/{path}

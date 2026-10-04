@@ -32,5 +32,8 @@ namespace Arcadeia
       string? GenerateUniqueId(string? path, out bool reused);
       MediaContainerType GetMediaType(string path);
       void ClearCache();
+      void ClearCache(string path);
+      IDisposable LockPaths(params string[] paths);
+      bool IsLocked(string? path);
    }
 }

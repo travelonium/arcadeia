@@ -513,6 +513,23 @@ namespace Arcadeia.Solr
          }
       }
 
+      public bool Update(IEnumerable<T> documents)
+      {
+         try
+         {
+            Solr.AddRange(documents);
+            Solr.Commit();
+
+            return true;
+         }
+         catch (SolrNetException e)
+         {
+            Logger.LogError("Failed To Update, Because: {}", e.Message);
+
+            return false;
+         }
+      }
+
       public bool Delete(T document)
       {
          try

@@ -33,6 +33,7 @@ namespace Arcadeia.Solr
       SolrQueryResults<T> Get(string query);
       bool Add(T document);
       bool Update(T document);
+      bool Update(IEnumerable<T> documents);
       bool Delete(T document);
       bool Clear();
       bool ClearHistory();

@@ -274,6 +274,7 @@ class NavMenu extends Component {
                                 <HistoryDropdown className="me-1" name="history" tooltip="History" limit={this.props.ui.history.items} solr={this.props.settings?.Solr?.URL} onSelect={this.onHistorySelect.bind(this)} disabled={disabled} />
                                 <Button className="me-1" name="selection" icon="bi-check-square" tooltip="Selection" onClick={() => this.props.library.current?.showSelection()} disabled={disabled} />
                                 <Button className="me-1" name="delete" icon="bi-trash" tooltip="Delete" onClick={() => this.props.library.current?.delete()} disabled={disabled} />
+                                <Button className="me-1" name="new-folder" icon="bi-folder-plus" tooltip="New Folder" onClick={() => this.props.library.current?.createFolder()} disabled={disabled} />
                                 <Button className="me-1" name="uploads" icon="bi-upload" tooltip="Uploads" onClick={() => this.props.library.current?.showUploads()}>
                                 {
                                     (active > 0 || queued > 0) ?
