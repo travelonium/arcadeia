@@ -1,6 +1,8 @@
 ---
+title: "Arcadeia License & Legal — AGPL and Media Rights"
+titleTemplate: false
 outline: deep
-description: Arcadeia's AGPL license, third-party software and models, media rights, warranty and deployment responsibilities.
+description: "Read Arcadeia’s AGPL license guidance, third-party software and model licenses, media rights, privacy information and deployment responsibilities."
 ---
 
 # License & Legal

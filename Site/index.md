@@ -6,8 +6,8 @@ titleTemplate: false
 description: Find photos and videos in your own archive with animated thumbnails, search and browser playback. Try the Arcadeia demo or install with Docker.
 
 hero:
-  name: false
-  text: "Find the video you remember."
+  name: "Find the video you remember."
+  text: false
   image: /icon.svg
   tagline: "Browse your photos and videos with animated previews. An open-source media library you host on your own server."
 
@@ -46,7 +46,7 @@ features:
 
 Arcadeia is intended for local or trusted network use. It does not include built-in authentication for public deployment. Read the [deployment guidance](/docs/index.html) before exposing an instance to the internet.
 
-## From a folder of files to a visual library
+## A self-hosted photo and video library
 
 Install Arcadeia with Docker, add a few photos or videos to Uploads, and let it generate previews. Browse clips visually, search for a filename or description, and mark favorites to revisit later.
 
@@ -55,3 +55,22 @@ Want to find a video by something someone said? Enable optional speech transcrip
 ## Help shape Arcadeia
 
 [Report an issue](https://github.com/travelonium/arcadeia/issues) or contribute through [GitHub](https://github.com/travelonium/arcadeia). Feedback on setup, browsing and playback helps improve the next release.
+
+
+## Common questions
+
+### Is Arcadeia free and open source?
+
+Yes. Arcadeia is free software under the AGPL version 3 or later. You can run it on your own server and explore or contribute to the source on GitHub. Read the [license and legal guide](/docs/legal.html) for distribution terms and media rights.
+
+### How do I install Arcadeia?
+
+Use Docker and Docker Compose on a compatible host, then add a few photos or videos to your library. The [getting started guide](/docs/getting-started.html) covers installation, persistent storage and troubleshooting.
+
+### Can I search for words spoken in videos?
+
+Yes. Optional local speech recognition makes transcribed speech searchable. It is disabled by default; enable it in [transcription settings](/docs/settings.html#transcription). Supported embedded text subtitles can also supply searchable text.
+
+### Can I use Arcadeia as a public media server?
+
+Arcadeia is intended for local or trusted network use and has no built-in user authentication. Review the [deployment guidance](/docs/#deployment-status) before making an instance accessible over the internet.

@@ -264,6 +264,7 @@ Temporary Items
 **/.backup
 **/.tools
 *.txt
+!Site/public/robots.txt
 
 # Custom development and production settings
 appsettings.*.json

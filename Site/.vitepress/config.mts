@@ -25,7 +25,7 @@ const siteUrl = 'https://www.arcadeia.org';
 // https://vitepress.dev/reference/site-config
 
 export default defineConfig({
-    title: "ARCADEIA",
+    title: "Arcadeia",
     description: "Arcadeia is an open-source, self-hosted media library for photos and videos. Browse animated video thumbnails, search your archive and watch in your browser.",
     sitemap: {
         hostname: "https://www.arcadeia.org"
@@ -35,7 +35,7 @@ export default defineConfig({
     transformHead({ pageData, siteData }) {
         const pathname = pageData.relativePath === 'index.md'
             ? '/'
-            : `/${pageData.relativePath.replace(/\.md$/, '.html')}`;
+            : `/${pageData.relativePath.replace(/index\.md$/, '').replace(/\.md$/, '.html')}`;
         const url = new URL(pathname, siteUrl).href;
         const title = pageData.frontmatter.titleTemplate === false
             ? pageData.title
@@ -43,9 +43,49 @@ export default defineConfig({
         const description = pageData.description || siteData.description;
         const image = `${siteUrl}/media-preview.jpg`;
 
+        const isNotFound = pageData.relativePath === '404.md';
+        const graph: Record<string, unknown>[] = [
+            {
+                '@type': 'WebSite', '@id': `${siteUrl}/#website`,
+                url: `${siteUrl}/`, name: 'Arcadeia', inLanguage: 'en-US',
+                description: siteData.description,
+            },
+            {
+                '@type': 'WebPage', '@id': `${url}#webpage`, url, name: title,
+                description, inLanguage: 'en-US',
+                isPartOf: { '@id': `${siteUrl}/#website` },
+            },
+        ];
+        if (pathname === '/') {
+            graph.push({
+                '@type': 'SoftwareApplication', '@id': `${siteUrl}/#software`,
+                name: 'Arcadeia', url: `${siteUrl}/`, description,
+                applicationCategory: 'MultimediaApplication',
+                operatingSystem: 'Linux; macOS with Docker Desktop',
+                isAccessibleForFree: true,
+                license: 'https://www.gnu.org/licenses/agpl-3.0.html',
+                downloadUrl: 'https://github.com/travelonium/arcadeia/releases',
+                screenshot: image,
+                offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD', url: `${siteUrl}/docs/getting-started.html` },
+                featureList: ['Animated video thumbnails', 'Photo and video search', 'Browser playback', 'Optional local speech transcription'],
+            });
+        } else if (pathname.startsWith('/docs/')) {
+            graph.push({
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                    { '@type': 'ListItem', position: 1, name: 'Arcadeia', item: `${siteUrl}/` },
+                    { '@type': 'ListItem', position: 2, name: 'Documentation', item: `${siteUrl}/docs/` },
+                    ...(pathname === '/docs/' ? [] : [{ '@type': 'ListItem', position: 3, name: pageData.title, item: url }]),
+                ],
+            });
+        }
+
         return [
+            ['meta', { name: 'robots', content: isNotFound ? 'noindex, follow' : 'index, follow, max-image-preview:large' }],
+            ...(!isNotFound ? [['script', { type: 'application/ld+json' }, JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c')]] : []),
             ['link', { rel: 'canonical', href: url }],
             ['meta', { property: 'og:type', content: 'website' }],
+            ['meta', { property: 'og:locale', content: 'en_US' }],
             ['meta', { property: 'og:site_name', content: 'Arcadeia' }],
             ['meta', { property: 'og:title', content: title }],
             ['meta', { property: 'og:description', content: description }],
@@ -81,7 +121,7 @@ export default defineConfig({
             },
             {
                 text: 'Documentation',
-                link: '/docs/index.html',
+                link: '/docs/',
                 activeMatch: '/docs'
             }
         ],
@@ -92,7 +132,7 @@ export default defineConfig({
                 items: [
                     {
                         text: 'Introduction',
-                        link: '/docs/index.html'
+                        link: '/docs/'
                     },
                     {
                         text: 'Getting Started',

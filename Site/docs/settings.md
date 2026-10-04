@@ -1,6 +1,8 @@
 ---
+title: "Arcadeia Settings — UI and Configuration Guide"
+titleTemplate: false
 outline: deep
-description: Configure Arcadeia scanning, network storage, video previews, transcription, subtitles and playback.
+description: "Configure Arcadeia using the settings UI or JSON: scanning, network storage, transcoding, local speech recognition, thumbnails, logging and security."
 ---
 
 # Settings

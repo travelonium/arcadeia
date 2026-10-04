@@ -1,6 +1,8 @@
 ---
+title: "Install Arcadeia with Docker — Getting Started"
+titleTemplate: false
 outline: deep
-description: Install Arcadeia with Docker Compose, add your first photos and videos, and troubleshoot common setup problems.
+description: "Install Arcadeia with Docker Compose, add your first photos and videos, and troubleshoot your self-hosted media library setup."
 ---
 
 # Getting Started

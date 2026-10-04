@@ -1,6 +1,8 @@
 ---
+title: "Arcadeia Documentation — Self-hosted Media Library"
+titleTemplate: false
 outline: deep
-description: Learn how Arcadeia organizes your photos and videos, which services it needs, and how to deploy it on a trusted network.
+description: "Learn how to install and configure Arcadeia, the open-source photo and video library with animated previews, browser playback and local speech search."
 ---
 
 # Introduction

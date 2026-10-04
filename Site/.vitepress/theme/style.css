@@ -245,3 +245,9 @@
 @media (min-width: 960px) {
   .home-preview { padding: 0 64px; }
 }
+
+/* Keep the semantic hero heading in the existing text color. */
+.VPHero {
+  --vp-home-hero-name-color: var(--vp-c-text-1);
+  --vp-home-hero-name-background: none;
+}
