@@ -38,6 +38,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/vitest.setup.js'],
   },
+  css: {
+    preprocessorOptions: {
+      // Vitest bundles Vite 5 which still defaults to the deprecated legacy Sass API.
+      scss: { api: 'modern' },
+    },
+  },
   plugins: [
     react(),
     removeConsole({

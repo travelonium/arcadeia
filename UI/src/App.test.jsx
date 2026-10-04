@@ -75,7 +75,9 @@ it('renders without crashing', async () => {
                 </MemoryRouter>
             </Provider>
         );
+        // let the async updates triggered by mounting (e.g. fetches and dropdown positioning) settle
+        await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    root.unmount();
+    act(() => root.unmount());
     document.body.removeChild(div);
 });
