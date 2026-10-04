@@ -676,6 +676,22 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
 
     &.card-view {
         .card {
+            // size the labels relative to the tile rather than the viewport
+            container-type: inline-size;
+
+            // there's only room for the name and the footer below the thumbnail on narrow cards
+            @container (max-width: 300px) {
+                .card-body {
+                    .card-title {
+                        flex-shrink: 0;
+                    }
+
+                    // overrides the d-flex of the EditableText
+                    .card-text {
+                        display: none !important;
+                    }
+                }
+            }
 
             .thumbnail-container {
                 .thumbnail {
