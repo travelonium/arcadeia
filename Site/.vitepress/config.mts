@@ -18,21 +18,9 @@
  *
  */
 
-import fs from 'fs';
-import path from 'path';
-import simpleGit from 'simple-git';
 import { defineConfig } from 'vitepress';
 
-async function getLatestTag() {
-    const git = simpleGit();
-    try {
-        const tags = await git.tags();
-        return tags.latest || 'latest';
-    } catch (err) {
-        console.error('Error fetching git tags:', err);
-        return 'unknown';
-    }
-}
+const siteUrl = 'https://www.arcadeia.org';
 
 // https://vitepress.dev/reference/site-config
 
@@ -44,16 +32,40 @@ export default defineConfig({
     },
     cleanUrls: false,
     lang: 'en-US',
-    vite: {
-        define: {
-            __LATEST_TAG__: JSON.stringify(await getLatestTag()),
-        },
-        ssr: {
-            noExternal: ['simple-git'],
-        },
+    transformHead({ pageData, siteData }) {
+        const pathname = pageData.relativePath === 'index.md'
+            ? '/'
+            : `/${pageData.relativePath.replace(/\.md$/, '.html')}`;
+        const url = new URL(pathname, siteUrl).href;
+        const title = pageData.frontmatter.titleTemplate === false
+            ? pageData.title
+            : `${pageData.title} | ${siteData.title}`;
+        const description = pageData.description || siteData.description;
+        const image = `${siteUrl}/media-preview.jpg`;
+
+        return [
+            ['link', { rel: 'canonical', href: url }],
+            ['meta', { property: 'og:type', content: 'website' }],
+            ['meta', { property: 'og:site_name', content: 'Arcadeia' }],
+            ['meta', { property: 'og:title', content: title }],
+            ['meta', { property: 'og:description', content: description }],
+            ['meta', { property: 'og:url', content: url }],
+            ['meta', { property: 'og:image', content: image }],
+            ['meta', { property: 'og:image:alt', content: 'Arcadeia photo and video library with visual previews' }],
+            ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+            ['meta', { name: 'twitter:title', content: title }],
+            ['meta', { name: 'twitter:description', content: description }],
+            ['meta', { name: 'twitter:image', content: image }],
+            ['meta', { name: 'twitter:image:alt', content: 'Arcadeia photo and video library with visual previews' }],
+        ];
     },
     themeConfig: {
         siteTitle: false,
+        search: { provider: 'local' },
+        editLink: {
+            pattern: 'https://github.com/travelonium/arcadeia/edit/master/Site/:path',
+            text: 'Improve this page on GitHub'
+        },
         logo: "/logo-full.svg",
 
         // https://vitepress.dev/reference/default-theme-config
@@ -62,6 +74,10 @@ export default defineConfig({
             {
                 text: 'Home',
                 link: '/'
+            },
+            {
+                text: 'Try the demo',
+                link: 'https://demo.arcadeia.org/Uploads/'
             },
             {
                 text: 'Documentation',
@@ -74,6 +90,10 @@ export default defineConfig({
             {
                 text: 'Documentation',
                 items: [
+                    {
+                        text: 'Introduction',
+                        link: '/docs/index.html'
+                    },
                     {
                         text: 'Getting Started',
                         link: '/docs/getting-started.html'
@@ -92,7 +112,7 @@ export default defineConfig({
 
         footer: {
             message: 'Licensed Under <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>',
-            copyright: 'Copyright © 2024 <a href="https://www.travelonium.com" target="_blank" rel="noopener noreferrer">Travelonium AB</a>'
+            copyright: `Copyright © 2024–${new Date().getUTCFullYear()} <a href="https://www.travelonium.com" target="_blank" rel="noopener noreferrer">Travelonium AB</a>`
         },
 
         socialLinks: [

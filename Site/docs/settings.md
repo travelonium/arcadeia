@@ -1,276 +1,156 @@
 ---
 outline: deep
+description: Configure Arcadeia scanning, network storage, video previews, transcription, subtitles and playback.
 ---
 
 # Settings
 
-This page describes the different options and ways you can configure and customize your **Arcadeia** instance.
+Use the application's settings screen to configure your library, scanning and playback. For Docker deployments, `appsettings.Production.json` in the installation directory overrides the bundled defaults. `./start production` creates an empty file if one is missing.
 
-## Advanced Settings
-When you run **Arcadeia** for the first time, an empty `JSON` file called `appsettings.Production.json` is created. This file can override the default settings defined in `appsettings.json`. From here on we describe what each section does and how one can configure it.
+Use complete JSON objects when editing this file, and keep an existing configuration's other sections when adding an override. Paths refer to the application container's filesystem unless noted otherwise.
 
-### Defaults
-The default settings are bundled with the application through the `appsettings.json` file:
+This reference follows the current source configuration; available options can differ in older releases.
+
+## Defaults
+
+These defaults are included directly from the current source configuration:
 
 ```json
 <!--@include: ../../appsettings.json-->
 ```
 
-### Session
-The Session section allows you to configure how browser sessions are managed in **Arcadeia**. These settings determine how long session data is retained and when it expires due to inactivity. Proper configuration of session settings is essential to ensure both optimal performance and security.
+## Scanner
 
-#### IdleTimeoutSeconds:
-This setting specifies the maximum amount of time (in seconds) a browser session can remain idle before its contents are automatically discarded. If the session is accessed during the idle period, the timer resets, effectively extending the session’s lifespan.
+The scanner indexes photos and videos, extracts their metadata and generates thumbnails.
 
-### Thumbnails
-Configures how and what thumbnails are generated for each type of media file, and where they are stored.
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `StartupScan` | `true` | Find new or modified media at startup. |
+| `StartupUpdate` | `true` | Revisit indexed media and remove entries for files that have been deleted. |
+| `StartupCleanup` | `false` | Reserved; cleanup is not implemented. |
+| `ForceGenerateMissingThumbnails` | `false` | Regenerate missing thumbnails when media is accessed or scanned. |
+| `ForceDetectMissingSubtitles` | `false` | Check previously indexed videos for embedded subtitle streams that have not been detected. |
+| `PeriodicScanIntervalMilliseconds` | `3600000` | Interval between scans, in milliseconds; `0` disables periodic scans. |
+| `ParallelScannerTasks` | `4` | Number of concurrent scanning tasks. More tasks increase resource use. |
+| `Folders` | `["/Network", "/Uploads"]` | Folders scanned recursively. |
+| `WatchedFolders` | `[]` | Folders monitored for filesystem changes. |
+| `IgnoredPatterns` | See defaults above | Regular expressions for paths excluded from indexing. |
 
-#### Database
-The thumbnails are stored in a SQLite database and the database is located in a named docker volume called `data`.
+Start with a small media sample to check thumbnail generation and playback before scanning a large archive.
 
-##### Name
-Configures the name of the database file.
+## Network storage
 
-**Default:** `Thumbnails.sqlite`
+The `Mounts` array configures network mounts. Mounts use the container's `mount` utility and must be reachable from the Docker host and container.
 
-##### Path
-Configures the path where the thumbnails database is stored inside the `/var/lib/app/` folder. Any modifications to this path requires that the bind volume be updated inside the `docker-compose-production.yml` file.
+For example, this override connects an NFS share:
 
-**Default:** `data`
-
-#### Video
-Describes what thumbnails should be generated for the supported video files. Currently the following thumbnails are generated and stored for each video file:
-
-1. **Large:** (480xH)
-2. **Medium:** (320xH)
-3. **Small:** (160xH)
-4. **Sprite:** 60 * (160xH)
-5. **T:** 24 * (480x272)
-
-##### Name
-The name of a thumbnail field or the prefix of each indexed thumbnail field in a thumbnails database row.
-
-##### Settings
-1. **Count (integer):** In case of an indexed field such as `T` or a Sprite, specifies how many thumbnails should be extracted from the entire length of a video file. In case of an indexed field, the fields in the thumbnails database will be called `T0`, `T1`, `T2`, ...
-2. **Width (integer):** The maximum width of the generated thumbnail. If omitted, the `Height` determines the size and the `Width` will be adjusted to preserve the aspect ratio.
-3. **Height (integer):** The maximum height of the generated thumbnail. If omitted, the `Width` determines the size and the `Height` will be adjusted to preserve the aspect ratio.
-4. **Sprite (boolean):** Determines whether the field is a Sprite consisting of a `Count` of thumbnails lined up in a single image and field.
-5. **Crop (boolean):** Determines if the thumbnails are to be cropped to a `16:9` aspect ratio.
-
-#### Photo
-Describes what thumbnails should be generated for the supported photo files. Currently the following thumbnails are generated and stored for each photo file:
-
-1. **Large:** (480xH)
-2. **Medium:** (320xH)
-3. **Small:** (160xH)
-4. **T:** 1 * (480x272)
-
-##### Name
-The name of a thumbnail field or the prefix of each indexed thumbnail field in a thumbnails database row.
-
-##### Settings
-1. **Count (integer):** This is not quite applicable in case of photo files but is used to keep the `T` thumbnails consistent with video files and as such, only one of them is generated.
-2. **Width (integer):** The maximum width of the generated thumbnail. If omitted, the `Height` determines the size and the `Width` will be adjusted to preserve the aspect ratio.
-3. **Height (integer):** The maximum height of the generated thumbnail. If omitted, the `Width` determines the size and the `Height` will be adjusted to preserve the aspect ratio.
-4. **Crop (boolean):** Determines if the thumbnails are to be cropped to a `16:9` aspect ratio.
-
-### Streaming
-**Arcadeia** supports transcoding and streaming video files that are not directly supported by web browsers to a format that is. Some of the parameters of these operations can be tweaked.
-
-#### Segments
-To make this work, a longer video file is divided into segments of fixed size. The browser first asks for a list of all the segments which is provided to it in a `.m3u8` playlist and starts requesting individual segments and buffering them. Each requested segment is then transcoded and streamed to the web browser on the fly.
-
-##### Duration (integer)
-Determines the duration of each segment in seconds.
-
-**Default:** `10`
-
-### SupportedExtensions
-
-#### Audio (array)
-Accepts an array of audio file extensions including a dot in the beginning.
-
-> [!NOTE]
-> Audio files are currently not supported and this setting has no effect.
-
-#### Video (array)
-Accepts an array of video file extensions including a dot in the beginning.
-
-#### Photo (array)
-Accepts an array of photo file extensions including a dot in the beginning.
-
-### FFmpeg
-The FFmpeg utilities are bundled in the Docker image and are used for the following purposes:
-
-1. Extracting video file properties and metadata.
-2. Generating thumbnails and sprites from video files.
-3. Transcoding video files for streaming purposes.
-
-#### Path (string)
-Specifies where the `ffmpeg` and `ffprobe` executables are located.
-
-**Default:** `/usr/bin`
-
-#### TimeoutMilliseconds (integer)
-Specifies the timeout in milliseconds after which any FFmpeg utility execution is forcefully terminated in case it takes an unusually long time to return.
-
-**Default:** `30000`
-
-#### HardwareAcceleration (string)
-Specifies what hardware acceleration method should be used when calling `ffmpeg` through its `-hwaccel` argument. You can read more about this argument [here](https://trac.ffmpeg.org/wiki/HWAccelIntro).
-
-**Default:** `null`
-
-#### Encoder
-Specifies the encoders to use when transcoding video files.
-
-##### Video (string)
-Specifies which video encoder to use when transcoding video files.
-
-**Default:** `libx264`
-
-##### Audio (string)
-Specifies which audio encoder to use when transcoding video files.
-
-**Default:** `aac`
-
-##### Subtitle (string)
-Specifies which subtitle encoder to use when transcoding video files.
-
-> [!NOTE]
-> Subtitles are currently not supported and this setting has no effect.
-
-#### Decoder
-Specifies the decoders to use when transcoding video files.
-
-> [!TIP]
-> FFmpeg is designed to automatically detect the appropriate decoder based on the input file’s format and codec. It's hard to imagine a scenario where one might need to tweak these.
-
-##### Video (string)
-Specifies which video decoder to use when transcoding video files.
-
-##### Audio (string)
-Specifies which audio decoder to use when transcoding video files.
-
-##### Subtitle (string)
-Specifies which subtitle decoder to use when transcoding video files.
-
-> [!NOTE]
-> Subtitles are currently not supported and this setting has no effect.
-
-### YtDlp
-[yt-dlp](https://github.com/yt-dlp/yt-dlp) is a feature-rich command-line audio/video downloader with support for thousands of sites. When a URL is dropped inside the Upload Zone and the URL is of a supported site, it is passed on to yt-dlp to download and add the video file to the media library.
-
-#### Path (string)
-Specifies where the `yt-dlp` executable is located.
-
-**Default:** `/usr/local/bin`
-
-#### Options (array)
-Additional [options](https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#usage-and-options) to be passed to the `yt-dlp` executable.
-
-### Solr
-An Apache Solr core is the backbone of the media library, used for indexing and storing media file information. The core is then used in the user interface to browse and search media files.
-
-#### URL (string)
-The URL of the Solr core. The default core that is used and initialized at startup is called `Library`.
-
-**Default:** `http://solr:8983/solr/Library`
-
-### Scanner
-The Scanner service is responsible for scanning specified folders for new or modified media files, indexing media file information, generating thumbnails and updating the media library.
-
-#### StartupScan (boolean)
-If enabled, the Scanner service will scan the available [Folders](#folders-array) and [WatchedFolders](#watchedfolders-array) at startup and insert or update the new and modified media filers to the media library. Startup Scanning does not remove deleted files from the media library.
-
-**Default:** `true`
-
-#### StartupUpdate (boolean)
-If enabled, the Scanner service will go through the media library and update or remove the media files available in [Folders](#folders-array) and [WatchedFolders](#watchedfolders-array). Startup Update detects and removes the deleted files from the media library.
-
-**Default:** `true`
-
-#### StartupCleanup (boolean)
-
-> [!NOTE]
-> Startup Cleanup is not yet implemented and currently this setting has no effect.
-
-**Default:** `false`
-
-#### ForceGenerateMissingThumbnails (boolean)
-Forces regeneration of any missing thumbnails upon access, startup scanning or startup update.
-
-**Default:** `false`
-
-#### PeriodicScanIntervalMilliseconds (integer)
-Adjusts the interval in milliseconds at which a Periodic Scan is performed or disables it altogether. A Periodic Scan works the same way as a [Startup Scan](#startupscan-boolean) but is triggered periodically in order to keep the media library updated automatically.
-
-**Default:** `3600000`
-
-#### ParallelScannerTasks (integer)
-Adjusts the number of parallel tasks spawned during [Startup Scan](#startupscan-boolean) and [Startup Update](#startupupdate-boolean).
-
-**Default:** `4`
-
-#### WatchedFolders (array)
-The Scanner service can watch folders for changes and update the media library when media files are added, deleted or modified.
-
-**Default:** `[]`
-
-#### Folders (array)
-Specifies the folders to be recursively scanned or updated during [Startup Scan](#startupscan-boolean) and [Startup Update](#startupupdate-boolean).
-
-**Default:** `["/Network", "/Uploads"]`
-
-#### IgnoredPatterns (array)
-[Regex](https://en.wikipedia.org/wiki/Regular_expression) patterns that specify file names to be excluded from the media library during [Startup Scan](#startupscan-boolean) or any other operation that adds files to media library.
-
-**Default:**
 ```json
-[
-    "\\/\\..*", // Matches hidden files or directories (those that start with a dot .) in paths that use forward slashes.
-    "^\\..*$"   // Matches hidden files or directories (those starting with a dot .) at the beginning of the string.
-]
-```
-
-### Mounts (array)
-The FileSystem service is responsible for mounting and dismounting network mounts specified in this array. The arguments are directly passed on to the [mount](https://man7.org/linux/man-pages/man8/mount.8.html) utility.
-
-**Example:**
-```json
-"Mounts": [
+{
+  "Mounts": [
     {
       "Device": "192.168.0.123:/photos",
       "Folder": "/Network/Photos",
       "Options": "nolock",
       "Types": "nfs"
     }
-]
+  ]
+}
 ```
 
-#### Device (string)
-The device name to mount. e.g. in the case of an NFS mount, device may look like `server:/dir`.
+Replace the example address and share with your own. `Folder` is the path inside the application container. A folder under `/Network/` is included in the default scanner configuration.
 
-#### Folder (string)
-The location where the filesystem will be mounted. The folder will be created if it does not exist. By convention, this should be a folder inside `/Network/`.
+| Property | Meaning |
+| --- | --- |
+| `Device` | Share or device to mount, such as `server:/photos` for NFS. |
+| `Folder` | Container directory where the share will appear. |
+| `Options` | Options passed to `mount -o`. |
+| `Types` | Filesystem type passed to `mount -t`, such as `nfs`. |
 
-#### Options (string)
-The mount options passed through the `-o, --options` argument.
+## Transcription
 
-#### Types (string)
-The file system type passed through `-t, --types` argument.
+Optional speech transcription uses **whisper.cpp** to process video audio locally and index the transcript for search. It is **disabled by default**. The Docker image includes `whisper-cli` and a small model; a native installation needs its own executable and model.
 
-### Security
-Manages settings related to security.
+Enable it in the application's transcription settings, or add this override:
 
-#### Library
-Manages settings related to library security.
+```json
+{
+  "Transcription": {
+    "Enabled": true
+  }
+}
+```
 
-##### ReadOnly (boolean)
-Makes the library read-only and thus unmodifiable through external means such as the user interface.
+Transcription runs in a background queue. Allow it to finish before searching for spoken words. It is CPU-intensive, and its accuracy depends on the language, recording and model.
 
-#### Settings
-Manages settings related to configuration security.
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `Enabled` | `false` | Enable speech transcription and transcript search. |
+| `Path` | `null` | Location of `whisper-cli`; automatic discovery is used when unset. |
+| `Model` | `/usr/share/whisper/ggml-small.bin` | Model file accessible to the application. |
+| `Language` | `auto` | Detect the spoken language or use a configured language code. |
+| `TimeoutMilliseconds` | `1800000` | Maximum processing time for one video: 30 minutes. |
+| `ParallelTasks` | `1` | Number of concurrent transcription tasks. |
+| `CatchUpOnStartup` | `true` | Queue existing videos that are still missing transcripts when transcription starts. |
 
-##### ReadOnly (boolean)
-Makes the settings read-only and thus unmodifiable through external means such as the user interface.
+## Subtitles
+
+Arcadeia detects supported embedded text subtitle streams and converts them to WebVTT for the browser. Image-based DVD and Blu-ray subtitle formats are not supported by this conversion.
+
+`Scanner.ForceDetectMissingSubtitles` checks older indexed videos that have not been checked yet. Speech transcription can provide captions for videos without embedded subtitle streams.
+
+## Thumbnails
+
+Thumbnails are stored in SQLite. In the Docker setup, `Thumbnails.Database.Path` defaults to `data` under `/var/lib/app/`, persisted by the `data` volume; the file is named `Thumbnails.sqlite`.
+
+The defaults generate large, medium and small previews for photos and videos. Videos also receive a sprite and up to 24 indexed `T` frames for dynamic thumbnails. The actual number of frames depends on the media and processing result.
+
+| Property | Meaning |
+| --- | --- |
+| `Count` | Number of frames requested for an indexed field or sprite. |
+| `Width`, `Height` | Maximum dimensions; aspect ratio is preserved when one dimension is omitted. |
+| `Sprite` | Combine frames into one sprite image. |
+| `Crop` | Crop preview frames; see the current per-field defaults above. |
+
+If you change the database directory, update the Docker volume configuration to persist the new location.
+
+## Playback and FFmpeg
+
+FFmpeg and FFprobe extract media properties, generate thumbnails and transcode videos for browser playback. They are bundled in the Docker image.
+
+`Streaming.Segments.Duration` defaults to `10` seconds. Transcoded playback uses an HLS playlist whose segments are generated as the browser requests them.
+
+| FFmpeg setting | Default | Purpose |
+| --- | --- | --- |
+| `Path` | `null` | Location of the executables; automatic discovery is used when unset. |
+| `TimeoutMilliseconds` | `30000` | Timeout for FFmpeg utility operations. |
+| `HardwareAcceleration` | `null` | Optional FFmpeg hardware acceleration method. |
+| `Encoder.Video`, `Encoder.Audio`, `Encoder.Subtitle` | `null` | Optional encoder overrides. |
+| `Decoder.Video`, `Decoder.Audio`, `Decoder.Subtitle` | `null` | Optional decoder overrides. |
+
+The defaults leave encoder and decoder choices unset. Configure hardware acceleration only when the host, container and codec support the selected method.
+
+## Supported extensions
+
+`SupportedExtensions.Video` and `SupportedExtensions.Photo` list the accepted filename extensions, including their leading dots. See the defaults above for the current list.
+
+An accepted extension does not guarantee that every codec inside that format will play directly in a browser. FFmpeg handles supported transcoding paths. Standalone audio files are not currently supported; the audio extension list is empty.
+
+## URL imports
+
+Dropping a supported media URL into the upload area uses **yt-dlp** to download and index the video. `YtDlp.Path` defaults to `null` for executable discovery, and `YtDlp.Options` accepts additional command-line options.
+
+Downloads can fail when a source restricts access or changes its site. Import only media you have permission to download and store.
+
+## Solr
+
+`Solr.URL` defaults to `/solr/Library`. The application resolves this to the bundled Solr service in Docker, and the browser accesses it through the proxy. Solr stores the searchable media index; it does not store your original video files.
+
+## Session
+
+`Session.IdleTimeoutSeconds` defaults to `600` seconds. Accessing a session resets its idle timer. Browser sessions are not user authentication.
+
+## Security
+
+`Security.Library.ReadOnly` disables library modifications through the application API. `Security.Settings.ReadOnly` disables edits through the settings API. Both default to `false`.
+
+These settings do not add authentication or protect every exposed service. Follow the [deployment guidance](/docs/index.html#deployment-status) and restrict access to your instance as a whole.

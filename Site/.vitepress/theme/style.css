@@ -198,3 +198,50 @@
     }
   }
 }
+
+/* Show the product before the feature list on the homepage. */
+.home-preview {
+  padding: 0 24px;
+  margin-bottom: 48px;
+}
+
+.home-preview-content {
+  max-width: 1152px;
+  margin: 0 auto;
+}
+
+.home-preview h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.home-preview video {
+  display: block;
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  border-radius: 10px;
+}
+
+.home-preview p {
+  max-width: 800px;
+  margin-top: 16px;
+  line-height: 1.7;
+  color: var(--vp-c-text-2);
+}
+
+.home-preview a {
+  color: var(--vp-c-brand-1);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .home-preview { padding: 0 48px; }
+}
+
+@media (min-width: 960px) {
+  .home-preview { padding: 0 64px; }
+}

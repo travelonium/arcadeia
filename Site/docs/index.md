@@ -1,15 +1,17 @@
 ---
 outline: deep
+description: Learn how Arcadeia organizes your photos and videos, which services it needs, and how to deploy it on a trusted network.
 ---
 
 # Introduction
 
-**Arcadeia** is an open-source, self-hosted and web-based media archiving, browsing, searching and management solution designed to bring order and access
-to your personal media storage. It allows you to collect all your media files in one place and find, view and manage your media files on any device.
+Arcadeia is an open-source, self-hosted photo and video library. Dynamic thumbnails preview video moments automatically, so you can recognize clips without opening every file. Search, favorites, network storage and browser playback help you revisit your archive.
 
-It also features **Dynamic Thumbnails** that brings your library to life by showing a quick preview of the video files without requiring any interaction whatsoever.
+[Try the sample library](https://demo.arcadeia.org/Uploads/) or [install with Docker](/docs/getting-started.html). Optional [speech transcription](/docs/settings.html#transcription) makes words spoken in videos searchable.
 
-<video src="./assets/introduction-video-preview.mp4" title="Arcadeia Preview" style="border-radius: 10px;" autoplay loop></video>
+<video src="./assets/introduction-video-preview.mp4" poster="/media-preview.jpg" title="Arcadeia media library preview" style="width: 100%; height: auto; border-radius: 10px;" controls muted playsinline preload="metadata"></video>
+
+## Deployment status
 
 ::: warning
 
@@ -33,23 +35,16 @@ It also features **Dynamic Thumbnails** that brings your library to life by show
 - **Storage**: Minimum 10 GB free disk space (additional space required based on media library size)
 
 ### Software Requirements
-- **Operating System**:
-  - **Linux**: Ubuntu 20.04+, Debian 10+, CentOS 8+, or similar distributions
-  - **macOS**: Version 11.0 (Big Sur) or later with Apple Silicon (M1/M2) or Intel processors
-- **Docker**:
-  - Version 20.10.0 or later (Docker Desktop for macOS)
-- **Docker Compose**:
-  - Version 1.29.0 or later
+
+- A Linux Docker host or Docker Desktop on macOS compatible with your hardware and current operating system.
+- Docker Compose **2.24.4 or later**, required for the supplied `!override` configuration.
+- For native builds, the current source targets **.NET 10**; the Docker image bundles its runtime.
 
 ### Network Requirements
-- **Ports**:
-  - **80**: For Apache HTTP server
 
-### Recommended Environment
-- **Virtualization**: Compatible with cloud services like AWS, Azure, and Google Cloud
-- **Development Tools**: (for contributors and advanced users)
-  - Visual Studio Code
-  - Docker CLI
+The default configuration publishes ports **80 and 443** on the host. HTTPS requires additional certificate and proxy configuration; it is not enabled merely by publishing port 443.
+
+Start with a local or trusted network deployment. Follow the [installation guide](/docs/getting-started.html) to download the package and bring up the services.
 
 ### Dependencies
 - **Arcadeia Application**:

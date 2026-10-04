@@ -1,6 +1,9 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Arcadeia — Self-hosted photo and video library
+titleTemplate: false
+description: Find photos and videos in your own archive with animated thumbnails, search and browser playback. Try the Arcadeia demo or install with Docker.
 
 hero:
   name: false
@@ -11,10 +14,10 @@ hero:
   actions:
     - theme: brand
       text: Try the demo
-      link: https://demo.arcadeia.org
+      link: https://demo.arcadeia.org/Uploads/
 
     - theme: alt
-      text: Install Arcadeia
+      text: Get Started
       link: /docs/getting-started.html
 
     - theme: alt
@@ -26,7 +29,7 @@ features:
     details: Dynamic thumbnails automatically preview key moments, so you can find a familiar clip without opening every file.
 
   - title: Search your media archive
-    details: Find photos and videos with search and advanced queries, then mark favorites for easy access.
+    details: Find media by filename, description or advanced query. Optional speech transcription makes spoken words searchable too.
 
   - title: Bring your media together
     details: Upload files, directories or URLs with drag and drop, and connect network storage locations.
@@ -41,10 +44,14 @@ features:
     details: Explore the source, report issues and contribute improvements. Licensed under AGPL-3.0.
 ---
 
-## See dynamic thumbnails in action
-
-<video src="./docs/assets/introduction-video-preview.mp4" poster="./docs/assets/introduction-preview.png" title="Arcadeia media browsing and dynamic thumbnail preview" style="width: 100%; border-radius: 10px;" controls muted playsinline preload="metadata"></video>
-
-[Try the demo](https://demo.arcadeia.org) or [install your own instance](/docs/getting-started.html).
-
 Arcadeia is intended for local or trusted network use. It does not include built-in authentication for public deployment. Read the [deployment guidance](/docs/index.html) before exposing an instance to the internet.
+
+## From a folder of files to a visual library
+
+Install Arcadeia with Docker, add a few photos or videos to Uploads, and let it generate previews. Browse clips visually, search for a filename or description, and mark favorites to revisit later.
+
+Want to find a video by something someone said? Enable optional speech transcription in [Settings](/docs/settings.html#transcription) to search its spoken words.
+
+## Help shape Arcadeia
+
+[Report an issue](https://github.com/travelonium/arcadeia/issues) or contribute through [GitHub](https://github.com/travelonium/arcadeia). Feedback on setup, browsing and playback helps improve the next release.
