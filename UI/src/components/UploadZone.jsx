@@ -108,9 +108,11 @@ export class UploadZone extends Component {
         const queued = this.props.ui.uploads.queued.filter(item => item.timestamp < started);
         // URL uploads of this session may still be running on the server, keep them in the current batch
         const running = this.props.ui.uploads.active.filter(item => item.url && item.timestamp >= started);
+        // and so may the uploads of this session still waiting in the queue, e.g. while it's paused
+        const waiting = this.props.ui.uploads.queued.filter(item => item.timestamp >= started);
         this.setState({
             // start a fresh batch so the previously finished uploads don't count toward its total
-            timestamp: Math.min(Date.now(), ...running.map(item => item.timestamp))
+            timestamp: Math.min(Date.now(), ...running.map(item => item.timestamp), ...waiting.map(item => item.timestamp))
         }, () => {
             // go through the list of active uploads and set the stale items to failed
             active.forEach((item) => {
