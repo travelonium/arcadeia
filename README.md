@@ -4,7 +4,7 @@
 
 Arcadeia is an open-source, self-hosted media library for browsing, searching and managing your personal photos and videos in a web browser. **Dynamic thumbnails** preview key moments in videos automatically, so you can recognize a clip without opening each file.
 
-[Try the demo](https://demo.arcadeia.org) · [Installation guide](https://www.arcadeia.org/docs/getting-started.html) · [Website](https://www.arcadeia.org) · [Latest release](https://github.com/travelonium/arcadeia/releases/latest)
+[Try The Demo](https://demo.arcadeia.org) · [Installation guide](https://www.arcadeia.org/docs/getting-started.html) · [Website](https://www.arcadeia.org) · [Latest release](https://github.com/travelonium/arcadeia/releases/latest)
 
 ![Arcadeia media library with dynamic video thumbnails](https://github.com/user-attachments/assets/36b287d7-5c17-4f9c-a5b3-29dedd02edd9)
 

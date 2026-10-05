@@ -116,7 +116,7 @@ export default defineConfig({
                 link: '/'
             },
             {
-                text: 'Try the demo',
+                text: 'Try The Demo',
                 link: 'https://demo.arcadeia.org/Uploads/'
             },
             {

@@ -13,7 +13,7 @@ hero:
 
   actions:
     - theme: brand
-      text: Try the demo
+      text: Try The Demo
       link: https://demo.arcadeia.org/Uploads/
 
     - theme: alt
