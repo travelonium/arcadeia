@@ -159,7 +159,8 @@
   --docsearch-primary-color: var(--vp-c-brand-1) !important;
 }
 
-.main {
+/* scoped to the hero, as the local search results use the same classes */
+.VPHero .main {
   .text {
     font-size: 50px;
   }
