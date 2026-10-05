@@ -151,8 +151,9 @@ const Uploads = forwardRef((props, ref) => {
                                 {
                                     (upload.state === 'active') ?
                                         <Row className="status pt-1 flex-nowrap align-items-center small">
-                                            <Col className="gx-0 text-info text-nowrap" xs="auto">
-                                                {upload.status ?? "Starting..."}
+                                            <Col className="gx-0 text-info text-nowrap text-uppercase" xs="auto">
+                                                {/* the ellipsis of the toast titles is redundant next to the progress bar */}
+                                                {(upload.status ?? "Starting").replace(/(\.\.\.|…)$/, '')}
                                             </Col>
                                             {
                                                 (progress != null) ?

@@ -75,7 +75,7 @@ describe('Uploads', () => {
         await render([item('clip', 'active', { status: 'Uploading...' })], { clip: { value: 0.42, timestamp: 0 } });
 
         const element = row('clip.mp4');
-        expect(element.querySelector('.status').textContent).toContain('Uploading...');
+        expect(element.querySelector('.status').textContent).toBe('Uploading42%');
         expect(element.querySelector('.status .percentage').textContent).toBe('42%');
         expect(element.querySelector('.status .progress')).not.toBeNull();
     });
@@ -90,8 +90,14 @@ describe('Uploads', () => {
         await render([item('clip', 'active', { status: 'Resolving...' })]);
 
         const element = row('clip.mp4');
-        expect(element.querySelector('.status').textContent).toBe('Resolving...');
+        expect(element.querySelector('.status').textContent).toBe('Resolving');
         expect(element.querySelector('.status .progress')).toBeNull();
+    });
+
+    it('shows the starting status of an active upload without a status yet', async () => {
+        await render([item('clip', 'active')]);
+
+        expect(row('clip.mp4').querySelector('.status').textContent).toBe('Starting');
     });
 
     it('switches to processing with the bar restarting from zero', async () => {
@@ -100,7 +106,7 @@ describe('Uploads', () => {
         await act(async () => store.dispatch(updateUpload({ key: 'clip', progress: 0, value: { status: 'Processing...' } })));
 
         const element = row('clip.mp4');
-        expect(element.querySelector('.status').textContent).toContain('Processing...');
+        expect(element.querySelector('.status').textContent).toBe('Processing0%');
         expect(element.querySelector('.status .percentage').textContent).toBe('0%');
     });
 

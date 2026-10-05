@@ -390,8 +390,14 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                     border-radius: 0px;
                 }
 
-                .status .percentage {
-                    min-width: 3em;
+                .status {
+                    // without the room below the baseline the uppercase status and the
+                    // percentage line up with the middle of the progress bar
+                    line-height: 1;
+
+                    .percentage {
+                        min-width: 3em;
+                    }
                 }
             }
         }
