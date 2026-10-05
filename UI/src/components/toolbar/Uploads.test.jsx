@@ -110,6 +110,22 @@ describe('Uploads', () => {
         expect(element.querySelector('.status .percentage').textContent).toBe('0%');
     });
 
+    it('keeps the list in place while the progress is updated', async () => {
+        const store = await render([item('one', 'active'), item('two', 'active')], { one: { value: 0.1, timestamp: 0 } });
+
+        const element = row('one.mp4');
+        const list = element.parentElement.parentElement;
+        list.scrollTop = 50;
+
+        await act(async () => store.dispatch(updateUpload({ key: 'one', progress: 0.5, value: { status: 'Uploading...' } })));
+
+        // a remounted list would have lost its scroll position along with its rows
+        expect(element.isConnected).toBe(true);
+        expect(list.isConnected).toBe(true);
+        expect(list.scrollTop).toBe(50);
+        expect(element.querySelector('.status .percentage').textContent).toBe('50%');
+    });
+
     it('does not show a status for uploads that are not active', async () => {
         await render([
             item('queued', 'queued'),
