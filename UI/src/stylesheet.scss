@@ -383,6 +383,7 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                     line-clamp: 2;
                     overflow: hidden;
                     overflow-wrap: anywhere;
+                    padding-bottom: 0.125rem;
                 }
 
                 .progress {
@@ -394,6 +395,9 @@ $upload-zone-overlay-z-index: $zindex-modal + 1;
                     // without the room below the baseline the uppercase status and the
                     // percentage line up with the middle of the progress bar
                     line-height: 1;
+                    // which also takes the space around the text away, so make up for it to keep
+                    // the status as far from the line above as that is from the name
+                    padding-top: 0.375rem;
 
                     .percentage {
                         min-width: 3em;

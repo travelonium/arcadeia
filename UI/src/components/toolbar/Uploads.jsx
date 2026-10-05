@@ -76,7 +76,7 @@ const Upload = React.memo(({ upload, progress, style, onOpen, onRetry, onRemove 
                     <Col className="d-flex align-items-center gx-0">
                         <Container fluid>
                             <Row>
-                                <Col className="name gx-0 pb-1" xs={12} title={upload.name ?? upload.url}>
+                                <Col className="name gx-0" xs={12} title={upload.name ?? upload.url}>
                                 {
                                     (upload.state === 'succeeded') ?
                                         <a href={pb.join(upload.path, upload.name)} className="text-decoration-none text-body" onClick={() => onOpen(upload.path, upload.name)}><strong>{shorten(upload.name ?? upload.url, 120)}</strong></a>
@@ -96,7 +96,7 @@ const Upload = React.memo(({ upload, progress, style, onOpen, onRetry, onRemove 
                             </Row>
                             {
                                 (upload.state === 'active') ?
-                                    <Row className="status pt-1 flex-nowrap align-items-center small">
+                                    <Row className="status flex-nowrap align-items-center small">
                                         <Col className="gx-0 text-info text-nowrap text-uppercase" xs="auto">
                                             {/* the ellipsis of the toast titles is redundant next to the progress bar */}
                                             {(upload.status ?? "Starting").replace(/(\.\.\.|…)$/, '')}
