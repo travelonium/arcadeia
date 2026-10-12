@@ -9,6 +9,6 @@
     "site:preview": "vitepress preview"
   },
   "dependencies": {
-    "bootstrap-icons": "^1.11.3"
+    "bootstrap-icons": "^1.13.2"
   }
 }
