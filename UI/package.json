@@ -35,7 +35,7 @@
     "react-virtualized-auto-sizer": "^1.0.25",
     "react-window": "^1.8.11",
     "redux-persist": "^6.0.0",
-    "video.js": "^8.21.0",
+    "video.js": "^8.24.1",
     "viewerjs": "^1.11.7"
   },
   "devDependencies": {
