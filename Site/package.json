@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "simple-git": "^3.27.0",
+    "simple-git": "^4.0.2",
     "vitepress": "^1.5.0"
   },
   "scripts": {
